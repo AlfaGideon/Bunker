@@ -20,3 +20,17 @@ The radio is a fictional local instrumental loop, not an external broadcast.
 Narration uses the installed system TTS engine; no voice recordings are
 redistributed. The engine and installed voice may have separate terms and
 network requirements.
+
+## KayKit character models and authored animation (0.6)
+
+The unchanged `assets/kaykit/*.glb` files are from **KayKit Adventurers** by
+**Kay Lousberg**, released under CC0-1.0. Source repository, pinned revision
+and runtime adaptations: `assets/licenses/KAYKIT_SOURCE.md`; original license:
+`assets/licenses/KAYKIT.txt`; original-file SHA-256: `assets/manifest.json`.
+Weapons, shields, capes and helmet are hidden at runtime. These remain
+stylised characters, not photorealistic humans.
+
+Unlike the older Quaternius rigs above, KayKit includes authored animation.
+The game uses `Walking_C`, `Idle` and `Use_Item` clips through a manually
+advanced AnimationPlayer. The original procedural animation remains only as
+a fallback for the legacy figures, including exterior infected characters.
