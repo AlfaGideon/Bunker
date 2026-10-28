@@ -5,6 +5,8 @@ var base_rotations: Dictionary = {}
 var phase := 0.0
 var motion := 0.0
 var gesture := 0.0
+var animation_player: AnimationPlayer
+var current_clip := ""
 
 
 func _ready() -> void:
@@ -12,6 +14,9 @@ func _ready() -> void:
 
 
 func _collect(node: Node) -> void:
+	if node is AnimationPlayer and get_meta("source", "").contains("kaykit"):
+		animation_player = node
+		animation_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	if node is Skeleton3D:
 		if not skeletons.has(node):
 			skeletons.append(node)
@@ -47,6 +52,14 @@ func animate(delta: float, walking: bool, seed_offset: float, reduced_motion: bo
 	motion = move_toward(motion, 1.0 if walking else 0.0, delta * 7.0)
 	phase += delta * (8.0 if walking else 1.8)
 	gesture = maxf(0.0, gesture - delta)
+	if is_instance_valid(animation_player):
+		var clip := "Walking_A" if walking else ("Use_Item" if gesture > 0 else "Idle")
+		if clip != current_clip:
+			current_clip = clip
+			animation_player.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+			animation_player.play(clip)
+		animation_player.advance(delta)
+		return
 	var stride := sin(phase) * motion
 	for skeleton in skeletons:
 		var forward := global_basis.z.normalized()
@@ -57,8 +70,16 @@ func animate(delta: float, walking: bool, seed_offset: float, reduced_motion: bo
 			_aim_bone(skeleton, "UpperLeg." + side, Vector3.DOWN + forward * step * 0.48)
 			_aim_bone(skeleton, "LowerLeg." + side, Vector3.DOWN + forward * (step * 0.12 - maxf(0.0, -step) * 0.35))
 			_aim_bone(skeleton, "Foot." + side, forward)
-		_aim_bone(skeleton, "UpperArm.L", Vector3.DOWN + forward * stride * 0.6)
-		_aim_bone(skeleton, "UpperArm.R", Vector3.DOWN + forward * (-stride * 0.6 + gesture))
+		_aim_bone(skeleton, "UpperArm.L", Vector3.DOWN - forward * stride * 0.6)
+		_aim_bone(skeleton, "UpperArm.R", Vector3.DOWN + forward * (stride * 0.6 + gesture))
 		_pose(skeleton, "LowerArm.R", Vector3.RIGHT, -gesture * 0.65)
 		_pose(skeleton, "Head", Vector3.UP, 0.0 if reduced_motion else sin(phase * 0.3 + seed_offset) * 0.07)
 	position.y = 0.0 if reduced_motion else absf(sin(phase)) * motion * 0.035
+
+
+static func bone_name(skeleton: Skeleton3D, original: String) -> String:
+	if skeleton.find_bone(original) >= 0:
+		return original
+	var names := {"UpperLeg": "upperleg", "LowerLeg": "lowerleg", "Foot": "foot", "UpperArm": "upperarm", "LowerArm": "lowerarm", "Hand": "hand", "Head": "head"}
+	var parts := original.split(".")
+	return str(names.get(parts[0], parts[0].to_lower())) + ("." + parts[1].to_lower() if parts.size() > 1 else "")

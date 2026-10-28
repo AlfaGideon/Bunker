@@ -48,7 +48,7 @@ func run() -> void:
 		check(not nav.path_between(start, plan["items"]["medical"]["goal"]).is_empty(), "Medical reachable after unlocking")
 	check(variants.size() == 3, "Three layout variants")
 	var scenarios := Content.scenarios()
-	check(scenarios.size() == 4, "Four catastrophe stories")
+	check(scenarios.size() >= 12, "Expanded catastrophe stories")
 	var scene := load("res://game/main.tscn") as PackedScene
 	for index in scenarios.size():
 		var room := scene.instantiate()

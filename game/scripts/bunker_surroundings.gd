@@ -1,5 +1,6 @@
 extends RefCounted
 
+const Finish = preload("res://game/scripts/bunker_finish.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 
 
@@ -8,17 +9,13 @@ static func build(room: Node3D) -> void:
 	var side: float = plan["med_side"]
 	room._box(Vector3(0, -0.52, 0), Vector3(80, 0.2, 80), Color("242c30"))
 	room._box(Vector3(0, -0.2, 0), Vector3(18, 0.4, 10.6), plan["floor_color"])
-	for x in range(-8, 9):
-		room._box(Vector3(x, 0.005, 0), Vector3(0.018, 0.01, 10.5), Color("526066"))
-	for z in range(-5, 6):
-		room._box(Vector3(0, 0.005, z), Vector3(18, 0.01, 0.018), Color("526066"))
 	# One continuous floor and real partitions, not a room placed inside a set.
 	for x in range(-8, 9, 2):
 		Art.spawn(room, "modular_sci_fi_Wall_1", Vector3(x, 0, -5.2), Vector3(1.95, 2.0, 0.2))
 	for wall in plan["blockers"].slice(6):
 		var center: Vector2 = wall.get_center()
 		var size: Vector2 = wall.size
-		room._box(Vector3(center.x, 0.6, center.y), Vector3(0.13 if size.x < 1 else size.x, 1.2, 0.13 if size.y < 1 else size.y), Color("65777a"))
+		Finish.wall(room, center, size)
 	var table: Vector3 = plan["table"]
 	Art.spawn(room, "house_interior_pack_Table_RoundLarge", table, Vector3(3.1, 0.9, 1.7))
 	Art.spawn(room, "survival_pack_Radio", plan["items"]["radio"]["at"] - Vector3(0, 0.14, 0), Vector3(0.5, 0.3, 0.25))
@@ -53,3 +50,4 @@ static func build(room: Node3D) -> void:
 	lamp.light_color = Color("ffcf89")
 	lamp.light_energy = 1.4
 	room.add_child(lamp)
+	Finish.decorate(room)

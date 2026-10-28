@@ -1,5 +1,6 @@
 extends Node3D
 
+const Supplies = preload("res://game/scripts/group_supplies.gd")
 const Layout = preload("res://game/scripts/bunker_layout.gd")
 const BunkerAudio = preload("res://game/scripts/bunker_audio.gd")
 const Weather = preload("res://game/scripts/winter_weather.gd")
@@ -14,6 +15,7 @@ const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
+var supplies := Supplies.new()
 var scenario: Dictionary
 var layout: Dictionary
 var layout_seed := 0
@@ -341,6 +343,8 @@ func _refresh() -> void:
 		var card: Dictionary = c
 		var visible: bool = selected == 0 or card["revealed"]
 		detail.add_child(_label(card["label"] + ": " + (card["value"] if visible else "скрыто")))
+		if card["id"] == "health" and visible:
+			detail.add_child(_label("Доп. нагрузка: " + Supplies.cost_text(card.get("cost", {})), 16))
 		if selected == 0 and not card["revealed"] and phase == "reveal" and active.has(0):
 			_button("Раскрыть: " + card["label"], func():
 				actors[0].get_child(0).gesture = 1.5
@@ -383,8 +387,7 @@ func _biology_revealed(index: int) -> bool:
 
 
 func _model_name(index: int, appearance: String) -> String:
-	var options := ["modular_men_Worker", "modular_men_Adventurer"] if appearance == "male" else ["modular_women_Casual", "modular_women_SciFi"]
-	return options[(index / 2) % 2]
+	return "kaykit_Knight" if appearance == "male" else ("kaykit_Rogue" if index % 2 == 0 else "kaykit_Rogue_Hooded")
 
 
 func _change_appearance(index: int, appearance: String) -> void:
@@ -424,9 +427,10 @@ func _advance() -> void:
 				log_label.text = "Подождите: исключённый участник идёт к выходу."
 			else:
 				round_number += 1
+				supplies.charge_round(round_number, players, active, scenario["weather"])
 				phase = "reveal"
 				_update_medical_access()
-				log_label.text = "Новый раунд. Откройте следующую характеристику."
+				log_label.text = "Новый раунд. Откройте следующую характеристику. " + supplies.last_report
 		"end":
 			log_label.text = "Демонстрация завершена. Можно начать заново."
 	_refresh()
@@ -732,8 +736,8 @@ func _complete_interaction(key: String) -> void:
 			else:
 				used_actions["medical"] = round_number
 				medicines -= 1
-				stamina = mini(100, stamina + 15)
-				log_label.text = "Осмотр выполнен, бодрость +15. Закрытые характеристики не раскрываются. " + medical_status()
+				stamina = mini(100, stamina + (5 if supplies.shortage else 15))
+				log_label.text = "Осмотр выполнен, бодрость +%d. Закрытые характеристики не раскрываются. " % (5 if supplies.shortage else 15) + medical_status()
 
 
 func _tick_rest(delta: float) -> void:
@@ -744,7 +748,7 @@ func _tick_rest(delta: float) -> void:
 		visual.position = Vector3.ZERO
 		actors[0].position = rest_return
 		actors[0].rotation.y = rest_rotation
-		stamina = mini(100, stamina + 20)
+		stamina = mini(100, stamina + (10 if supplies.shortage else 20))
 		log_label.text = "Вы отдохнули. Бодрость: %d/100. Снова можно отдохнуть в следующем раунде." % stamina
 
 

@@ -18,7 +18,11 @@ static func create_players(count: int, nickname: String, appearance: String = "m
 		cards.append({"id": "biology", "label": "Биология", "value": ("Мужчина, " if sex == "male" else "Женщина, ") + age, "revealed": false})
 		for key in fields:
 			var options: Array = content[fields[key][1]]
-			cards.append({"id": key, "label": fields[key][0], "value": options.pick_random(), "revealed": false})
+			var option: Variant = options.pick_random()
+			if key == "health":
+				cards.append({"id": key, "label": fields[key][0], "value": option["label"], "cost": option["cost"].duplicate(), "revealed": false})
+			else:
+				cards.append({"id": key, "label": fields[key][0], "value": option, "revealed": false})
 		players.append({"id": "local_%d" % i, "name": names[i], "sex": sex, "appearance": appearance if i == 0 else ["male", "female"].pick_random(), "cards": cards})
 	return players
 

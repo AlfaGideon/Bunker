@@ -5,7 +5,7 @@ const FOLDER := "res://assets/quaternius/"
 
 
 static func _bounds(node: Node, result: Array, reference: Transform3D) -> void:
-	if node is MeshInstance3D and node.mesh != null:
+	if node is MeshInstance3D and node.mesh != null and node.visible:
 		var bounds: AABB = reference * node.global_transform * node.get_aabb()
 		if result.is_empty():
 			result.append(bounds)
@@ -19,10 +19,17 @@ static func spawn(parent: Node3D, filename: String, at: Vector3,
 		size: Vector3, uniform: bool = false) -> Node3D:
 	var wrapper := Node3D.new()
 	parent.add_child(wrapper)
-	var scene := load(FOLDER + filename + ".glb") as PackedScene
+	var source := ("res://assets/kaykit/" + filename.trim_prefix("kaykit_") + ".glb") if filename.begins_with("kaykit_") else FOLDER + filename + ".glb"
+	var scene := load(source) as PackedScene
 	assert(scene != null, "Missing art: " + filename)
 	var model := scene.instantiate() as Node3D
 	wrapper.add_child(model)
+	wrapper.set_meta("source", source)
+	if filename.begins_with("kaykit_"):
+		for mesh in model.find_children("*", "MeshInstance3D", true, false):
+			for accessory in ["Sword", "Shield", "Knife", "Crossbow", "Throwable", "Cape", "Helmet"]:
+				if accessory in mesh.name:
+					mesh.visible = false
 	var found: Array = []
 	_bounds(model, found, wrapper.global_transform.affine_inverse())
 	assert(not found.is_empty(), "Model has no meshes: " + filename)

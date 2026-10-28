@@ -1,5 +1,6 @@
 extends Node3D
 
+const Meteors = preload("res://game/scripts/meteor_field.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const Visual = preload("res://game/scripts/survivor_visual.gd")
 var emitters: Array[CPUParticles3D] = []
@@ -8,6 +9,8 @@ var water: MeshInstance3D
 var walkers: Array[Node3D] = []
 var clock := 0.0
 var reduced_motion := false
+var meteor_field: Node3D
+var hazard_lamp: OmniLight3D
 
 
 func setup(room: Node3D, weather: String) -> void:
@@ -22,6 +25,7 @@ func setup(room: Node3D, weather: String) -> void:
 		_build_walkers(room)
 		return
 	if weather != "snow":
+		_build_hazard(room, weather)
 		return
 	room._box(Vector3(0, -0.45, 0), Vector3(80, 0.1, 80), Color("c7d5de"))
 	var snow_material := StandardMaterial3D.new()
@@ -67,6 +71,11 @@ func setup(room: Node3D, weather: String) -> void:
 
 func set_reduced_motion(reduced: bool) -> void:
 	reduced_motion = reduced
+	if is_instance_valid(meteor_field):
+		meteor_field.reduced_motion = reduced
+	for child in get_children():
+		if child.has_meta("aurora"):
+			child.material_override.set_shader_parameter("still", reduced)
 	for snow in emitters:
 		snow.visible = not reduced
 		snow.emitting = not reduced
@@ -108,16 +117,10 @@ func _build_flood(room: Node3D) -> void:
 
 
 func _build_meteors(room: Node3D) -> void:
-	_exterior_particles(Color("ff943e"), false)
-	for i in 8:
-		var crater := MeshInstance3D.new()
-		var ring := TorusMesh.new()
-		ring.inner_radius = 0.5
-		ring.outer_radius = 0.9
-		crater.mesh = ring
-		crater.material_override = room._material(Color("50372e"))
-		crater.position = Vector3(-11 if i % 2 == 0 else 11, -0.25, float(i) * 2 - 7)
-		add_child(crater)
+	meteor_field = Meteors.new()
+	add_child(meteor_field)
+	meteor_field.setup(room)
+	emitters.append_array(meteor_field.emitters)
 
 
 func _build_walkers(room: Node3D) -> void:
@@ -141,6 +144,8 @@ func _process(delta: float) -> void:
 	if reduced_motion:
 		return
 	clock += delta
+	if is_instance_valid(hazard_lamp):
+		hazard_lamp.light_energy = 2.0 + sin(clock * 2.0) * 1.2
 	if is_instance_valid(water):
 		water.position.y = -0.24 + sin(clock * 0.9) * 0.025
 	for i in walkers.size():
@@ -153,3 +158,89 @@ func _process(delta: float) -> void:
 			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(direction.x, direction.z), delta * 2)
 		actor.get_child(0).gesture = 0.7
 		actor.get_child(0).animate(delta * 0.6, true, float(i))
+
+
+func _build_hazard(room: Node3D, weather: String) -> void:
+	var colors := {"radiation": Color("616342"), "toxic": Color("3b5a4b"), "volcano": Color("4a3028"), "sand": Color("a68a58"), "heat": Color("8e624b"), "blackout": Color("162333"), "quake": Color("5b5550"), "solar": Color("253346")}
+	room._box(Vector3(0, -0.43, 0), Vector3(80, 0.08, 80), colors.get(weather, Color("384550")))
+	if weather == "solar":
+		_build_aurora()
+	elif weather == "blackout":
+		room.sun.light_energy = 0.18
+		for x in [-11, 11]:
+			room._world_label("АВАРИЙНАЯ СЕТЬ", Vector3(x, 1.4, 3), 20)
+			room._box(Vector3(x, 0.6, 3), Vector3(0.25, 2, 0.25), Color("485a6b"))
+	else:
+		_build_dust(Color("82b06d") if weather in ["radiation", "toxic"] else (Color("c5aa77") if weather in ["sand", "heat"] else Color("8d8078")))
+	if weather in ["volcano", "quake"]:
+		for side in [-1, 1]:
+			for i in 12:
+				var crack: MeshInstance3D = room._box(Vector3(side * 11, -0.36, i - 5.0), Vector3(0.12, 0.02, 1.3), Color("ed6325") if weather == "volcano" else Color("181d23"))
+				crack.rotation.y = sin(float(i) * 2) * 0.8
+				if weather == "volcano":
+					var mat := StandardMaterial3D.new()
+					mat.emission_enabled = true
+					mat.emission = Color("ff7529")
+					mat.albedo_color = Color("fd8e40")
+					crack.material_override = mat
+	if weather in ["radiation", "toxic", "volcano", "blackout"]:
+		hazard_lamp = OmniLight3D.new()
+		hazard_lamp.position = Vector3(10, 2, 5)
+		hazard_lamp.omni_range = 7
+		hazard_lamp.light_color = Color("ffa44b") if weather == "volcano" else Color("66b8cd") if weather == "blackout" else Color("a8d27c")
+		add_child(hazard_lamp)
+
+
+func _build_dust(color: Color) -> void:
+	var gradient := Gradient.new()
+	gradient.colors = PackedColorArray([Color(1, 1, 1, 0.22), Color(1, 1, 1, 0)])
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1, 0.5)
+	texture.width = 64
+	texture.height = 64
+	for zone in [Vector3(-12, 1, 0), Vector3(12, 1, 0), Vector3(0, 1, 10), Vector3(0, 1, -10)]:
+		var particles := CPUParticles3D.new()
+		particles.position = zone
+		particles.amount = 30
+		particles.lifetime = 7
+		particles.preprocess = 5
+		particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		particles.emission_box_extents = Vector3(2, 0.5, 6) if absf(zone.x) > 0 else Vector3(10, 0.5, 2)
+		particles.direction = Vector3(1, 0.05, 0)
+		particles.initial_velocity_min = 0.2
+		particles.initial_velocity_max = 0.6
+		particles.gravity = Vector3.ZERO
+		var cloud := QuadMesh.new()
+		cloud.size = Vector2(2.5, 2.5)
+		particles.mesh = cloud
+		var material := StandardMaterial3D.new()
+		material.albedo_color = color
+		material.albedo_texture = texture
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		particles.material_override = material
+		add_child(particles)
+		emitters.append(particles)
+
+
+func _build_aurora() -> void:
+	var ribbon := MeshInstance3D.new()
+	var plane := QuadMesh.new()
+	plane.size = Vector2(24, 5)
+	ribbon.mesh = plane
+	ribbon.position = Vector3(0, 3, -9)
+	var shader := Shader.new()
+	shader.code = """shader_type spatial; render_mode unshaded, cull_disabled, blend_add, depth_draw_never;
+	uniform bool still = false;
+	void fragment(){float t=still?0.0:TIME; float wave=sin(UV.x*20.0+t*0.4)*0.12;
+	float band=exp(-pow((UV.y-0.55-wave)*6.0,2.0));
+	ALBEDO=mix(vec3(0.2,0.8,0.65),vec3(0.55,0.2,0.9),UV.y); ALPHA=band*0.65;}"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	ribbon.material_override = material
+	add_child(ribbon)
+	ribbon.set_meta("aurora", true)

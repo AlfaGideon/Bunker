@@ -55,7 +55,7 @@ func home() -> void:
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.5", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.6", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
 	button("Продолжить партию", room.begin_game)
@@ -229,6 +229,9 @@ func show_facility() -> void:
 	text("ПОМЕЩЕНИЯ И ПРЕДМЕТЫ", 26)
 	text("Бодрость: %d/100 • Ремкомплекты: %d" % [room.stamina, room.inventory["repair"]], 18)
 	text(room.medical_status(), 17)
+	text(room.supplies.summary(), 17)
+	text(room.supplies.last_report, 16)
+	text("Характеристики здоровья влияют на расход запасов всей группы. Симуляции заражения нет; голоса и d6 не меняются автоматически.", 16)
 	text("Выберите предмет — персонаж сам подойдёт к нему. Отдых и обследование доступны один раз за раунд.", 17)
 	for key in room.layout["items"]:
 		var id: String = key

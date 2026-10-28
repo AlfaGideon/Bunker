@@ -131,5 +131,75 @@
     "author": "Quaternius",
     "license": "CC0-1.0",
     "sha256": "9e5c7934f44ee538446e6f54cbe9c09d4e49a7e78ee2e7f16d4cc7483c43e710"
+  },
+  {
+    "file": "assets/quaternius/modular_sci_fi_Wall_3.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/modular_sci_fi/Wall_3.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "2e0c058947509ec39fe533b61cf5583307eacc8fee372a49a984ce1d4d14fb35"
+  },
+  {
+    "file": "assets/quaternius/modular_sci_fi_Wall_4.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/modular_sci_fi/Wall_4.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "2c5d5529fdc4da7da3ab584223e3b6da4dedf23499899de389fd1f53850160ba"
+  },
+  {
+    "file": "assets/quaternius/modular_sci_fi_FloorTile_Basic2.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/modular_sci_fi/FloorTile_Basic2.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "919383395c28e2f02e2add38354ca2b1911767b5e985d71c45b48587450d56f0"
+  },
+  {
+    "file": "assets/quaternius/modular_sci_fi_Door_Single.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/modular_sci_fi/Door_Single.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "e9c69390f9dca55199f7a6e9ec682db304eb6232e1f7f24806c30e45146809b9"
+  },
+  {
+    "file": "assets/quaternius/modular_sci_fi_Props_Chest.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/modular_sci_fi/Props_Chest.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "e8d6b0b1496196e3c38226ffa1120b0987506a87861015cf29e72d630b33138d"
+  },
+  {
+    "file": "assets/quaternius/modular_sci_fi_Props_ComputerSmall.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/modular_sci_fi/Props_ComputerSmall.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "3935321927a9c5e24954135ba2c3ef16a9d0613babbe864855b407a0e0490353"
+  },
+  {
+    "file": "assets/quaternius/modular_sci_fi_Details_Vent_2.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/modular_sci_fi/Details_Vent_2.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "ebb16658571dc13823fa08be927ea166c83945ff1baf6335cb22b56c1700069a"
+  },
+  {
+    "file": "assets/kaykit/Knight.glb",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/blob/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb",
+    "author": "Kay Lousberg / KayKit",
+    "license": "CC0-1.0",
+    "sha256": "60428e3abc09ba83e595d256e3af8c5c976b46cdae599f0802fc82b4a3445168"
+  },
+  {
+    "file": "assets/kaykit/Rogue.glb",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/blob/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb",
+    "author": "Kay Lousberg / KayKit",
+    "license": "CC0-1.0",
+    "sha256": "e825437cd4d2ee9c1960b517a74a69101e33eb409ae7fa8cedc7134a998fbb7d"
+  },
+  {
+    "file": "assets/kaykit/Rogue_Hooded.glb",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/blob/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue_Hooded.glb",
+    "author": "Kay Lousberg / KayKit",
+    "license": "CC0-1.0",
+    "sha256": "93e6e25213009952276d9cf34f5d96a243767334c66f280db0433ddfabb91545"
   }
 ]
