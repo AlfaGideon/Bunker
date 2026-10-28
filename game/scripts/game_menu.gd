@@ -197,6 +197,9 @@ func settings() -> void:
 	text("Для русской озвучки нужен установленный голос синтеза речи Android. Радио работает без интернета.", 16)
 	text("Масштаб камеры: стрелки или жест двумя пальцами в игре", 18)
 	var zoom := Choice.new()
+	zoom.wrap = false
+	zoom.previous.text = "Ближе"
+	zoom.next.text = "Дальше"
 	for step in range(9, 15):
 		zoom.add_item("Масштаб %d" % step, step)
 	zoom.select(clampi(roundi(profile.camera_size) - 9, 0, 5))

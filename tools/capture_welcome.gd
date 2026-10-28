@@ -10,6 +10,10 @@ func capture() -> void:
   welcome.draft_name = "Мира"
   welcome.update_avatar()
   welcome.home()
+ if OS.get_cmdline_user_args().has("--profile"):
+  welcome.edit_profile()
+ if OS.get_cmdline_user_args().has("--settings"):
+  welcome.settings()
  for frame in 25:
   await process_frame
  await create_timer(0.9).timeout
@@ -23,6 +27,10 @@ func capture() -> void:
   bytes = image.save_jpg_to_buffer(0.15)
  var encoded := Marshalls.raw_to_base64(bytes)
  var prefix := "WELCOMEAVATARSHOT" if OS.get_cmdline_user_args().has("--female") else "MENUSHOT"
+ if OS.get_cmdline_user_args().has("--profile"):
+  prefix = "CARDPROFILESHOT"
+ if OS.get_cmdline_user_args().has("--settings"):
+  prefix = "CARDSETTINGSHOT"
  for index in ceili(encoded.length() / 3500.0):
   print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))
  quit()

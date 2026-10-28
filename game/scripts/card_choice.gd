@@ -3,12 +3,12 @@ signal item_selected(index: int)
 const Style = preload("res://game/scripts/card_style.gd")
 var entries: Array = []
 var selected := 0
+var wrap := true
 var disabled := false:
  set(value):
   disabled = value
-  if is_instance_valid(previous):
-   previous.disabled = value
-   next.disabled = value
+  if is_instance_valid(previous) and is_instance_valid(next):
+   refresh()
 var previous: Button
 var next: Button
 var caption: Label
@@ -59,9 +59,11 @@ func get_selected_id() -> int:
 func cycle(direction: int) -> void:
  if disabled or entries.is_empty():
   return
- select(posmod(selected + direction, entries.size()))
+ select(posmod(selected + direction, entries.size()) if wrap else clampi(selected + direction, 0, entries.size() - 1))
  item_selected.emit(selected)
 
 func refresh() -> void:
  if is_instance_valid(caption):
   caption.text = "—" if entries.is_empty() else str(entries[selected]["text"])
+  previous.disabled = disabled or entries.size() < 2 or (not wrap and selected == 0)
+  next.disabled = disabled or entries.size() < 2 or (not wrap and selected == entries.size() - 1)
