@@ -1,8 +1,8 @@
 extends RefCounted
 
 const TAP_SLOP := 12.0
-const MIN_ZOOM := 4.0
-const MAX_ZOOM := 80.0
+const MIN_ZOOM := 7.0
+const MAX_ZOOM := 32.0
 var room: Node3D
 var fingers: Dictionary = {}
 var mouse_down := false
@@ -37,13 +37,42 @@ func transform_view(before: Vector2, after: Vector2, factor: float = 1.0) -> voi
   room.camera_tween.kill()
  var anchor: Variant = ground(before)
  room.camera.size = clampf(room.camera.size * factor, MIN_ZOOM, MAX_ZOOM)
+ # Limit the entire visible ground footprint, including ultra-wide screens.
+ var corners := ground_bounds()
+ var span := corners.size
+ var scale_limit := minf(112.0 / maxf(1.0, span.x), 112.0 / maxf(1.0, span.y))
+ if scale_limit < 1.0:
+  room.camera.size = maxf(MIN_ZOOM, room.camera.size * scale_limit)
  var target: Variant = ground(after)
  if anchor != null and target != null:
   room.camera.position += anchor - target
  var center: Variant = ground(room.get_viewport().get_visible_rect().size * 0.5)
  if center != null:
-  var limits: Rect2 = room.layout["bounds"].grow(10)
+  var limits: Rect2 = room.layout["bounds"].grow(6)
   room.camera.position += Vector3(clampf(center.x, limits.position.x, limits.end.x) - center.x, 0, clampf(center.z, limits.position.y, limits.end.y) - center.z)
+ # Keep every screen corner inside terrain, with eight metres of margin.
+ var visible_ground := ground_bounds()
+ var shift := Vector3.ZERO
+ if visible_ground.position.x < -56: shift.x = -56 - visible_ground.position.x
+ elif visible_ground.end.x > 56: shift.x = 56 - visible_ground.end.x
+ if visible_ground.position.y < -56: shift.z = -56 - visible_ground.position.y
+ elif visible_ground.end.y > 56: shift.z = 56 - visible_ground.end.y
+ room.camera.position += shift
+
+func ground_bounds() -> Rect2:
+ var size := room.get_viewport().get_visible_rect().size
+ var rect := Rect2()
+ var first := true
+ for point in [Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]:
+  var hit: Variant = ground(point)
+  if hit != null:
+   var at := Vector2(hit.x, hit.z)
+   if first:
+    rect = Rect2(at, Vector2.ZERO)
+    first = false
+   else:
+    rect = rect.expand(at)
+ return rect
 
 func handle(event: InputEvent) -> Dictionary:
  var result := {"handled": false}

@@ -56,12 +56,13 @@ func home() -> void:
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.11", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.12", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
 	button("Продолжить партию", room.begin_game)
 	button("Новая партия", new_game)
 	button("Помещения и предметы", show_facility)
+	button("Отрицательные действия", show_negative_actions)
 	button("Сводка катастрофы / озвучка", briefing)
 	button("Профиль игрока", show_profile)
 	button("Настройки", settings)
@@ -277,3 +278,34 @@ func show_council() -> void:
 			room.vote_warehouse(voter, false)
 			show_council())
 	button("Вернуться в игру", func(): visible = false)
+
+
+func show_negative_actions() -> void:
+	page = "negative_actions"
+	visible = true
+	clear()
+	text("ОТРИЦАТЕЛЬНЫЕ ДЕЙСТВИЯ", 27)
+	text("Добровольные поступки, вредящие общим запасам. Доступ определяет характер, а не профессия или здоровье. Одно действие за раунд; при использовании недостаток раскрывается группе.", 18)
+	text(room.supplies.summary(), 18)
+	var available: Array = room.NegativeActions.available(room.players[0])
+	if available.is_empty():
+		text("У вашего персонажа нет подходящего недостатка характера. Эти действия ему недоступны.", 18)
+	for key in available:
+		var action: Dictionary = room.NegativeActions.ACTIONS[key]
+		text(action["effect"] + ".", 18)
+		var reason: String = room.negative_action_block(key)
+		var use := button(action["title"], func(): confirm_negative_action(key))
+		use.disabled = not reason.is_empty()
+		if not reason.is_empty():
+			text(reason, 16)
+	button("Вернуться в партию", func(): visible = false)
+
+
+func confirm_negative_action(key: String) -> void:
+	clear()
+	text("ПОДТВЕРДИТЕ ДЕЙСТВИЕ", 27)
+	text(room.NegativeActions.ACTIONS[key]["effect"] + ". Ваш недостаток характера станет известен группе. Действие нельзя отменить.", 19)
+	button("Подтвердить", func():
+		room.perform_negative_action(key)
+		show_negative_actions())
+	button("Отмена", show_negative_actions)

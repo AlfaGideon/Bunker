@@ -1,5 +1,6 @@
 extends Node3D
 
+const NegativeActions = preload("res://game/scripts/negative_actions.gd")
 const Professions = preload("res://game/scripts/profession_rules.gd")
 const Speech = preload("res://game/scripts/speech_turns.gd")
 const Abilities = preload("res://game/scripts/special_abilities.gd")
@@ -111,6 +112,8 @@ func _ready() -> void:
 	add_child(audio)
 	audio.setup(self, layout["items"]["radio"]["at"])
 	_build_ui()
+	var screen_center := viewport_size * 0.5
+	camera_gestures.transform_view(screen_center, screen_center)
 	original_camera = camera.transform
 	apply_settings()
 	_refresh()
@@ -319,6 +322,7 @@ func _build_ui() -> void:
 	scroll.add_child(column)
 	column.add_child(_label(scenario["title"], 25))
 	_button("Помещения и предметы", func(): menu.show_facility(), column)
+	_button("Отрицательные действия", func(): menu.show_negative_actions(), column)
 	_button("Сводка катастрофы / озвучка", func(): menu.briefing(), column)
 	column.add_child(_label("Все уже внутри. Из %d выживших останутся %d. Партия: %d исключений." % [players.size(), capacity, players.size() - capacity]))
 	var roster := OptionButton.new()
@@ -953,6 +957,8 @@ func _frame_camera() -> void:
 	var focus := right * ((min_x + max_x) * 0.5) + up * ((min_y + max_y) * 0.5) + right * (camera.size / viewport_size.y * (35.0 if ui_root.visible else 0.0))
 	camera.position = focus + Vector3(7.2, 13, 13)
 	camera.look_at(focus)
+	var screen_center := viewport_size * 0.5
+	camera_gestures.transform_view(screen_center, screen_center)
 	original_camera = camera.transform
 
 
@@ -1070,3 +1076,32 @@ func _start_extra_bed(key: String, operator: int) -> void:
 	actors[operator].rotation.y = 0
 	actors[operator].get_child(0).rotation.z = PI / 2
 	actors[operator].get_child(0).position = Vector3(0.7, 0.7, 0)
+
+
+func negative_action_block(key: String) -> String:
+	if finished or not active.has(0) or phase in ["vote", "end"]:
+		return "Сейчас отрицательные действия недоступны."
+	if rest_remaining > 0 or jobs.has(0) or route_index < route.size():
+		return "Сначала завершите движение или отдых."
+	if key not in NegativeActions.available(players[0]):
+		return "У персонажа нет соответствующего недостатка характера."
+	if used_actions.get("negative_0", -1) == round_number:
+		return "Можно совершить только одно отрицательное действие за раунд."
+	if not NegativeActions.affordable(supplies.stock, key):
+		return "В общих запасах недостаточно ресурсов."
+	return ""
+
+
+func perform_negative_action(key: String) -> bool:
+	var reason := negative_action_block(key)
+	if not reason.is_empty():
+		log_label.text = reason
+		return false
+	var action: Dictionary = NegativeActions.ACTIONS[key]
+	for resource in action["cost"]:
+		supplies.stock[resource] -= action["cost"][resource]
+	used_actions["negative_0"] = round_number
+	NegativeActions.quality_card(players[0])["revealed"] = true
+	log_label.text = players[0]["name"] + ": " + action["title"] + ". " + action["effect"] + ". Недостаток характера раскрыт группе."
+	_refresh()
+	return true

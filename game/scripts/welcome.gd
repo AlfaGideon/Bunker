@@ -229,7 +229,7 @@ func home() -> void:
  button("Сохранить профиль", save_draft)
  button("Как играть", instructions)
  button("Выйти", func(): get_tree().quit())
- error_label = label("Локальный прототип • 0.11\nПартия начнётся только после нажатия «Начать».", 15)
+ error_label = label("Локальный прототип • 0.12\nПартия начнётся только после нажатия «Начать».", 15)
 
 func save_draft() -> bool:
  var value := draft_name.strip_edges()

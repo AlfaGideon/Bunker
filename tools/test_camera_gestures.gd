@@ -50,7 +50,11 @@ func run() -> void:
  controller.transform_view(center, center, 0.0001)
  check(room.camera.size == controller.MIN_ZOOM, "Minimum zoom")
  controller.transform_view(center, center, 10000)
- check(room.camera.size == controller.MAX_ZOOM, "Maximum zoom")
+ check(room.camera.size <= controller.MAX_ZOOM, "Maximum zoom")
+ for offset in [Vector2(10000,10000), Vector2(-20000,-20000), Vector2(10000,-10000)]:
+  controller.transform_view(center, center + offset, 1000)
+  var bounds: Rect2 = controller.ground_bounds()
+  check(bounds.position.x >= -56.01 and bounds.end.x <= 56.01 and bounds.position.y >= -56.01 and bounds.end.y <= 56.01, "Whole visible terrain stays inside safe border")
  touch(controller, 2, center, true)
  room.menu.visible = true
  room._input(InputEventMouseMotion.new())
