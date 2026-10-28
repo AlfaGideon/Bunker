@@ -43,5 +43,29 @@ func run() -> void:
  check(not room.vote_panel.visible and room.departures.has(0), "Expulsion closes vote and starts exit")
  room.queue_free()
  await process_frame
+ var tie_room = (load("res://game/main.tscn") as PackedScene).instantiate()
+ tie_room.profile.player_count = 10
+ root.add_child(tie_room)
+ tie_room.set_physics_process(false)
+ tie_room.menu.visible = false
+ tie_room.started = true
+ tie_room.start_vote()
+ for i in 5:
+  await process_frame
+ check(tie_room.vote_panel.deck.card_nodes.size() == 10 and tie_room.vote_panel.deck.pages.size() > 1, "Ten candidates accessible through card pages")
+ tie_room.ballots.clear()
+ for id in tie_room.active:
+  tie_room.ballots[id] = 0 if id % 2 == 0 else 1
+ tie_room.tick_round_timer(20.0)
+ check(tie_room.phase == "vote" and tie_room.vote_second and tie_room.vote_remaining == 20.0, "Tie starts a fresh 20-second runoff")
+ check(tie_room.vote_candidates == [0, 1], "Runoff limits explicit candidate choices")
+ check(not tie_room.cast_vote(2), "Reject a non-runoff candidate")
+ tie_room.ballots.clear()
+ for id in tie_room.active:
+  tie_room.ballots[id] = 1
+ tie_room.tick_round_timer(20.0)
+ check(not tie_room.active.has(1) and not tie_room.vote_panel.visible, "Runoff finishes exactly once")
+ tie_room.queue_free()
+ await process_frame
  print("Timed voting failures: ", failures)
  quit(1 if failures else 0)
