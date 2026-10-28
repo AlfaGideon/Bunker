@@ -16,5 +16,7 @@ for text,y,size,color in [('Б У Н К Е Р',440,76,'#e0e9e2'),('ПОСЛЕД�
  f=ImageFont.truetype(font,size);box=d.textbbox((0,0),text,font=f);d.text(((1280-(box[2]-box[0]))/2,y),text,font=f,fill=color)
 im.save(out/'splash.png',optimize=True)
 # Menu texture uses a tight crop of the same identity, not another logo variation.
-im.crop((300,90,980,600)).save(out/'logo.png',optimize=True)
+logo=im.crop((300,90,980,600)).convert('RGBA')
+logo.putdata([(r,g,b,0 if (r,g,b)==(16,29,37) else a) for r,g,b,a in logo.getdata()])
+logo.save(out/'logo.png',optimize=True)
 (out/'icon.svg').write_text('''<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" rx="48" fill="#101d25"/><circle cx="128" cy="128" r="91" fill="#243a43" stroke="#789293" stroke-width="10"/><rect x="163" y="65" width="10" height="126" fill="#efb65d"/><circle cx="116" cy="128" r="25" fill="none" stroke="#d5dfd7" stroke-width="8"/><path d="M76 128h80m-40-40v80" stroke="#d5dfd7" stroke-width="8"/></svg>''')

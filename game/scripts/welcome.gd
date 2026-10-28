@@ -83,12 +83,16 @@ func build_camp() -> void:
   log_piece.rotation.y = angle
  for i in 3:
   var flame := MeshInstance3D.new()
-  var mesh := SphereMesh.new()
-  mesh.radius = 0.25 - i * 0.05
+  var mesh := CylinderMesh.new()
+  mesh.top_radius = 0
+  mesh.bottom_radius = 0.25 - i * 0.05
+  mesh.radial_segments = 7
   mesh.height = 0.85 - i * 0.15
   flame.mesh = mesh
   flame.position = Vector3((i - 1) * 0.15, 0.45, 1)
-  flame.material_override = mat(Color("e69440") if i != 1 else Color("f6c66b"), true)
+  var flame_material := mat(Color("dc7138") if i != 1 else Color("e9b856"))
+  flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+  flame.material_override = flame_material
   add_child(flame)
   flames.append(flame)
  fire_light = OmniLight3D.new()
@@ -116,10 +120,10 @@ func build_camp() -> void:
  Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.15))
  camera = Camera3D.new()
  camera.projection = Camera3D.PROJECTION_ORTHOGONAL
- camera.size = 5.8
+ camera.size = 5.2
  camera.position = Vector3(6, 4.2, 10)
  add_child(camera)
- camera.look_at(Vector3(0.7, 0.8, 0))
+ camera.look_at(Vector3(0.7, 1.2, 0))
  camera.current = true
 
 func update_avatar() -> void:
@@ -173,7 +177,7 @@ func build_ui() -> void:
  logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
  logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  logo.position = Vector2(30, 10)
- logo.size = Vector2(440, 250)
+ logo.size = Vector2(340, 180)
  ui.add_child(logo)
  var panel := PanelContainer.new()
  panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
@@ -190,6 +194,16 @@ func build_ui() -> void:
  for edge in ["left", "right", "top", "bottom"]:
   style.set("content_margin_" + edge, 22)
  theme.set_stylebox("panel", "PanelContainer", style)
+ for state in ["normal", "hover", "pressed", "focus"]:
+  var button_style := StyleBoxFlat.new()
+  button_style.bg_color = Color("263f48") if state == "normal" else Color("375967")
+  button_style.border_color = Color("64818a")
+  button_style.set_border_width_all(1)
+  button_style.set_corner_radius_all(6)
+  button_style.content_margin_left = 12
+  button_style.content_margin_right = 12
+  theme.set_stylebox(state, "Button", button_style)
+  theme.set_stylebox(state, "OptionButton", button_style)
  panel.theme = theme
  var scroll := ScrollContainer.new()
  scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -236,6 +250,11 @@ func home() -> void:
   update_avatar())
  column.add_child(palette_picker)
  start_button = button("НАЧАТЬ ПАРТИЮ", launch)
+ var primary := StyleBoxFlat.new()
+ primary.bg_color = Color("c29a61")
+ primary.set_corner_radius_all(6)
+ start_button.add_theme_stylebox_override("normal", primary)
+ start_button.add_theme_color_override("font_color", Color("14272e"))
  button("Параметры партии", game_options)
  button("Настройки", settings)
  button("Сохранить профиль", save_draft)

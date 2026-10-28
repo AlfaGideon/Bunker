@@ -24,6 +24,8 @@ def install(files, root):
             match = re.fullmatch(r"([A-Z]+SHOT)_(\d+):(.+)", row["message"], re.S)
             if match:
                 prefix, index, chunk = match.groups()
+                if prefix not in NAMES:
+                    continue  # Additional diagnostic views are not retained.
                 parts.setdefault(prefix, {})[int(index)] = chunk
     if set(parts) != set(NAMES):
         raise ValueError("Need all 16 current previews; missing: " + str(set(NAMES) - set(parts)))
