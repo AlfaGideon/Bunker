@@ -23,6 +23,17 @@ func _pose(skeleton: Skeleton3D, bone_name: String, axis: Vector3, angle: float)
 		skeleton.set_bone_pose_rotation(bone, Quaternion(axis, angle))
 
 
+func _arm(skeleton: Skeleton3D, bone_name: String, direction: Vector3) -> void:
+	var bone := skeleton.find_bone(bone_name)
+	if bone < 0:
+		return
+	# Quaternius arms start in a T-pose. Convert a world-space direction
+	# into the bone's rest-local axes rather than guessing Euler angles.
+	var rest_basis := skeleton.global_basis * skeleton.get_bone_global_rest(bone).basis
+	var local_direction := (rest_basis.inverse() * direction).normalized()
+	skeleton.set_bone_pose_rotation(bone, Quaternion(Vector3.UP, local_direction))
+
+
 func animate(delta: float, walking: bool, seed_offset: float) -> void:
 	motion = move_toward(motion, 1.0 if walking else 0.0, delta * 7.0)
 	phase += delta * (8.0 if walking else 1.8)
@@ -33,8 +44,9 @@ func animate(delta: float, walking: bool, seed_offset: float) -> void:
 		_pose(skeleton, "UpperLeg.R", Vector3.RIGHT, -stride * 0.48)
 		_pose(skeleton, "LowerLeg.L", Vector3.RIGHT, maxf(0, -stride) * 0.65)
 		_pose(skeleton, "LowerLeg.R", Vector3.RIGHT, maxf(0, stride) * 0.65)
-		_pose(skeleton, "UpperArm.L", Vector3.FORWARD, -1.15 + stride * 0.2)
-		_pose(skeleton, "UpperArm.R", Vector3.FORWARD, 1.15 - stride * 0.2 - gesture * 0.5)
+		var forward := global_basis.z.normalized()
+		_arm(skeleton, "UpperArm.L", Vector3.DOWN + forward * stride * 0.6)
+		_arm(skeleton, "UpperArm.R", Vector3.DOWN + forward * (-stride * 0.6 + gesture))
 		_pose(skeleton, "LowerArm.R", Vector3.RIGHT, -gesture * 0.65)
 		_pose(skeleton, "Head", Vector3.UP, sin(phase * 0.3 + seed_offset) * 0.07)
 	position.y = absf(sin(phase)) * motion * 0.035

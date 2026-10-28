@@ -184,6 +184,24 @@ func _build_ui() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
+	var theme := Theme.new()
+	theme.default_font_size = 18
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("14272c")
+	panel_style.border_color = Color("42666a")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(10)
+	theme.set_stylebox("panel", "PanelContainer", panel_style)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("25474d") if state == "normal" else Color("3d706d")
+		style.border_color = Color("5a9790")
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(6)
+		style.content_margin_left = 10
+		style.content_margin_right = 10
+		theme.set_stylebox(state, "Button", style)
+	root.theme = theme
 	var header := VBoxContainer.new()
 	header.position = Vector2(24, 18)
 	header.size = Vector2(590, 140)
