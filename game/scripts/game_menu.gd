@@ -1,4 +1,5 @@
 extends Control
+const Catalog = preload("res://game/scripts/avatar_catalog.gd")
 const Choice = preload("res://game/scripts/card_choice.gd")
 const Deck = preload("res://game/scripts/card_deck.gd")
 const Cards = preload("res://game/scripts/card_style.gd")
@@ -65,7 +66,7 @@ func home() -> void:
 	page = "home"
 	visible = true
 	clear()
-	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • 0.18", 26)
+	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • 0.19", 26)
 	button("Продолжить партию", room.begin_game)
 	button("Новая партия", new_game)
 	button("Помещения и предметы", show_facility)
@@ -175,12 +176,12 @@ func settings() -> void:
 	column.add_card(motion_toggle)
 	text("Внешний вид до раскрытия биологии", 18)
 	var appearance := Choice.new()
-	appearance.add_item("Мужской", 0)
-	appearance.add_item("Женский", 1)
-	appearance.select(0 if profile.appearance == "male" else 1)
+	for name in Catalog.NAMES:
+		appearance.add_item(name)
+	appearance.select(Catalog.index_of(profile.appearance))
 	appearance.custom_minimum_size.y = 48
 	column.add_card(appearance)
-	text("После раскрытия карточки «Биология» модель примет указанный в карточке пол.", 17)
+	text("После раскрытия карточки «Биология» внешность примет указанные в карточке пол и возраст.", 17)
 	text("Громкость", 18)
 	var volume := HSlider.new()
 	volume.min_value = 0
@@ -207,7 +208,7 @@ func settings() -> void:
 	button("Применить и сохранить", func():
 		profile.volume = volume.value
 		profile.narration = narration_toggle.button_pressed
-		profile.appearance = "male" if appearance.selected == 0 else "female"
+		profile.appearance = Catalog.IDS[appearance.selected]
 		profile.shadows = shadow_toggle.button_pressed
 		profile.reduced_motion = motion_toggle.button_pressed
 		profile.camera_size = zoom.get_selected_id()

@@ -23,7 +23,7 @@ static func create_players(count: int, nickname: String, appearance: String = "m
 				cards.append({"id": key, "label": fields[key][0], "value": option["label"], "cost": option["cost"].duplicate(), "revealed": false})
 			else:
 				cards.append({"id": key, "label": fields[key][0], "value": option, "revealed": false})
-		players.append({"id": "local_%d" % i, "name": names[i], "sex": sex, "appearance": appearance if i == 0 else ["male", "female"].pick_random(), "cards": cards})
+		players.append({"id": "local_%d" % i, "name": names[i], "sex": sex, "age": int(age.get_slice(" ", 0)), "appearance": appearance if i == 0 else ["male", "female"].pick_random(), "cards": cards})
 	return players
 
 

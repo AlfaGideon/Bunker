@@ -39,6 +39,7 @@ func run_test() -> void:
 	# preserve world placement and visual scale, without revealing sex beforehand.
 	room._change_appearance(0, "female")
 	room.players[0]["sex"] = "male"
+	room.players[0]["age"] = 29
 	room.actors[0].position = Vector3(2.4, 0, 2.6)
 	room.actors[0].rotation.y = 1.3
 	var before := Vector3(room.actors[0].position)

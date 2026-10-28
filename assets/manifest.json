@@ -229,5 +229,26 @@
     "author": "Quaternius",
     "license": "CC0-1.0",
     "sha256": "9e5c7934f44ee538446e6f54cbe9c09d4e49a7e78ee2e7f16d4cc7483c43e710"
+  },
+  {
+    "file": "assets/kaykit/Mage.glb",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/blob/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Mage.glb",
+    "author": "Kay Lousberg / KayKit",
+    "license": "CC0-1.0",
+    "sha256": "cf898585da33fab50c724d31605fb931eb2912e6d2280092141e98ca81ad507d"
+  },
+  {
+    "file": "assets/kaykit/Barbarian.glb",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/blob/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Barbarian.glb",
+    "author": "Kay Lousberg / KayKit",
+    "license": "CC0-1.0",
+    "sha256": "cefc311a0e10c7858b6141f5ada7e33268727564fb8ac1347aab97d000669cc6"
+  },
+  {
+    "file": "assets/kaykit/rogue_silver.png",
+    "source": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/blob/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb (modified embedded atlas; silver hair)",
+    "author": "Kay Lousberg / KayKit, adapted",
+    "license": "CC0-1.0",
+    "sha256": "afab19b5ccd5b41506b15f6cf89d0272b14863d332938fd6627b0d8814ba57fd"
   }
 ]

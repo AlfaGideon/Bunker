@@ -1,4 +1,5 @@
 extends Node3D
+const Catalog = preload("res://game/scripts/avatar_catalog.gd")
 const Choice = preload("res://game/scripts/card_choice.gd")
 const Deck = preload("res://game/scripts/card_deck.gd")
 const Cards = preload("res://game/scripts/card_style.gd")
@@ -72,14 +73,14 @@ func build_camp() -> void:
  moon.light_energy = 0.8
  moon.shadow_enabled = profile.shadows
  add_child(moon)
- box(Vector3(0, -0.18, 0), Vector3(60, 0.3, 60), Color("253b37"))
+ box(Vector3(0, -0.19, 0), Vector3(60, 0.3, 60), Color("253b37"))
  # A real little campsite outside the bunker, unrelated to the game world.
- box(Vector3(-1.9, 0.18, -0.18), Vector3(1.8, 0.35, 0.55), Color("534235"))
+ box(Vector3(-1.9, 0.19, -0.19), Vector3(1.8, 0.35, 0.55), Color("534235"))
  for i in 10:
   var angle := float(i) * TAU / 10
   var rock := MeshInstance3D.new()
   var mesh := SphereMesh.new()
-  mesh.radius = 0.18
+  mesh.radius = 0.19
   mesh.height = 0.25
   rock.mesh = mesh
   rock.position = Vector3(cos(angle) * 0.6, 0.08, 1.0 + sin(angle) * 0.6)
@@ -101,7 +102,7 @@ func build_camp() -> void:
   box(Vector3(x, 0.83, -2.04), Vector3(0.25, 1.66, 0.28), Color("7a8987"))
  box(Vector3(4, 1.75, -2.04), Vector3(3.55, 0.25, 0.3), Color("72817f"))
  box(Vector3(4, 0.08, -1.75), Vector3(2.0, 0.16, 0.65), Color("667274"))
- Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.18))
+ Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.19))
  for child in get_children().slice(entrance_start):
   entrance_nodes.append(child)
  # Authored CC0 grass remains visible in both welcome and the journey.
@@ -131,9 +132,9 @@ func update_avatar() -> void:
  if is_instance_valid(avatar):
   remove_child(avatar)
   avatar.queue_free()
- avatar = Art.spawn(self, "kaykit_Knight" if profile.appearance == "male" else "kaykit_Rogue", Vector3(-1.7, 0, 0), Vector3(1, 1.8, 1), true)
+ avatar = Art.spawn(self, Catalog.model(profile.appearance), Vector3(-1.7, 0, 0), Vector3(1, 1.8, 1), true)
  avatar.rotation.y = 0.8
- Style.apply(avatar, profile.outfit)
+ Style.apply(avatar, profile.outfit, profile.appearance)
  animator = avatar.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
  animator.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
  animator.get_animation("Sit_Chair_Idle").loop_mode = Animation.LOOP_LINEAR
@@ -145,7 +146,7 @@ func _process(delta: float) -> void:
  if is_instance_valid(animator):
   animator.advance(delta)
  if is_instance_valid(fire_light):
-  fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.18 + sin(clock * 17) * 0.1
+  fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.19 + sin(clock * 17) * 0.1
  if is_instance_valid(camp_assets):
   camp_assets.reduced_motion = profile.reduced_motion
 
@@ -315,7 +316,7 @@ func home() -> void:
  card("ОБНОВЛЕНИЯ", "Проверить новую версию", func(): preload("res://game/scripts/app_updates.gd").show_updates(self), grid)
  card("КАК ИГРАТЬ", "Правила и управление", instructions, grid)
  card("ВЫХОД", "Завершить приложение", func(): get_tree().quit(), grid)
- error_label = label("Локальная партия • 0.18 • без сетевого поиска", 15)
+ error_label = label("Локальная партия • 0.19 • без сетевого поиска", 15)
 
 func edit_profile() -> void:
  page = "profile"
@@ -330,12 +331,12 @@ func edit_profile() -> void:
  name_input.text_changed.connect(func(value): draft_name = value)
  add_control(name_input)
  appearance_picker = Choice.new()
- appearance_picker.add_item("Мужской персонаж")
- appearance_picker.add_item("Женский персонаж")
- appearance_picker.select(0 if profile.appearance == "male" else 1)
+ for name in Catalog.NAMES:
+  appearance_picker.add_item(name)
+ appearance_picker.select(Catalog.index_of(profile.appearance))
  appearance_picker.custom_minimum_size.y = 48
  appearance_picker.item_selected.connect(func(index):
-  profile.appearance = "male" if index == 0 else "female"
+  profile.appearance = Catalog.IDS[index]
   update_avatar())
  add_control(appearance_picker)
  palette_picker = Choice.new()

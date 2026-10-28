@@ -4,6 +4,14 @@ func _initialize() -> void:
 func capture() -> void:
  var welcome := (load("res://game/welcome.tscn") as PackedScene).instantiate()
  root.add_child(welcome)
+ var skin := ""
+ for arg in OS.get_cmdline_user_args():
+  if arg.begins_with("--skin="):
+   skin = arg.trim_prefix("--skin=")
+ if not skin.is_empty():
+  welcome.profile.appearance = skin
+  welcome.update_avatar()
+  welcome.edit_profile()
  if OS.get_cmdline_user_args().has("--update"):
   var update = preload("res://game/scripts/app_updates.gd").show_updates(welcome, false)
   update.show_result({"code": 17, "url": "https://github.com/AlfaGideon/Bunker/releases/tag/android-17"})
@@ -36,6 +44,8 @@ func capture() -> void:
   prefix = "CARDSETTINGSHOT"
  if OS.get_cmdline_user_args().has("--update"):
   prefix = "UPDATESHOT"
+ if not skin.is_empty():
+  prefix = "SKIN" + skin.replace("_", "").to_upper() + "SHOT"
  for index in ceili(encoded.length() / 3500.0):
   print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))
  quit()

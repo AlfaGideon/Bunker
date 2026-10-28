@@ -25,7 +25,7 @@ func _init() -> void:
 	if nickname.is_empty():
 		nickname = "Алекс"
 	appearance = str(config.get_value("profile", "appearance", "male"))
-	if not ["male", "female"].has(appearance):
+	if not preload("res://game/scripts/avatar_catalog.gd").IDS.has(appearance):
 		appearance = "male"
 	outfit = clampi(int(config.get_value("profile", "outfit", 0)), 0, 2)
 	player_count = clampi(int(config.get_value("game", "players", 8)), 6, 10)

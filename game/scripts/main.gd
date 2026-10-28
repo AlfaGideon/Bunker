@@ -217,8 +217,7 @@ func _build_world() -> void:
 		var appearance: String = players[i]["appearance"]
 		actor.set_meta("appearance", appearance)
 		var visual := Art.spawn(actor, _model_name(i, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
-		if i == 0:
-			preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit)
+		preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit if i == 0 else 0, appearance)
 		visual.set_script(SurvivorVisual)
 		visual._collect(visual)
 		actor.position = navigation.nearest_walkable(positions[i])
@@ -452,7 +451,7 @@ func _reveal_card(index: int, card: Dictionary) -> void:
 	card["revealed"] = true
 	reveal_log.append({"player": index, "card": card["id"]})
 	if card["id"] == "biology":
-		_change_appearance(index, players[index]["sex"])
+		_change_appearance(index, biology_appearance(index))
 
 
 func _biology_revealed(index: int) -> bool:
@@ -462,9 +461,13 @@ func _biology_revealed(index: int) -> bool:
 	return false
 
 
-func _model_name(index: int, appearance: String) -> String:
-	return "kaykit_Knight" if appearance == "male" else ("kaykit_Rogue" if index % 2 == 0 else "kaykit_Rogue_Hooded")
+func biology_appearance(index: int) -> String:
+	var age := int(players[index].get("age", 30))
+	return preload("res://game/scripts/avatar_catalog.gd").biology(players[index]["sex"], age)
 
+
+func _model_name(index: int, appearance: String) -> String:
+	return preload("res://game/scripts/avatar_catalog.gd").model(appearance, index)
 
 func _change_appearance(index: int, appearance: String) -> void:
 	var actor := actors[index]
@@ -474,8 +477,7 @@ func _change_appearance(index: int, appearance: String) -> void:
 	actor.remove_child(old)
 	old.queue_free()
 	var visual := Art.spawn(actor, _model_name(index, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
-	if index == 0:
-		preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit)
+	preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit if index == 0 else 0, appearance)
 	visual.set_script(SurvivorVisual)
 	visual._collect(visual)
 	actor.move_child(visual, 0)
@@ -1018,7 +1020,7 @@ func use_ability(slot: int) -> void:
 	var result := abilities.apply(slot, players[0], players[selected])
 	log_label.text = result["message"]
 	if result.get("ok", false) and result.get("card", {}).get("id", "") == "biology" and result["card"]["revealed"]:
-		_change_appearance(selected, players[selected]["sex"])
+		_change_appearance(selected, biology_appearance(selected))
 	_refresh()
 
 
