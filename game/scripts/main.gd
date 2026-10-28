@@ -688,6 +688,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and camera_gestures != null:
+		camera_gestures.reset()
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(menu) and not (is_instance_valid(survival_panel) and survival_panel.visible):
 		menu.home()
 
@@ -1058,9 +1060,3 @@ func _start_extra_bed(key: String, operator: int) -> void:
 	actors[operator].rotation.y = 0
 	actors[operator].get_child(0).rotation.z = PI / 2
 	actors[operator].get_child(0).position = Vector3(0.7, 0.7, 0)
-
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		if camera_gestures != null:
-			camera_gestures.reset()

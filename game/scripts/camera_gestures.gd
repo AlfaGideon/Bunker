@@ -59,7 +59,7 @@ func handle(event: InputEvent) -> Dictionary:
    if fingers.size() > 1:
     multi = true
   elif fingers.has(event.index):
-   if fingers.size() == 1 and not moved and not multi and origin.distance_to(event.position) <= TAP_SLOP:
+   if not event.canceled and fingers.size() == 1 and not moved and not multi and origin.distance_to(event.position) <= TAP_SLOP:
     result["tap"] = event.position
    fingers.erase(event.index)
   result["handled"] = true
