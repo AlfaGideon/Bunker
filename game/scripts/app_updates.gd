@@ -35,7 +35,7 @@ static func inspect_release(release: Dictionary, installed: int = VERSION_CODE) 
    return {"code": code, "url": expected}
  return {}
 
-static func show_updates(parent: Node) -> void:
+static func show_updates(parent: Node, check_network: bool = true) -> ConfirmationDialog:
  parent.get_viewport().gui_embed_subwindows = true
  var dialog := ConfirmationDialog.new()
  dialog.title = "Обновление приложения • " + VERSION_NAME
@@ -81,6 +81,9 @@ static func show_updates(parent: Node) -> void:
   else:
    dialog.dialog_text = "Публикация обновления не прошла проверку формата. Скачивание отключено. Попробуйте позже."
  )
+ if not check_network:
+  return dialog
  var error := request.request(API, ["Accept: application/vnd.github+json", "User-Agent: Bunker-Android", "X-GitHub-Api-Version: 2022-11-28"])
  if error != OK:
   dialog.dialog_text = "Не удалось начать проверку обновлений. Игра остаётся доступна без сети."
+ return dialog

@@ -1,10 +1,38 @@
 name: Publish signed Android update
 on:
   workflow_dispatch:
+  push:
+    branches: [arena/d3ec098c-bunker]
+    paths:
+      - 'game/**'
+      - 'data/**'
+      - 'assets/**'
+      - 'project.godot'
+      - 'export_presets.cfg'
+      - '.github/workflows/android-release.yml'
 permissions:
   contents: write
 jobs:
+  signing-ready:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.ready.outputs.configured }}
+    steps:
+      - id: ready
+        env:
+          KEY: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
+          PASS: ${{ secrets.BUNKER_KEYSTORE_PASSWORD }}
+          ALIAS: ${{ secrets.BUNKER_KEY_ALIAS }}
+        run: |
+          if [ -n "$KEY" ] && [ -n "$PASS" ] && [ -n "$ALIAS" ]; then
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+            echo 'Signing secrets are not configured; no public update will be published.'
+          fi
   release:
+    needs: signing-ready
+    if: needs.signing-ready.outputs.configured == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -66,4 +94,3 @@ jobs:
         if: always()
         run: |
           rm -f "$HOME/.android/bunker.keystore" "$HOME/.config/godot/editor_settings-4.5.tres" /tmp/release-export.log
-          git restore export_presets.cfg

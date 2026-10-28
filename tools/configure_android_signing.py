@@ -40,11 +40,12 @@ settings.write_text('[gd_resource type="EditorSettings" format=3]\n\n[resource]\
     ''.join(f'{k} = {json.dumps(v)}\n' for k, v in fields.items()))
 settings.chmod(0o600)
 if release:
-    # Ephemeral runner checkout only; no secret is committed or uploaded.
-    preset = Path('export_presets.cfg')
-    data = preset.read_text().replace('[preset.0.options]', '[preset.0.options]\n' +
-        ''.join(f'{k}={json.dumps(v)}\n' for k, v in {
-          'keystore/release': str(store), 'keystore/release_user': alias,
-          'keystore/release_password': password}.items()))
-    preset.write_text(data)
+    # Godot 4.5 reads these environment variables directly. Never insert
+    # signing credentials into tracked export_presets.cfg or APK resources.
+    if any('\n' in v or '\r' in v for v in [password, alias]):
+        raise SystemExit('Signing secrets must be single-line values.')
+    with open(os.environ['GITHUB_ENV'], 'a') as env:
+        env.write(f'GODOT_ANDROID_KEYSTORE_RELEASE_PATH={store}\n')
+        env.write(f'GODOT_ANDROID_KEYSTORE_RELEASE_USER={alias}\n')
+        env.write(f'GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD={password}\n')
 print('Android signing configured without exposing credentials.')
