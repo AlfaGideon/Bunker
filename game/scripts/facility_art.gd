@@ -72,5 +72,7 @@ static func build(room: Node3D) -> void:
   Finish.wall(room, Vector2(6.1, z), Vector2(4.7, 0.15))
  for x in [5.0, 6.5, 8.0]:
   Finish.glow(room, Vector3(x, 0.04, 6.15), Vector3(0.6, 0.02, 0.05), Color("b8dad7"))
- Art.spawn(room, "modular_sci_fi_Door_Single", Vector3(8.7, 0, 6.7), Vector3(1.4, 1.7, 0.18)).rotation.y = PI / 2
+ room.exit_hatch = Art.spawn(room, "modular_sci_fi_Door_Single", Vector3(8.7, 0, 6.7), Vector3(1.4, 1.7, 0.18))
+ room.exit_hatch.rotation.y = PI / 2
+ room._box(Vector3(9.1, -0.14, 6.7), Vector3(0.5, 0.15, 1.4), Color("60717a"))
  room._world_label("НАРУЖНЫЙ ШЛЮЗ", Vector3(8.7, 2, 6.7), 21)

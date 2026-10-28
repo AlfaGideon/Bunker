@@ -6,7 +6,7 @@ static func build(room: Node3D) -> void:
  var dry := weather in ["heat", "sand", "volcano"]
  var tint := Color("667b88") if snow else Color("71604a") if dry else Color("435446")
  var shader := Shader.new()
- shader.code = """shader_type spatial;
+ shader.code = """shader_type spatial; render_mode cull_disabled;
  varying vec3 world;
  uniform vec4 tint: source_color;
  void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;}
@@ -27,8 +27,8 @@ static func build(room: Node3D) -> void:
     var y := -0.31 + sin(px * 0.44) * cos(pz * 0.31) * 0.09
     if pz > 5 and pz < 8.5 and px > 2 and px < 10:
      y = -0.4
+    surface.set_normal(Vector3.UP)
     surface.add_vertex(Vector3(px, y, pz))
- surface.generate_normals()
  var ground := MeshInstance3D.new()
  ground.mesh = surface.commit()
  ground.material_override = material

@@ -24,6 +24,7 @@ var speech_label: Label
 var ability_buttons: Array[Button] = []
 var warehouse_open := false
 var warehouse_door: Node3D
+var exit_hatch: Node3D
 var warehouse_votes := {}
 var jobs := {}
 var npc_rests := {}
@@ -341,12 +342,14 @@ func _build_ui() -> void:
 	hint.size = Vector2(560, 60)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint)
+	var left_panel := PanelContainer.new()
+	left_panel.position = Vector2(20, 130)
+	root.add_child(left_panel)
 	var left := VBoxContainer.new()
-	left.position = Vector2(20, 130)
 	left.custom_minimum_size.x = 245
 	left.size.x = 245
 	left.add_theme_constant_override("separation", 8)
-	root.add_child(left)
+	left_panel.add_child(left)
 	for slot in 2:
 		var number: int = slot
 		var button := _button("", func(): use_ability(number), left)
@@ -518,10 +521,17 @@ func _eliminate(eliminated: int) -> void:
 		route.clear()
 		marker.visible = false
 		pending_inspection = ""
+	jobs.erase(eliminated)
+	if npc_rests.has(eliminated):
+		actors[eliminated].position = npc_rests[eliminated]["return"]
+		actors[eliminated].get_child(0).position = Vector3.ZERO
+		actors[eliminated].get_child(0).rotation = Vector3.ZERO
+		npc_rests.erase(eliminated)
+	create_tween().tween_property(exit_hatch, "position:y", -2.0, 0.5)
 	active.erase(eliminated)
 	actors[eliminated].get_child(1).modulate = Color("71828c")
 	var departure := navigation.path_between(actors[eliminated].position, Vector3(3.8, 0, 3.2))
-	departure.append_array(PackedVector3Array([Vector3(3.8, 0, 4.5), Vector3(3.8, 0, 6.7), Vector3(8, 0, 6.7)]))
+	departure.append_array(PackedVector3Array([Vector3(3.8, 0, 4.5), Vector3(3.8, 0, 6.7), Vector3(8.9, 0, 6.7), Vector3(10.3, -0.3, 6.7)]))
 	departures[eliminated] = {"path": departure, "index": 0}
 	if active.size() == capacity:
 		phase = "end"
@@ -638,6 +648,8 @@ func _physics_process(delta: float) -> void:
 		if index >= points.size():
 			actor.visible = false
 			departures.erase(id)
+			if departures.is_empty():
+				create_tween().tween_property(exit_hatch, "position:y", 0.0, 0.5)
 			if id == 0:
 				_show_survival()
 			continue
@@ -878,10 +890,10 @@ func _frame_camera() -> void:
 	if is_instance_valid(survival_panel) and survival_panel.visible:
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
-	var usable_width := maxf(500, viewport_size.x - 330)
+	var usable_width := maxf(500, viewport_size.x - 630)
 	camera.size = maxf(14.0, 22.0 * viewport_size.y / usable_width) * profile.camera_size / 11.0
 	var right := Vector3(13, 0, -7.2).normalized()
-	var focus := right * (camera.size / viewport_size.y * 165)
+	var focus := right * (camera.size / viewport_size.y * 35)
 	camera.position = focus + Vector3(7.2, 13, 13)
 	camera.look_at(focus)
 	original_camera = camera.transform
