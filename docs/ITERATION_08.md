@@ -41,14 +41,14 @@
 
 ## Подтверждённый результат
 
-Android run `40628352360` успешен: все десять тестовых скриптов и экспорт APK. Godot run `40628352318` успешен: checks, visual-quality и visual-variants. Архитектурные снимки вынесены в отдельный job, чтобы не терять части JPEG из-за лимита аннотаций; [сравнение seed 0 и 17](https://github.com/AlfaGideon/Bunker/actions/runs/40628676625) также успешно отрендерено. В репозитории сохранены 16 полных проверенных JPEG `docs/previews/*-v0.8.jpg`. Это настоящие снимки Godot, не концепт-картинки.
+Android run `40628352360` успешен: все десять тестовых скриптов и экспорт APK. Godot run `40628352318` успешен: checks, visual-quality и visual-variants. Архитектурные снимки вынесены в отдельный job, чтобы не терять части JPEG из-за лимита аннотаций; [сравнение seed 0 и 17](https://github.com/AlfaGideon/Bunker/actions/runs/40628676625) также успешно отрендерено. В репозитории сохранены 16 полных проверенных JPEG `docs/previews/*.jpg`. Это настоящие снимки Godot, не концепт-картинки.
 
 ## Реальные рендеры
 
-![Здание, seed 0](previews/architecture-0-v0.8.jpg)
+![Здание, seed 0](previews/architecture-0.jpg)
 
-![Здание, seed 17](previews/architecture-17-v0.8.jpg)
+![Здание, seed 17](previews/architecture-17.jpg)
 
-![Кухня](previews/kitchen-v0.8.jpg)
+![Кухня](previews/kitchen.jpg)
 
-![Медотсек](previews/medical-v0.8.jpg)
+![Медотсек](previews/medical.jpg)

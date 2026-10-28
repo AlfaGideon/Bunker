@@ -18,7 +18,7 @@
 - [Проверки](https://github.com/AlfaGideon/Bunker/actions/runs/40611927237).
 - [Успешная сборка APK](https://github.com/AlfaGideon/Bunker/actions/runs/40611927187).
 - [ZIP с APK](https://github.com/AlfaGideon/Bunker/actions/runs/40611927187/artifacts/12782708530), около 57 МБ, хранение 14 дней.
-- `previews/bunker-v0.2.jpg` — реальный кадр рендера Godot из CI (уменьшен и сжат), не концепт-арт и не Android-скриншот.
+- `previews/bunker.jpg` — реальный кадр рендера Godot из CI (уменьшен и сжат), не концепт-арт и не Android-скриншот.
 
 На физическом Android-устройстве эта версия ещё не проверена. Экспорт и тесты не гарантируют корректную работу на каждом телефоне.
 
