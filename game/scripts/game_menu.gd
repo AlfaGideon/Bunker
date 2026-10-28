@@ -65,7 +65,7 @@ func home() -> void:
 	page = "home"
 	visible = true
 	clear()
-	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • 0.15", 26)
+	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • 0.16", 26)
 	button("Продолжить партию", room.begin_game)
 	button("Новая партия", new_game)
 	button("Помещения и предметы", show_facility)
