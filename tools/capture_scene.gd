@@ -27,6 +27,11 @@ func capture() -> void:
 			print("::error::HUD does not fill expanded canvas: " + str(room.ui_root.size) + " / " + str(root.get_visible_rect().size))
 			quit(1)
 			return
+		var logical := root.get_visible_rect().size
+		if absf(logical.x / logical.y - 2460.0 / 1080.0) > 0.01:
+			print("::error::Letterboxed logical canvas: " + str(logical))
+			quit(1)
+			return
 	image.resize(640, roundi(image.get_height() * 640.0 / image.get_width()))
 	DirAccess.make_dir_recursive_absolute("res://builds")
 	var bytes := image.save_jpg_to_buffer(0.6)

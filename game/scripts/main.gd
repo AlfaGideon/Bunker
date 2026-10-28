@@ -47,6 +47,8 @@ var reveal_log: Array = []
 
 
 func _ready() -> void:
+	if OS.has_feature("android"):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance)
 	active.assign(range(players.size()))
 	capacity = players.size() / 2
