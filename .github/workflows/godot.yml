@@ -1,0 +1,123 @@
+name: Godot checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - name: Import and compile project
+        run: |
+          bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Render visual preview
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd
+      - name: Check vote rules
+        run: |
+          bash tools/check_godot.sh --headless --path . --script tools/test_profile.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_rules.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_navigation.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_rig.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_game_flow.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration4.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration5.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration6.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration7.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_camera_gestures.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_welcome.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_negative_actions.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_app_updates.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_card_menus.gd
+          python3 tools/test_release_config.py
+      - name: Smoke test scene
+        run: |
+          godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/scene.log
+      - name: Render menu preview
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd
+      - name: Render wide phone aspect ratio
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" bash tools/check_godot.sh --windowed --resolution 2460x1080 --path . --script tools/capture_scene.gd -- --wide
+      - name: Render survival panel
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --survival
+  visual-variants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: checks
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Render flood and mirrored layout
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --flood
+      - name: Render meteor catastrophe
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteors
+      - name: Render infection exterior
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --infection
+      - name: Render unlocked medical room
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --open-med
+      - name: Render actual bed interaction
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --sleep
+  visual-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: checks
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Render new character close-up
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --characters
+      - name: Render burning meteor close-up
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteor-detail
+      - name: Render solar storm
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --solar
+      - name: Render council decision
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
+      - name: Render kitchen and shared food
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --facilities
+  visual-architecture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Render modular building seed 0
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture
+      - name: Render modular building seed 17
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture-alt
+      - name: Inspect welcome profile card layout
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --profile
+      - name: Inspect touch settings card layout
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --settings
+      - name: Render welcome appearance preview
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --female
+      - name: Render harmful-action menu with matching flaw
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --negative-actions
+      - name: Render running preparation screen
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_loading.gd

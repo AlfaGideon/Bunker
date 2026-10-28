@@ -1,0 +1,27 @@
+"""Derive menu/splash textures from the exact user-selected logo; keep original intact."""
+from pathlib import Path
+from PIL import Image, ImageDraw
+root=Path(__file__).resolve().parent.parent/'assets/branding'
+original=Image.open(root/'logo-choice-next.png').convert('RGBA')
+logo=original.crop((60,220,original.width-60,985))
+for point in [(0,0),(logo.width-1,0),(0,logo.height-1),(logo.width-1,logo.height-1)]:
+ ImageDraw.floodfill(logo,point,(0,0,0,0),thresh=35)
+logo.save(root/'logo.png',optimize=True)
+splash=Image.new('RGBA',(1280,720),(6,8,8,255))
+copy=logo.copy();copy.thumbnail((1040,650),Image.Resampling.LANCZOS)
+splash.alpha_composite(copy,((1280-copy.width)//2,(720-copy.height)//2))
+splash.convert('RGB').save(root/'splash.png',optimize=True)
+
+icon=Image.new('RGBA',(512,512),(6,8,8,255))
+# Preserve the entire selected mark, including lettering, on a square icon.
+mark=logo.copy();mark.thumbnail((480,480),Image.Resampling.LANCZOS)
+icon.alpha_composite(mark,((512-mark.width)//2,(512-mark.height)//2))
+icon.convert('RGB').save(root/'icon.png',optimize=True)
+
+# Android adaptive masks crop foreground margins. Keep the complete mark in
+# the central safe zone instead of letting circular/squircle launchers cut it.
+adaptive=Image.new('RGBA',(432,432),(0,0,0,0))
+mark=logo.copy();mark.thumbnail((260,260),Image.Resampling.LANCZOS)
+adaptive.alpha_composite(mark,((432-mark.width)//2,(432-mark.height)//2))
+adaptive.save(root/'icon-adaptive-foreground.png',optimize=True)
+Image.new('RGB',(432,432),(6,8,8)).save(root/'icon-adaptive-background.png',optimize=True)

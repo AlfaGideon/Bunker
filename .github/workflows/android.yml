@@ -1,0 +1,72 @@
+name: Android debug APK
+on:
+  push:
+    branches: [arena/d3ec098c-bunker]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: true
+      - name: Configure Android tools and debug signing
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+          BUNKER_KEYSTORE_BASE64: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
+          BUNKER_KEYSTORE_PASSWORD: ${{ secrets.BUNKER_KEYSTORE_PASSWORD }}
+          BUNKER_KEY_ALIAS: ${{ secrets.BUNKER_KEY_ALIAS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;35.0.1" "platforms;android-35"
+          mkdir -p "$HOME/.android" "$HOME/.config/godot" builds
+          python3 tools/configure_android_signing.py
+      - name: Import project
+        run: |
+          set -o pipefail
+          bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Test rules
+        run: |
+          bash tools/check_godot.sh --headless --path . --script tools/test_profile.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_rules.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_navigation.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_rig.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_game_flow.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration4.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration5.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration6.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration7.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_camera_gestures.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_welcome.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_negative_actions.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_app_updates.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_card_menus.gd
+          python3 tools/test_release_config.py
+      - name: Export debug APK
+        run: |
+          set +e
+          godot --headless --editor --path . --export-debug Android builds/bunker-debug.apk > /tmp/export.log 2>&1
+          result=$?
+          cat /tmp/export.log
+          if [ "$result" -ne 0 ]; then
+            python3 -c 'from pathlib import Path; s=Path("/tmp/export.log").read_text()[-18000:]; print("::error::" + s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))' 
+            exit "$result"
+          fi
+          test -s builds/bunker-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bunker-debug-apk
+          path: builds/bunker-debug.apk
+          if-no-files-found: error
+          retention-days: 14

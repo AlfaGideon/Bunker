@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "purpose": "local_development_fixture_not_for_network_distribution",
+  "scenario": {
+    "id": "long_winter",
+    "title": "Долгая зима",
+    "description": "Продолжительные морозы нарушили снабжение региона. Четверо вымышленных выживших нашли убежище, рассчитанное на двоих.",
+    "capacity": 2,
+    "bunker_facts": ["Есть генератор и запас топлива", "Медпункт нуждается в инвентаризации", "Запасы продовольствия ограничены"]
+  },
+  "phase_seconds": {"reveal": 60, "discussion": 120, "vote": 60},
+  "players": [
+    {
+      "id": "demo_1", "name": "Алекс", "color": "#E5AE55",
+      "cards": [
+        {"id": "profession", "label": "Профессия", "value": "Электрик", "revealed": false},
+        {"id": "skill", "label": "Увлечение", "value": "Выращивает зелень", "revealed": false},
+        {"id": "baggage", "label": "Багаж", "value": "Измерительный прибор", "revealed": false}
+      ]
+    },
+    {
+      "id": "demo_2", "name": "Мира", "color": "#65B5AB",
+      "cards": [
+        {"id": "profession", "label": "Профессия", "value": "Фельдшер", "revealed": false},
+        {"id": "skill", "label": "Увлечение", "value": "Ремонтирует одежду", "revealed": false},
+        {"id": "baggage", "label": "Багаж", "value": "Перевязочные материалы", "revealed": false}
+      ]
+    },
+    {
+      "id": "demo_3", "name": "Ян", "color": "#8E9DDA",
+      "cards": [
+        {"id": "profession", "label": "Профессия", "value": "Агроном", "revealed": false},
+        {"id": "skill", "label": "Увлечение", "value": "Радиосвязь", "revealed": false},
+        {"id": "baggage", "label": "Багаж", "value": "Набор семян", "revealed": false}
+      ]
+    },
+    {
+      "id": "demo_4", "name": "Ника", "color": "#D78392",
+      "cards": [
+        {"id": "profession", "label": "Профессия", "value": "Повар", "revealed": false},
+        {"id": "skill", "label": "Увлечение", "value": "Столярное дело", "revealed": false},
+        {"id": "baggage", "label": "Багаж", "value": "Ручной инструмент", "revealed": false}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+.godot/
+*.apk
+*.aab
+*.keystore
+export_credentials.cfg
+builds/
+__pycache__/
+
+.venv/
+.cache/
+
+# Never commit Android signing material or handover bundles.
+*.p12
+*.pfx
+*signing-secrets*.zip
+BUNKER_*.txt
