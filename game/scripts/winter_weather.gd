@@ -125,6 +125,8 @@ func _build_walkers(room: Node3D) -> void:
 		var actor := Node3D.new()
 		add_child(actor)
 		var visual := Art.spawn(actor, "modular_men_Worker" if i % 2 == 0 else "modular_women_Casual", Vector3.ZERO, Vector3(1, 1.4, 1), true)
+		for mesh in visual.find_children("*", "MeshInstance3D", true, false):
+			mesh.material_override = room._material(Color("71866b"))
 		visual.set_script(Visual)
 		visual._collect(visual)
 		actor.position = Vector3(-10.3 if i % 2 == 0 else 10.3, -0.3, i * 1.8 - 4)
@@ -132,6 +134,7 @@ func _build_walkers(room: Node3D) -> void:
 		walkers.append(actor)
 		var beacon: MeshInstance3D = room._box(actor.position + Vector3(0, 0, -1), Vector3(0.15, 0.8, 0.15), Color("ae5748"))
 		beacon.rotation.z = 0.25
+	room._world_label("ЗАРАЖЁННЫЕ • ПЕРИМЕТР", Vector3(10.3, 1.9, 0), 23).modulate = Color("fa9580")
 
 
 func _process(delta: float) -> void:
@@ -148,4 +151,5 @@ func _process(delta: float) -> void:
 		var direction := actor.position - previous
 		if direction.length_squared() > 0.000001:
 			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(direction.x, direction.z), delta * 2)
+		actor.get_child(0).gesture = 0.7
 		actor.get_child(0).animate(delta * 0.6, true, float(i))

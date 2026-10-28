@@ -46,6 +46,8 @@ func apply_settings() -> void:
 func begin() -> void:
 	if not air.playing:
 		air.play()
+	if not radio_on:
+		toggle_radio()
 
 
 func toggle_radio() -> void:

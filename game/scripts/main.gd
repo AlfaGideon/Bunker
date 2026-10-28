@@ -93,13 +93,14 @@ func _ready() -> void:
 	original_camera = camera.transform
 	apply_settings()
 	_refresh()
+	get_viewport().size_changed.connect(_frame_camera)
 	if get_tree().has_meta("start_game"):
 		get_tree().remove_meta("start_game")
 		begin_game()
 
 
 func apply_settings() -> void:
-	camera.size = profile.camera_size
+	_frame_camera()
 	sun.shadow_enabled = profile.shadows
 	weather.set_reduced_motion(profile.reduced_motion)
 	audio.apply_settings()
@@ -752,3 +753,16 @@ func _update_medical_access() -> void:
 	med_light.light_energy = 1.2
 	create_tween().tween_property(med_gate, "position:y", -1.2, 0.6)
 	audio.blip("door")
+
+
+func _frame_camera() -> void:
+	if is_instance_valid(survival_panel) and survival_panel.visible:
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	var usable_width := maxf(500, viewport_size.x - 330)
+	camera.size = maxf(12.5, 22.0 * viewport_size.y / usable_width) * profile.camera_size / 11.0
+	var right := Vector3(13, 0, -7.2).normalized()
+	var focus := right * (camera.size / viewport_size.y * 165)
+	camera.position = focus + Vector3(7.2, 13, 13)
+	camera.look_at(focus)
+	original_camera = camera.transform
