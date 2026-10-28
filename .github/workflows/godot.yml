@@ -24,6 +24,7 @@ jobs:
         run: |
           godot --headless --path . --script tools/test_rules.gd
           godot --headless --path . --script tools/test_navigation.gd
+          godot --headless --path . --script tools/test_room.gd
       - name: Smoke test scene
         run: |
           godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log

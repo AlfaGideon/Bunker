@@ -13,10 +13,13 @@ func capture() -> void:
 		await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()
-	image.resize(640, 360)
+	image.resize(480, 270)
 	DirAccess.make_dir_recursive_absolute("res://builds")
-	var bytes := image.save_jpg_to_buffer(0.7)
+	var bytes := image.save_jpg_to_buffer(0.6)
 	var file := FileAccess.open("res://builds/scene.jpg", FileAccess.WRITE)
 	file.store_buffer(bytes)
-	print("::notice::SCREENSHOT_BASE64:" + Marshalls.raw_to_base64(bytes))
+	var encoded := Marshalls.raw_to_base64(bytes)
+	var chunks := ceili(encoded.length() / 3500.0)
+	for index in chunks:
+		print("::notice::SCREENSHOT_%02d:" % index + encoded.substr(index * 3500, 3500))
 	quit()
