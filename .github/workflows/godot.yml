@@ -34,12 +34,13 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_iteration6.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_iteration7.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_camera_gestures.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_welcome.gd
       - name: Smoke test scene
         run: |
           godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/scene.log
       - name: Render menu preview
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --menu
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd
       - name: Render wide phone aspect ratio
         run: timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" godot --windowed --resolution 2460x1080 --path . --script tools/capture_scene.gd -- --wide
       - name: Render survival panel
@@ -106,3 +107,5 @@ jobs:
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture
       - name: Render modular building seed 17
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture-alt
+      - name: Render welcome appearance preview
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --female

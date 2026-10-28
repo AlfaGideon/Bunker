@@ -1,0 +1,48 @@
+extends SceneTree
+var failures := 0
+func check(value: bool, title: String) -> void:
+ if not value:
+  failures += 1
+  push_error(title)
+func _initialize() -> void:
+ call_deferred("run")
+func run() -> void:
+ var original := preload("res://game/scripts/local_profile.gd").new()
+ var welcome := (load("res://game/welcome.tscn") as PackedScene).instantiate()
+ root.add_child(welcome)
+ for frame in 4:
+  await process_frame
+ check(ProjectSettings.get_setting("application/run/main_scene") == "res://game/welcome.tscn", "App launches welcome, not bunker")
+ check(welcome.page == "home", "Welcome home visible")
+ check(not welcome.has_node("BunkerPrototype"), "No game generated behind welcome")
+ check(welcome.profile.world_count == original.world_count, "Welcome does not generate a world")
+ check(welcome.animator.current_animation == "Sit_Chair_Idle", "Real seated animation")
+ var time_before: float = welcome.animator.current_animation_position
+ welcome._process(0.2)
+ check(welcome.animator.current_animation_position != time_before, "Avatar animated before game")
+ var old_avatar: Node3D = welcome.avatar
+ welcome.profile.appearance = "female" if welcome.profile.appearance == "male" else "male"
+ welcome.update_avatar()
+ check(welcome.avatar != old_avatar, "Appearance changes preview immediately")
+ check(welcome.animator.current_animation == "Sit_Chair_Idle", "Appearance keeps seated animation")
+ welcome.draft_name = "   "
+ check(not welcome.save_draft(), "Reject empty nickname")
+ welcome.draft_name = "У костра"
+ welcome.profile.outfit = 2
+ check(welcome.save_draft(), "Save configured welcome profile")
+ var saved := preload("res://game/scripts/local_profile.gd").new()
+ check(saved.nickname == "У костра" and saved.outfit == 2, "Nickname and outfit persist")
+ welcome.game_options()
+ check(welcome.page == "options", "Game settings reachable without a game")
+ welcome.settings()
+ check(welcome.page == "settings", "Settings reachable without a game")
+ welcome.home()
+ original.save()
+ welcome.queue_free()
+ await process_frame
+ var room := (load("res://game/main.tscn") as PackedScene).instantiate()
+ root.add_child(room)
+ check(room.players[0]["name"] == original.nickname, "Game loads saved profile")
+ room.free()
+ print("Welcome failures: ", failures)
+ quit(1 if failures else 0)

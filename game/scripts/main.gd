@@ -212,6 +212,8 @@ func _build_world() -> void:
 		var appearance: String = players[i]["appearance"]
 		actor.set_meta("appearance", appearance)
 		var visual := Art.spawn(actor, _model_name(i, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
+		if i == 0:
+			preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit)
 		visual.set_script(SurvivorVisual)
 		visual._collect(visual)
 		actor.position = navigation.nearest_walkable(positions[i])
@@ -439,6 +441,8 @@ func _change_appearance(index: int, appearance: String) -> void:
 	actor.remove_child(old)
 	old.queue_free()
 	var visual := Art.spawn(actor, _model_name(index, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
+	if index == 0:
+		preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit)
 	visual.set_script(SurvivorVisual)
 	visual._collect(visual)
 	actor.move_child(visual, 0)

@@ -14,7 +14,7 @@ func setup(game: Node3D, player_profile: BunkerProfile) -> void:
 	profile = player_profile
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var shade := ColorRect.new()
-	shade.color = Color(0.025, 0.055, 0.07, 0.94)
+	shade.color = Color(0.025, 0.055, 0.07, 0.104)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	var center := CenterContainer.new()
@@ -56,7 +56,7 @@ func home() -> void:
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.9", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.10", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
 	button("Продолжить партию", room.begin_game)
@@ -68,6 +68,7 @@ func home() -> void:
 	button("Как играть", instructions)
 	var test_button := button("Тест: меня исключили → кубик", room.test_own_expulsion)
 	test_button.disabled = not room.active.has(0) or room.finished
+	button("В приветственное меню (партия будет потеряна)", func(): get_tree().change_scene_to_file("res://game/welcome.tscn"))
 	button("Выйти из игры", func(): get_tree().quit())
 	text("Локальная демонстрация. Остальные участники — тестовый сценарий, не онлайн-игроки.", 16)
 
@@ -111,7 +112,7 @@ func new_game() -> void:
 		if not save_profile():
 			return
 		get_tree().set_meta("start_game", true)
-		get_tree().reload_current_scene())
+		get_tree().change_scene_to_file("res://game/main.tscn"))
 	button("Назад", home)
 
 
