@@ -91,3 +91,17 @@ static func decorate(room: Node3D) -> void:
 		light.light_energy = 0.8
 		light.omni_range = 5
 		room.add_child(light)
+	var tactical := MeshInstance3D.new()
+	var screen := PlaneMesh.new()
+	screen.size = Vector2(2.1, 1.1)
+	tactical.mesh = screen
+	tactical.position = room.layout["table"] + Vector3(0.3, 0.915, 0)
+	var shader := Shader.new()
+	shader.code = """shader_type spatial; render_mode unshaded, blend_add, depth_draw_never;
+	void fragment(){vec2 p=UV-vec2(0.5); float grid=step(0.94,fract(UV.x*16.0))+step(0.94,fract(UV.y*8.0));
+	float ring=1.0-smoothstep(0.01,0.025,abs(length(p)-0.3));
+	ALBEDO=vec3(0.13,0.7,0.8); ALPHA=min(0.7,grid*0.25+ring*0.6);}"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	tactical.material_override = material
+	room.add_child(tactical)

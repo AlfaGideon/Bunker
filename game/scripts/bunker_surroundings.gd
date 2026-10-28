@@ -17,7 +17,9 @@ static func build(room: Node3D) -> void:
 		var size: Vector2 = wall.size
 		Finish.wall(room, center, size)
 	var table: Vector3 = plan["table"]
-	Art.spawn(room, "house_interior_pack_Table_RoundLarge", table, Vector3(3.1, 0.9, 1.7))
+	var desk := Art.spawn(room, "house_interior_pack_Table_RoundLarge", table, Vector3(3.1, 0.9, 1.7))
+	for mesh in desk.find_children("*", "MeshInstance3D", true, false):
+		mesh.material_override = Finish.metal(Color("35434e"))
 	Art.spawn(room, "survival_pack_Radio", plan["items"]["radio"]["at"] - Vector3(0, 0.14, 0), Vector3(0.5, 0.3, 0.25))
 	for key in ["bed", "bed2", "medical"]:
 		var at: Vector3 = plan["items"][key]["at"]
@@ -25,9 +27,9 @@ static func build(room: Node3D) -> void:
 	var medical_at: Vector3 = plan["items"]["medical"]["at"]
 	Art.spawn(room, "survival_pack_FirstAidKit", medical_at + Vector3(0, 0.03, 0), Vector3(0.45, 0.25, 0.3))
 	var terminal: Vector3 = plan["items"]["terminal"]["at"]
-	Art.spawn(room, "modular_sci_fi_Props_Computer", Vector3(terminal.x, 0, terminal.z), Vector3(1.0, 1.5, 0.8))
+	Art.spawn(room, "modular_sci_fi_Props_ComputerSmall", Vector3(terminal.x, 0, terminal.z), Vector3(1.0, 1.5, 0.8))
 	var supply: Vector3 = plan["items"]["supply"]["at"]
-	Art.spawn(room, "modular_sci_fi_Props_Crate", Vector3(supply.x, 0, supply.z), Vector3(1.1, 0.8, 0.8))
+	Art.spawn(room, "modular_sci_fi_Props_Chest", Vector3(supply.x, 0, supply.z), Vector3(1.1, 0.8, 0.8))
 	room._world_label("РЕМКОМПЛЕКТ", supply + Vector3(0, 0.65, 0), 22)
 	room._world_label("СПАЛЬНЯ • ОТДЫХ", Vector3(-side * 6.5, 2.1, -4.7), 24)
 	room.med_label = room._world_label("МЕДБЛОК • ЗАКРЫТ", Vector3(side * 6.5, 2.1, -4.7), 24)

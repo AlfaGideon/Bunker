@@ -53,12 +53,12 @@ func animate(delta: float, walking: bool, seed_offset: float, reduced_motion: bo
 	phase += delta * (8.0 if walking else 1.8)
 	gesture = maxf(0.0, gesture - delta)
 	if is_instance_valid(animation_player):
-		var clip := "Walking_A" if walking else ("Use_Item" if gesture > 0 else "Idle")
+		var clip := "Walking_C" if walking else ("Use_Item" if gesture > 0 else "Idle")
 		if clip != current_clip:
 			current_clip = clip
 			animation_player.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
 			animation_player.play(clip)
-		animation_player.advance(delta)
+		animation_player.advance(delta * (1.8 if walking else 1.0))
 		return
 	var stride := sin(phase) * motion
 	for skeleton in skeletons:
@@ -80,6 +80,6 @@ func animate(delta: float, walking: bool, seed_offset: float, reduced_motion: bo
 static func bone_name(skeleton: Skeleton3D, original: String) -> String:
 	if skeleton.find_bone(original) >= 0:
 		return original
-	var names := {"UpperLeg": "upperleg", "LowerLeg": "lowerleg", "Foot": "foot", "UpperArm": "upperarm", "LowerArm": "lowerarm", "Hand": "hand", "Head": "head"}
+	var names := {"UpperLeg": "upperleg", "LowerLeg": "lowerleg", "Foot": "foot", "Toes": "toes", "UpperArm": "upperarm", "LowerArm": "lowerarm", "Hand": "hand", "Head": "head"}
 	var parts := original.split(".")
 	return str(names.get(parts[0], parts[0].to_lower())) + ("." + parts[1].to_lower() if parts.size() > 1 else "")

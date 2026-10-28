@@ -16,7 +16,7 @@ func capture() -> void:
 		scenario_id = "great_flood"
 		seed_value = 1
 		shot_prefix = "FLOODSHOT"
-	elif args.has("--meteors"):
+	elif args.has("--meteors") or args.has("--meteor-detail"):
 		scenario_id = "meteor_storm"
 		seed_value = 2
 		shot_prefix = "METEORSHOT"
@@ -24,6 +24,9 @@ func capture() -> void:
 		scenario_id = "infection"
 		seed_value = 3
 		shot_prefix = "INFECTIONSHOT"
+	if args.has("--solar"):
+		scenario_id = "solar_superstorm"
+		shot_prefix = "AURORASHOT"
 	room.profile.scenario_choice = scenario_id
 	set_meta("world_seed", seed_value)
 	root.add_child(room)
@@ -51,6 +54,27 @@ func capture() -> void:
 			quit(1)
 			return
 		shot_prefix = "SLEEPSHOT"
+	if args.has("--characters"):
+		room.ui_root.visible = false
+		room.set_physics_process(false)
+		room._change_appearance(0, "male")
+		room._change_appearance(1, "female")
+		room.actors[0].position = Vector3(0, 0, 3.5)
+		room.actors[1].position = Vector3(1.7, 0, 3.5)
+		for index in [0, 1]:
+			room.actors[index].rotation = Vector3.ZERO
+			room.actors[index].get_child(0).animate(0.1, false, 0)
+		room.camera.size = 3.8
+		room.camera.position = Vector3(3.6, 3.4, 9)
+		room.camera.look_at(Vector3(0.8, 0.8, 3.5))
+		shot_prefix = "CHARACTERSHOT"
+	if args.has("--meteor-detail"):
+		room.ui_root.visible = false
+		room.camera.size = 7
+		var focus := Vector3(0, 2, 10)
+		room.camera.position = focus + Vector3(7, 9, 13)
+		room.camera.look_at(focus)
+		shot_prefix = "METEORDETAILSHOT"
 	for i in 15:
 		await process_frame
 	await RenderingServer.frame_post_draw

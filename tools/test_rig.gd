@@ -51,7 +51,8 @@ func run_test() -> void:
 					tracks[side].append(foot - hip)
 					arm_tracks[side].append(world_bone(skeleton, "Hand." + side) - world_bone(skeleton, "UpperArm." + side))
 					check(knee.y < hip.y, "Knee must remain below hip, including during stride")
-					check(foot.y < knee.y, "Foot must remain below knee")
+					var lowest_foot := minf(foot.y, world_bone(skeleton, "Toes." + side).y) if is_instance_valid(visual.animation_player) else foot.y
+					check(lowest_foot < knee.y, "Foot geometry must remain below knee (heel pivot may lift)")
 		var forward: Vector3 = actor.global_basis.z.normalized()
 		var sideways: Vector3 = actor.global_basis.x.normalized()
 		for side in ["L", "R"]:

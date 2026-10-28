@@ -564,7 +564,7 @@ func _physics_process(delta: float) -> void:
 	if rest_remaining > 0:
 		_tick_rest(delta)
 		return
-	var budget := delta * 2.4
+	var budget := delta * 1.8
 	var previous := actors[0].position
 	while route_index < route.size() and budget > 0:
 		var next := route[route_index]
