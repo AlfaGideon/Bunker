@@ -8,12 +8,47 @@ func _initialize() -> void:
 func capture() -> void:
 	var scene := load("res://game/main.tscn") as PackedScene
 	var room := scene.instantiate()
+	var args := OS.get_cmdline_user_args()
+	var scenario_id := "long_winter"
+	var seed_value := 0
+	var shot_prefix := ""
+	if args.has("--flood"):
+		scenario_id = "great_flood"
+		seed_value = 1
+		shot_prefix = "FLOODSHOT"
+	elif args.has("--meteors"):
+		scenario_id = "meteor_storm"
+		seed_value = 2
+		shot_prefix = "METEORSHOT"
+	elif args.has("--infection"):
+		scenario_id = "infection"
+		seed_value = 3
+		shot_prefix = "INFECTIONSHOT"
+	room.profile.scenario_choice = scenario_id
+	set_meta("world_seed", seed_value)
 	root.add_child(room)
 	var show_menu := OS.get_cmdline_user_args().has("--menu")
 	room.menu.visible = show_menu
 	var show_survival := OS.get_cmdline_user_args().has("--survival")
 	if show_survival:
 		room.survival_panel.visible = true
+	if args.has("--open-med"):
+		room.systems_ready = true
+		room.round_number = 2
+		room._update_medical_access()
+		shot_prefix = "MEDICALSHOT"
+	if args.has("--sleep"):
+		room.set_physics_process(false)
+		room.request_interaction("bed")
+		for tick in 2000:
+			room._physics_process(1.0 / 60)
+			if room.rest_remaining > 0:
+				break
+		if room.rest_remaining <= 0:
+			print("::error::Sleep preview did not reach actual lying state")
+			quit(1)
+			return
+		shot_prefix = "SLEEPSHOT"
 	for i in 15:
 		await process_frame
 	await RenderingServer.frame_post_draw
@@ -46,5 +81,7 @@ func capture() -> void:
 	var chunks := ceili(encoded.length() / 3500.0)
 	for index in chunks:
 		var prefix := "MENUSHOT" if show_menu else ("SURVIVALSHOT" if show_survival else ("WIDESHOT" if OS.get_cmdline_user_args().has("--wide") else "SCREENSHOT"))
+		if not shot_prefix.is_empty():
+			prefix = shot_prefix
 		print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))
 	quit()

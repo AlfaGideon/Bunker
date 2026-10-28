@@ -103,7 +103,7 @@ func _build_flood(room: Node3D) -> void:
 	water = room._box(Vector3(0, -0.24, 0), Vector3(80, 0.08, 80), Color("285b7b"))
 	_exterior_particles(Color("9fc2d9"), true)
 	for i in 14:
-		var debris := room._box(Vector3(-11 if i % 2 == 0 else 11, -0.13, float(i) - 6), Vector3(0.7, 0.1, 0.3), Color("76654d"))
+		var debris: MeshInstance3D = room._box(Vector3(-11 if i % 2 == 0 else 11, -0.13, float(i) - 6), Vector3(0.7, 0.1, 0.3), Color("76654d"))
 		debris.rotation.y = i * 0.7
 
 
@@ -130,7 +130,7 @@ func _build_walkers(room: Node3D) -> void:
 		actor.position = Vector3(-10.3 if i % 2 == 0 else 10.3, -0.3, i * 1.8 - 4)
 		actor.set_meta("origin", actor.position)
 		walkers.append(actor)
-		var beacon := room._box(actor.position + Vector3(0, 0, -1), Vector3(0.15, 0.8, 0.15), Color("ae5748"))
+		var beacon: MeshInstance3D = room._box(actor.position + Vector3(0, 0, -1), Vector3(0.15, 0.8, 0.15), Color("ae5748"))
 		beacon.rotation.z = 0.25
 
 

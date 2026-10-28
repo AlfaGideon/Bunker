@@ -41,3 +41,13 @@ jobs:
         run: timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" godot --windowed --resolution 2460x1080 --path . --script tools/capture_scene.gd -- --wide
       - name: Render survival panel
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --survival
+      - name: Render flood and mirrored layout
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --flood
+      - name: Render meteor catastrophe
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteors
+      - name: Render infection exterior
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --infection
+      - name: Render unlocked medical room
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --open-med
+      - name: Render actual bed interaction
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --sleep
