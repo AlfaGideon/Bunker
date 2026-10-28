@@ -47,7 +47,14 @@ jobs:
         run: godot --headless --path . --script tools/test_rules.gd
       - name: Export debug APK
         run: |
-          godot --headless --path . --export-debug Android builds/bunker-debug.apk
+          set +e
+          godot --headless --path . --export-debug Android builds/bunker-debug.apk > /tmp/export.log 2>&1
+          result=$?
+          cat /tmp/export.log
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -35 /tmp/export.log)
+            exit "$result"
+          fi
           test -s builds/bunker-debug.apk
       - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
