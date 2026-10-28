@@ -5,3 +5,9 @@
 Подготовка по-прежнему загружает ресурсы, не имитирует сетевую игру. Можно вернуться к костру или пропустить готовую загрузку; настройка уменьшения движения отключает путешествие и сдвиг меню. Обе внешности и настройки профиля сохраняются.
 
 Проверены реальная сцена, модели леса и огня, анимация вставания и бега, движение к двери, остановка и отмена; настоящие кадры на пути и у двери просмотрены. Установка и фактическая производительность на BL9000 требуют физической проверки.
+
+## Публикация
+
+[APK 0.17](https://github.com/AlfaGideon/Bunker/releases/download/android-17/Bunker-Posledniy-Shlyuz-17.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-17) · [Godot CI](https://github.com/AlfaGideon/Bunker/actions/runs/40730400350) · [подписанная сборка](https://github.com/AlfaGideon/Bunker/actions/runs/40730400209). Исходники `8cda414`, version code 17, 59 893 059 байт, SHA-256 `41dfa6e15f9eb88b21dae31cb22c8a3692a1718784934e29930915e107075a6c`. Сертификат совпал с 0.16, пакет прежний. Все пять Godot jobs, Android и signed release успешны.
+
+![Кадр пути через траву](previews/loading.jpg)

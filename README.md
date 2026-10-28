@@ -11,7 +11,15 @@
 
 Направление прототипа: Godot 4, стилизованное 3D с камерой сверху под углом и карточным 2D-интерфейсом; целевая платформа — Android. Подключены 3D-модели Quaternius (CC0); источники и лицензии — в [THIRD_PARTY.md](THIRD_PARTY.md).
 
-## Текущий APK — 0.16: исправленный экран обновлений
+## Текущий APK — 0.17: от костра к бункеру
+
+[**Скачать APK 0.17**](https://github.com/AlfaGideon/Bunker/releases/download/android-17/Bunker-Posledniy-Shlyuz-17.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-17) · [Подробнее](docs/ITERATION_17.md)
+
+Персонаж встаёт с места у костра, боковое меню плавно уезжает, и он бежит по траве к двери бункера в том же лесном лагере. Костёр и деревья остаются на месте; камера показывает путь и прибытие. Пунктирная дорожка и циклический бег удалены. Сохранены настоящая загрузка ресурсов, отмена, пропуск и уменьшение движения. Рендеры пути и прибытия просмотрены, проверки Godot и Android прошли. Подпись совпадает с 0.16; установка и производительность на BL9000 ещё не проверены.
+
+![Путь от костра к двери бункера](docs/previews/loading.jpg)
+
+## Предыдущий APK — 0.16: исправленный экран обновлений
 
 [**Скачать APK 0.16**](https://github.com/AlfaGideon/Bunker/releases/download/android-16/Bunker-Posledniy-Shlyuz-16.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-16) · [Подробнее](docs/ITERATION_16.md)
 
