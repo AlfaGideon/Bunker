@@ -69,6 +69,20 @@ func run() -> void:
  event.pressed = false
  Input.parse_input_event(event)
  await process_frame
+ room.menu.visible = false
+ event = InputEventScreenTouch.new()
+ event.index = 5
+ event.position = center
+ event.pressed = true
+ Input.parse_input_event(event)
+ await process_frame
+ check(controller.fingers.has(5), "Touch over world starts gesture")
+ event = InputEventScreenTouch.new()
+ event.index = 5
+ event.position = center
+ event.canceled = true
+ event.pressed = false
+ check(not controller.handle(event).has("tap"), "Canceled touch cannot order movement")
  room.free()
  print("Camera gesture failures: ", failures)
  quit(1 if failures else 0)

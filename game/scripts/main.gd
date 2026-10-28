@@ -339,7 +339,7 @@ func _build_ui() -> void:
 	for control in [status_label, advance_button, log_label]:
 		column.remove_child(control)
 		shell.add_child(control)
-	var hint := _label("Коснитесь пола: персонаж обойдёт стол и мебель.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
+	var hint := _label("Касание — идти; свайп — камера; два пальца — масштаб.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.position = Vector2(24, -75)
 	hint.size = Vector2(560, 60)
@@ -565,6 +565,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if menu.visible or survival_panel.visible:
 		camera_gestures.reset()
 		return
+	# Native ScreenTouch may reach unhandled input before its emulated mouse
+	# event is consumed by a button. Explicitly exclude visible HUD rectangles.
+	if event is InputEventScreenTouch or event is InputEventScreenDrag or event is InputEventMouse or event is InputEventGesture:
+		for control in ui_root.get_children():
+			if control is Control and control.visible and control.mouse_filter != Control.MOUSE_FILTER_IGNORE and control.get_global_rect().has_point(event.position):
+				return
 	_apply_camera_event(event)
 
 
