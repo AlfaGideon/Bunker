@@ -37,12 +37,16 @@ func run() -> void:
  welcome.settings()
  check(welcome.page == "settings", "Settings reachable without a game")
  welcome.home()
+ current_scene = welcome
+ welcome.launch()
+ await scene_changed
+ var room: Node3D = current_scene
+ check(room.scene_file_path == "res://game/main.tscn", "Start opens bunker scene")
+ check(room.started and room.menu.page == "briefing", "Start begins exactly one party and opens briefing")
+ check(room.players[0]["name"] == "У костра" and room.profile.outfit == 2, "Configured profile transferred to game")
+ check(not root.has_node("WelcomeCamp"), "Camp unloaded after start")
  original.save()
- welcome.queue_free()
+ room.queue_free()
  await process_frame
- var room := (load("res://game/main.tscn") as PackedScene).instantiate()
- root.add_child(room)
- check(room.players[0]["name"] == original.nickname, "Game loads saved profile")
- room.free()
  print("Welcome failures: ", failures)
  quit(1 if failures else 0)
