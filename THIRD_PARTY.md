@@ -34,3 +34,7 @@ Unlike the older Quaternius rigs above, KayKit includes authored animation.
 The game uses `Walking_C`, `Idle` and `Use_Item` clips through a manually
 advanced AnimationPlayer. The original procedural animation remains only as
 a fallback for the legacy figures, including exterior infected characters.
+
+## Рабочая айдентика 0.10
+
+Знак шлюза, прозрачный логотип, загрузочная картинка и SVG-иконка созданы скриптом `tools/create_branding.py`; сторонние игровые логотипы не использованы. Растровые надписи выполнены DejaVu Sans (файл шрифта в APK не добавлен). Лагерь использует уже перечисленные CC0-модели KayKit/Quaternius и программную геометрию; сидячая анимация — KayKit `Sit_Chair_Idle`. Оттенки одежды меняют копию материала торса во время исполнения, не исходные GLB.
