@@ -14,7 +14,7 @@ NAMES = dict(SCREENSHOT="bunker", WIDESHOT="wide", MENUSHOT="menu",
              INFECTIONSHOT="infection", MEDICALSHOT="medical", SLEEPSHOT="sleep",
              CHARACTERSHOT="characters", METEORDETAILSHOT="meteor-detail",
              AURORASHOT="solar", COUNCILSHOT="council", FACILITYSHOT="kitchen",
-             ARCHSHOT="architecture-0", ARCHALTSHOT="architecture-17", UPDATESHOT="update", LOADINGSHOT="loading", LOADINGARRIVALSHOT="vault")
+             ARCHSHOT="architecture-0", ARCHALTSHOT="architecture-17", UPDATESHOT="update", LOADINGSHOT="loading", LOADINGARRIVALSHOT="vault", SKINMALEYOUNGSHOT="skin-male-young", SKINFEMALEYOUNGSHOT="skin-female-young", SKINMALESENIORSHOT="skin-male-senior", SKINFEMALESENIORSHOT="skin-female-senior")
 
 
 def install(files, root):
@@ -28,7 +28,7 @@ def install(files, root):
                     continue  # Additional diagnostic views are not retained.
                 parts.setdefault(prefix, {})[int(index)] = chunk
     if set(parts) != set(NAMES):
-        raise ValueError("Need all 19 current previews; missing: " + str(set(NAMES) - set(parts)))
+        raise ValueError("Need all 23 current previews; missing: " + str(set(NAMES) - set(parts)))
     images = {}
     for prefix, chunks in parts.items():
         if sorted(chunks) != list(range(len(chunks))):
@@ -48,7 +48,7 @@ def install(files, root):
         text = doc.read_text()
         text = re.sub(r"-v\d+\.\d+(?=\.jpg)", "", text)
         doc.write_text(text)
-    print("Installed 19 current previews; obsolete copies removed.")
+    print("Installed 23 current previews; obsolete copies removed.")
 
 
 if __name__ == "__main__":

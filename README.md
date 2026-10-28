@@ -11,7 +11,15 @@
 
 Направление прототипа: Godot 4, стилизованное 3D с камерой сверху под углом и карточным 2D-интерфейсом; целевая платформа — Android. Подключены 3D-модели Quaternius (CC0); источники и лицензии — в [THIRD_PARTY.md](THIRD_PARTY.md).
 
-## Текущий APK — 0.18: боковая кат-сцена
+## Текущий APK — 0.19: выбор фигурки персонажа
+
+[**Скачать APK 0.19**](https://github.com/AlfaGideon/Bunker/releases/download/android-19/Bunker-Posledniy-Shlyuz-19.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-19) · [Подробнее](docs/ITERATION_19.md)
+
+В разделе «Персонаж» стрелками выберите одну из шести фигурок: две прежние и четыре дополнительные — молодой или пожилой мужчина и женщина. Внешность сразу видна у костра, сохраняется в профиле и используется в партии и кат-сцене. Возраст и пол из раскрытой биологии имеют приоритет. KayKit Mage и Barbarian — новые модели; женские варианты основаны на уже включённых моделях Rogue и Rogue Hooded, первый адаптирован с седыми волосами. Проверены все варианты и их походка; установка и производительность на BL9000 пока не проверены.
+
+![Выбор пожилой фигурки](docs/previews/skin-female-senior.jpg)
+
+## Предыдущий APK — 0.18: боковая кат-сцена
 
 [**Скачать APK 0.18**](https://github.com/AlfaGideon/Bunker/releases/download/android-18/Bunker-Posledniy-Shlyuz-18.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-18) · [Подробности](docs/ITERATION_18.md)
 
