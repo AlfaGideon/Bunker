@@ -18,10 +18,10 @@ func setup(game: Node3D, radio_position: Vector3) -> void:
 	room.add_child(radio)
 	air = AudioStreamPlayer.new()
 	air.stream = _loop("air_loop.wav")
-	air.volume_db = -28
+	air.volume_db = -10
 	add_child(air)
 	effect = AudioStreamPlayer.new()
-	effect.volume_db = -16
+	effect.volume_db = -1
 	add_child(effect)
 	apply_settings()
 
@@ -37,7 +37,7 @@ func _loop(filename: String) -> AudioStreamWAV:
 func apply_settings() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, room.profile.volume)))
 	AudioServer.set_bus_mute(0, room.profile.volume <= 0)
-	radio.volume_db = -17
+	radio.volume_db = -3
 	if room.profile.volume <= 0 or not room.profile.narration:
 		if DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
 			DisplayServer.tts_stop()

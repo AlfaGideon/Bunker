@@ -93,6 +93,7 @@ func run() -> void:
 		check(room.medicines == 1, "Treatment cooldown")
 		walk(room, "radio")
 		check(room.audio.radio_on and room.audio.radio.playing, "Radio plays local loop")
+		check(room.audio.radio.volume_db >= -10 and room.audio.effect.volume_db >= -8, "Audible prototype mix gains")
 		check(room.audio.radio.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "Radio loops")
 		walk(room, "radio")
 		check(not room.audio.radio_on, "Radio toggles off")

@@ -36,6 +36,8 @@ func capture() -> void:
 		room.systems_ready = true
 		room.round_number = 2
 		room._update_medical_access()
+		room._refresh()
+		await create_timer(0.7).timeout
 		shot_prefix = "MEDICALSHOT"
 	if args.has("--sleep"):
 		room.set_physics_process(false)
