@@ -21,3 +21,6 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.025, 0.035, 0.045, 1)
 textures/vram_compression/import_etc2_astc=true
+
+[audio]
+general/text_to_speech=true

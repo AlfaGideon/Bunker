@@ -9,6 +9,11 @@ var camera_size := 11.0
 var shadows := true
 var reduced_motion := false
 var completed_games := 0
+var volume := 0.7
+var narration := true
+var scenario_choice := "random"
+var world_count := 0
+var last_layout := -1
 
 
 func _init() -> void:
@@ -27,6 +32,11 @@ func _init() -> void:
 	camera_size = clampf(float(config.get_value("settings", "camera", 11.0)), 9.0, 14.0)
 	shadows = bool(config.get_value("settings", "shadows", true))
 	reduced_motion = bool(config.get_value("settings", "reduced_motion", false))
+	volume = clampf(float(config.get_value("settings", "volume", 0.7)), 0, 1)
+	narration = bool(config.get_value("settings", "narration", true))
+	scenario_choice = str(config.get_value("game", "scenario", "random"))
+	world_count = maxi(0, int(config.get_value("game", "world_count", 0)))
+	last_layout = int(config.get_value("game", "last_layout", -1))
 	completed_games = maxi(0, int(config.get_value("profile", "completed", 0)))
 
 
@@ -35,6 +45,11 @@ func save() -> Error:
 	config.set_value("profile", "nickname", nickname)
 	config.set_value("profile", "appearance", appearance)
 	config.set_value("profile", "completed", completed_games)
+	config.set_value("settings", "volume", volume)
+	config.set_value("settings", "narration", narration)
+	config.set_value("game", "scenario", scenario_choice)
+	config.set_value("game", "world_count", world_count)
+	config.set_value("game", "last_layout", last_layout)
 	config.set_value("game", "players", player_count)
 	config.set_value("settings", "camera", camera_size)
 	config.set_value("settings", "shadows", shadows)

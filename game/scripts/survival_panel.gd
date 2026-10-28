@@ -30,7 +30,7 @@ func setup(game: Node3D) -> void:
 	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
 	column.add_child(room._label("ВЫ ПОКИНУЛИ БУНКЕР", 30))
-	column.add_child(room._label("Гермодверь закрылась. Впереди снег и заброшенная метеостанция. Удастся ли добраться до неё?", 20))
+	column.add_child(room._label(room.scenario["exile_prompt"], 20))
 	column.add_child(room._label("Правило прототипа: один бросок d6. 1–3 — не выжили; 4–6 — выжили. Вероятность 50%. Повторного броска нет.", 18))
 	face_label = room._label("?", 64)
 	face_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -60,5 +60,5 @@ func roll_dice() -> void:
 
 func show_result() -> void:
 	face_label.text = str(outcome["face"])
-	result_label.text = "ВЫ ВЫЖИЛИ. Среди заносов вы нашли метеостанцию и укрылись от метели." if outcome["survived"] else "ВЫ НЕ ВЫЖИЛИ. Метель оказалась сильнее. История вашего персонажа закончилась."
+	result_label.text = ("ВЫ ВЫЖИЛИ. " + room.scenario["survived_text"]) if outcome["survived"] else ("ВЫ НЕ ВЫЖИЛИ. " + room.scenario["failed_text"])
 	continue_button.disabled = false

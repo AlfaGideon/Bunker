@@ -1,16 +1,21 @@
 class_name RoomNavigation
 extends RefCounted
 
+const Layout = preload("res://game/scripts/bunker_layout.gd")
 const STEP := 0.2
-const ORIGIN := Vector2(-4.6, -3.4)
-const SIZE := Vector2i(47, 35)
-# Furniture footprints enlarged by the character radius.
-const BLOCKERS := [Rect2(-1.95, -1.25, 3.9, 2.5),
-	Rect2(-4.7, -3.3, 2.0, 1.55), Rect2(2.6, -3.3, 1.8, 1.55)]
+const ORIGIN := Vector2(-8.4, -4.8)
+const SIZE := Vector2i(85, 49)
 var grid := AStarGrid2D.new()
+var layout: Dictionary
+var medical_open := false
 
 
-func _init() -> void:
+func _init(plan: Dictionary = {}) -> void:
+	layout = Layout.generate(0) if plan.is_empty() else plan
+	rebuild()
+
+
+func rebuild() -> void:
 	grid.region = Rect2i(Vector2i.ZERO, SIZE)
 	grid.cell_size = Vector2.ONE * STEP
 	grid.offset = ORIGIN
@@ -20,9 +25,18 @@ func _init() -> void:
 		for y in SIZE.y:
 			var cell := Vector2i(x, y)
 			var point := grid.get_point_position(cell)
-			for obstacle in BLOCKERS:
+			var solid := false
+			for obstacle in layout["blockers"]:
 				if obstacle.has_point(point):
-					grid.set_point_solid(cell)
+					solid = true
+			if not medical_open and (layout["gate_blocker"].has_point(point) or layout["med_bounds"].has_point(point)):
+				solid = true
+			grid.set_point_solid(cell, solid)
+
+
+func unlock_medical() -> void:
+	medical_open = true
+	rebuild()
 
 
 func cell_at(point: Vector3) -> Vector2i:
@@ -32,6 +46,25 @@ func cell_at(point: Vector3) -> Vector2i:
 func is_walkable(point: Vector3) -> bool:
 	var cell := cell_at(point)
 	return grid.is_in_boundsv(cell) and not grid.is_point_solid(cell)
+
+
+func nearest_walkable(point: Vector3) -> Vector3:
+	if is_walkable(point):
+		var at := grid.get_point_position(cell_at(point))
+		return Vector3(at.x, 0, at.y)
+	var nearest := Vector3.ZERO
+	var distance := INF
+	for x in SIZE.x:
+		for y in SIZE.y:
+			var cell := Vector2i(x, y)
+			if grid.is_point_solid(cell):
+				continue
+			var at := grid.get_point_position(cell)
+			var candidate := Vector3(at.x, 0, at.y)
+			if candidate.distance_squared_to(point) < distance:
+				distance = candidate.distance_squared_to(point)
+				nearest = candidate
+	return nearest
 
 
 func path_between(start: Vector3, destination: Vector3) -> PackedVector3Array:

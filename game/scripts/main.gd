@@ -1,5 +1,7 @@
 extends Node3D
 
+const Layout = preload("res://game/scripts/bunker_layout.gd")
+const BunkerAudio = preload("res://game/scripts/bunker_audio.gd")
 const Weather = preload("res://game/scripts/winter_weather.gd")
 const SurvivalPanel = preload("res://game/scripts/survival_panel.gd")
 const Profile = preload("res://game/scripts/local_profile.gd")
@@ -12,7 +14,26 @@ const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
-const SCENARIO := {"id": "long_winter", "weather": "snow"}
+var scenario: Dictionary
+var layout: Dictionary
+var layout_seed := 0
+var audio: Node
+var med_gate: MeshInstance3D
+var med_cover: MeshInstance3D
+var med_label: Label3D
+var med_light: OmniLight3D
+var systems_ready := false
+var medical_open := false
+var inventory := {"repair": 0}
+var supply_taken := false
+var medicines := 2
+var stamina := 60
+var used_actions := {}
+var rest_remaining := 0.0
+var rest_return := Vector3.ZERO
+var rest_rotation := 0.0
+var started := false
+var step_clock := 0.0
 var players: Array = []
 var actors: Array[Node3D] = []
 var active: Array[int] = []
@@ -33,7 +54,7 @@ var door: MeshInstance3D
 var target := Vector3(-2.5, 0, 1.8)
 var clock := 0.0
 var finished := false
-var navigation := Navigation.new()
+var navigation: RoomNavigation
 var route := PackedVector3Array()
 var route_index := 0
 var marker: MeshInstance3D
@@ -49,24 +70,40 @@ var reveal_log: Array = []
 func _ready() -> void:
 	if OS.has_feature("android"):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	scenario = Content.pick_scenario(profile.scenario_choice)
+	var explicit_seed := get_tree().has_meta("world_seed")
+	layout_seed = int(get_tree().get_meta("world_seed", randi()))
+	if get_tree().has_meta("world_seed"):
+		get_tree().remove_meta("world_seed")
+	if not explicit_seed and posmod(layout_seed, 3) == profile.last_layout:
+		layout_seed += 1
+	layout = Layout.generate(layout_seed)
+	profile.world_count += 1
+	profile.last_layout = layout["variant"]
+	profile.save()
+	navigation = Navigation.new(layout)
 	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance)
 	active.assign(range(players.size()))
 	capacity = players.size() / 2
 	_build_world()
+	audio = BunkerAudio.new()
+	add_child(audio)
+	audio.setup(self, layout["items"]["radio"]["at"])
 	_build_ui()
 	original_camera = camera.transform
 	apply_settings()
 	_refresh()
 	if get_tree().has_meta("start_game"):
-		menu.visible = false
 		get_tree().remove_meta("start_game")
+		begin_game()
 
 
 func apply_settings() -> void:
 	camera.size = profile.camera_size
 	sun.shadow_enabled = profile.shadows
 	weather.set_reduced_motion(profile.reduced_motion)
-	if not _biology_revealed(0) and actors[0].get_meta("appearance") != profile.appearance:
+	audio.apply_settings()
+	if not _biology_revealed(0) and actors[0].get_meta("appearance") != profile.appearance and rest_remaining <= 0:
 		_change_appearance(0, profile.appearance)
 
 
@@ -89,7 +126,7 @@ func _box(at: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
 	return instance
 
 
-func _world_label(text: String, at: Vector3, size: int = 32) -> void:
+func _world_label(text: String, at: Vector3, size: int = 32) -> Label3D:
 	var label := Label3D.new()
 	label.text = text
 	label.font_size = size
@@ -98,6 +135,7 @@ func _world_label(text: String, at: Vector3, size: int = 32) -> void:
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.modulate = Color("b7ccd0")
 	add_child(label)
+	return label
 
 
 func _build_world() -> void:
@@ -128,43 +166,7 @@ func _build_world() -> void:
 	Surroundings.build(self)
 	weather = Weather.new()
 	add_child(weather)
-	weather.setup(self, SCENARIO["weather"])
-	_box(Vector3(0, -0.2, 0), Vector3(10, 0.4, 8), Color("34444a"))
-	# Modular imported walls: front/right walls are cut away for visibility.
-	for x in [-4.0, -2.0, 2.0, 4.0]:
-		Art.spawn(self, "modular_sci_fi_Wall_1", Vector3(x, 0, -3.9), Vector3(1.95, 2.1, 0.23))
-	for z in [-2.8, -0.8, 1.2, 3.0]:
-		var wall := Art.spawn(self, "modular_sci_fi_Wall_1", Vector3(-4.95, 0, z), Vector3(1.95, 2.1, 0.23))
-		wall.rotation.y = PI / 2
-	for x in range(-4, 5):
-		_box(Vector3(x, 0.006, 0), Vector3(0.018, 0.01, 8), Color("42555b"))
-	for z in range(-3, 4):
-		_box(Vector3(0, 0.006, z), Vector3(10, 0.01, 0.018), Color("42555b"))
-	door = _box(Vector3(0, 1.0, -3.8), Vector3(1.9, 2.0, 0.25), Color("26383e"))
-	for x in [-0.75, 0.75]:
-		var strip := _box(Vector3(x, 1, -3.64), Vector3(0.04, 1.8, 0.04), Color("68d9c3"))
-		var glow := strip.material_override as StandardMaterial3D
-		glow.emission_enabled = true
-		glow.emission = Color("68d9c3")
-	_box(Vector3(0, 2.1, -3.65), Vector3(2.4, 0.12, 0.12), Color("caa261"))
-	_world_label("УБЕЖИЩЕ  /  %02d МЕСТА" % capacity, Vector3(0, 2.5, -3.7))
-	Art.spawn(self, "house_interior_pack_Table_RoundLarge", Vector3.ZERO, Vector3(3.1, 0.9, 1.7))
-	Art.spawn(self, "survival_pack_Radio", Vector3(-0.8, 0.91, 0), Vector3(0.45, 0.3, 0.25))
-	Art.spawn(self, "survival_pack_FirstAidKit", Vector3(0.65, 0.91, 0), Vector3(0.45, 0.22, 0.3))
-	Art.spawn(self, "modular_sci_fi_Props_Shelf", Vector3(-3.7, 0, -2.6), Vector3(1.5, 1.8, 0.65))
-	Art.spawn(self, "modular_sci_fi_Props_Crate", Vector3(-3.65, 0.15, -2.5), Vector3(0.6, 0.55, 0.55))
-	Art.spawn(self, "modular_sci_fi_Props_Computer", Vector3(3.5, 0, -2.6), Vector3(1.0, 1.5, 0.8))
-	_world_label("ТЕРМИНАЛ", Vector3(3.5, 1.85, -2.6), 22)
-	for x in [-3.0, 3.0]:
-		var pipes := Art.spawn(self, "modular_sci_fi_Details_Pipes_Long", Vector3(x, 1.1, -3.65), Vector3(0.5, 0.25, 1.5))
-		pipes.rotation.x = PI / 2
-		Art.spawn(self, "modular_sci_fi_Details_Vent_1", Vector3(x, 1.6, -3.63), Vector3(0.8, 0.1, 0.45)).rotation.x = PI / 2
-	var lamp := OmniLight3D.new()
-	lamp.position = Vector3(0, 2.5, 0)
-	lamp.light_color = Color("ffcf89")
-	lamp.light_energy = 1.8
-	lamp.omni_range = 6
-	add_child(lamp)
+	weather.setup(self, scenario["weather"])
 	marker = MeshInstance3D.new()
 	var ring := TorusMesh.new()
 	ring.inner_radius = 0.16
@@ -185,7 +187,7 @@ func _build_world() -> void:
 		var visual := Art.spawn(actor, _model_name(i, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
 		visual.set_script(SurvivorVisual)
 		visual._collect(visual)
-		actor.position = positions[i]
+		actor.position = navigation.nearest_walkable(positions[i])
 		actor.rotation.y = PI if i > 1 else 0
 		var label := Label3D.new()
 		label.text = players[i]["name"] + (" • ВЫ" if i == 0 else "")
@@ -195,6 +197,9 @@ func _build_world() -> void:
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		actor.add_child(label)
 		actors.append(actor)
+	var listener := AudioListener3D.new()
+	actors[0].add_child(listener)
+	listener.make_current()
 
 
 
@@ -211,6 +216,9 @@ func _button(text: String, action: Callable, parent: Node) -> Button:
 	button.text = text
 	button.custom_minimum_size.y = 48
 	button.pressed.connect(action)
+	button.pressed.connect(func():
+		if is_instance_valid(audio):
+			audio.blip())
 	parent.add_child(button)
 	return button
 
@@ -278,7 +286,9 @@ func _build_ui() -> void:
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 10)
 	scroll.add_child(column)
-	column.add_child(_label("ДОЛГАЯ ЗИМА", 25))
+	column.add_child(_label(scenario["title"], 25))
+	_button("Помещения и предметы", func(): menu.show_facility(), column)
+	_button("Сводка катастрофы / озвучка", func(): menu.briefing(), column)
 	column.add_child(_label("Все уже внутри. Из %d выживших останутся %d. Партия: %d исключений." % [players.size(), capacity, players.size() - capacity]))
 	var roster := OptionButton.new()
 	roster.custom_minimum_size.y = 48
@@ -409,6 +419,7 @@ func _advance() -> void:
 			else:
 				round_number += 1
 				phase = "reveal"
+				_update_medical_access()
 				log_label.text = "Новый раунд. Откройте следующую характеристику."
 		"end":
 			log_label.text = "Демонстрация завершена. Можно начать заново."
@@ -456,6 +467,12 @@ func _eliminate(eliminated: int) -> void:
 	if not active.has(eliminated):
 		return
 	if eliminated == 0:
+		if rest_remaining > 0:
+			rest_remaining = 0
+			actors[0].position = rest_return
+			actors[0].rotation.y = rest_rotation
+			actors[0].get_child(0).rotation = Vector3.ZERO
+			actors[0].get_child(0).position = Vector3.ZERO
 		route.clear()
 		marker.visible = false
 		pending_inspection = ""
@@ -498,13 +515,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		point = event.position
 	else:
 		return
-	for item in [{"at": Vector3(3.5, 1, -2.6), "goal": Vector3(2.2, 0, -2.2), "name": "terminal"},
-		{"at": Vector3(0.65, 1, 0), "goal": Vector3(0.6, 0, 1.6), "name": "medical"}]:
-		if camera.unproject_position(item["at"]).distance_to(point) < 35:
-			pending_inspection = item["name"]
-			_set_route(item["goal"])
-			log_label.text = "Идём осматривать предмет…"
-			return
+	if rest_remaining > 0:
+		return
+	var nearest_item := ""
+	var nearest_distance := 34.0
+	for key in layout["items"]:
+		if key == "medical" and not medical_open:
+			continue
+		var point_3d: Vector3 = layout["items"][key]["at"]
+		var distance := camera.unproject_position(point_3d).distance_to(point)
+		if distance < nearest_distance:
+			nearest_item = key
+			nearest_distance = distance
+	if not nearest_item.is_empty():
+		request_interaction(nearest_item)
+		return
 	var hit = Plane(Vector3.UP, 0).intersects_ray(camera.project_ray_origin(point), camera.project_ray_normal(point))
 	if hit == null:
 		return
@@ -526,6 +551,9 @@ func _set_route(destination: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	if actors.is_empty() or menu.visible or survival_panel.visible:
 		return
+	if rest_remaining > 0:
+		_tick_rest(delta)
+		return
 	var budget := delta * 2.4
 	var previous := actors[0].position
 	while route_index < route.size() and budget > 0:
@@ -544,12 +572,16 @@ func _physics_process(delta: float) -> void:
 	if route_index >= route.size():
 		marker.visible = false
 		if not pending_inspection.is_empty():
-			actors[0].get_child(0).gesture = 1.5
-			if pending_inspection == "terminal":
-				log_label.text = "ТЕРМИНАЛ: генератор исправен, запас топлива — 90 суток. Электрик может обслуживать систему. Это факт для обсуждения, не симуляция запасов."
-			else:
-				log_label.text = "АПТЕЧКА: обнаружены перевязочные материалы. Медицинский специалист поможет оценить их применение."
+			var item := pending_inspection
 			pending_inspection = ""
+			_complete_interaction(item)
+			if rest_remaining > 0:
+				return
+	if direction.length_squared() > 0.000001:
+		step_clock += delta
+		if step_clock > 0.38:
+			audio.blip("step")
+			step_clock = 0
 	var departing_ids := departures.keys()
 	for id in departing_ids:
 		var entry: Dictionary = departures[id]
@@ -600,3 +632,123 @@ func _update_safe_area() -> void:
 	ui_root.offset_top = safe.position.y / physical.y * logical.y
 	ui_root.offset_right = -(physical.x - safe.end.x) / physical.x * logical.x
 	ui_root.offset_bottom = -(physical.y - safe.end.y) / physical.y * logical.y
+
+
+func begin_game() -> void:
+	if started:
+		menu.visible = false
+		return
+	started = true
+	audio.begin()
+	menu.briefing()
+	_narrate_intro()
+
+
+func _narrate_intro() -> void:
+	await get_tree().create_timer(0.7).timeout
+	if is_inside_tree():
+		audio.narrate()
+		if menu.visible and menu.page == "briefing":
+			menu.briefing(false)
+
+
+func medical_status() -> String:
+	if medical_open:
+		return "Медблок открыт. Осталось наборов: %d." % medicines
+	return "Медблок закрыт: нужен ремкомплект со склада, восстановленная система и начало второго раунда. Система: %s; раунд: %d." % ["готова" if systems_ready else "не восстановлена", round_number]
+
+
+func request_interaction(key: String) -> bool:
+	if not active.has(0) or rest_remaining > 0:
+		log_label.text = "Сейчас персонаж не может взаимодействовать."
+		return false
+	if key == "gate" or (key == "medical" and not medical_open):
+		log_label.text = medical_status()
+		return false
+	if not layout["items"].has(key):
+		return false
+	var goal: Vector3 = layout["items"][key]["goal"]
+	var path: PackedVector3Array = navigation.path_between(actors[0].position, goal)
+	if path.is_empty():
+		log_label.text = "Проход недоступен."
+		return false
+	pending_inspection = key
+	_set_route(goal)
+	log_label.text = "Идём: " + layout["items"][key]["title"]
+	return true
+
+
+func _complete_interaction(key: String) -> void:
+	if not active.has(0):
+		return
+	actors[0].get_child(0).gesture = 1.2
+	match key:
+		"supply":
+			if supply_taken:
+				log_label.text = "Склад проверен: ремкомплект уже забрали."
+			else:
+				supply_taken = true
+				inventory["repair"] += 1
+				log_label.text = "Взяли ремкомплект. Теперь можно восстановить систему терминалом."
+		"terminal":
+			if systems_ready:
+				log_label.text = medical_status()
+			elif inventory["repair"] < 1:
+				log_label.text = "Для ремонта нужен ремкомплект со склада."
+			else:
+				inventory["repair"] -= 1
+				systems_ready = true
+				log_label.text = scenario["repair"] + " " + medical_status()
+				_update_medical_access()
+		"radio":
+			audio.toggle_radio()
+			log_label.text = "Радио: аварийная частота, авторская инструментальная петля." if audio.radio_on else "Радио выключено."
+		"bed", "bed2":
+			if used_actions.get("rest", 0) == round_number:
+				log_label.text = "В этом раунде вы уже отдыхали."
+				return
+			used_actions["rest"] = round_number
+			rest_return = actors[0].position
+			rest_rotation = actors[0].rotation.y
+			actors[0].rotation.y = 0
+			var at: Vector3 = layout["items"][key]["at"]
+			actors[0].position = Vector3(at.x, 0, at.z)
+			var visual := actors[0].get_child(0) as Node3D
+			visual.rotation.z = PI / 2
+			visual.position = Vector3(0.7, 0.7, 0)
+			rest_remaining = 3.0
+			log_label.text = "Отдых на койке… (3 секунды)"
+		"medical":
+			if not medical_open:
+				log_label.text = medical_status()
+			elif used_actions.get("medical", 0) == round_number or medicines <= 0:
+				log_label.text = "Осмотр уже выполнен в этом раунде или запасы закончились."
+			else:
+				used_actions["medical"] = round_number
+				medicines -= 1
+				stamina = mini(100, stamina + 15)
+				log_label.text = "Осмотр выполнен, бодрость +15. Закрытые характеристики не раскрываются. " + medical_status()
+
+
+func _tick_rest(delta: float) -> void:
+	rest_remaining = maxf(0, rest_remaining - delta)
+	if rest_remaining == 0:
+		var visual := actors[0].get_child(0) as Node3D
+		visual.rotation = Vector3.ZERO
+		visual.position = Vector3.ZERO
+		actors[0].position = rest_return
+		actors[0].rotation.y = rest_rotation
+		stamina = mini(100, stamina + 20)
+		log_label.text = "Вы отдохнули. Бодрость: %d/100. Снова можно отдохнуть в следующем раунде." % stamina
+
+
+func _update_medical_access() -> void:
+	if medical_open or not systems_ready or round_number < 2:
+		return
+	medical_open = true
+	navigation.unlock_medical()
+	med_cover.visible = false
+	med_label.text = "МЕДБЛОК • ОТКРЫТ"
+	med_light.light_energy = 1.2
+	create_tween().tween_property(med_gate, "position:y", -1.2, 0.6)
+	audio.blip("door")

@@ -1,8 +1,11 @@
 extends Control
 
+const Content = preload("res://game/scripts/game_content.gd")
+
 var room: Node3D
 var column: VBoxContainer
 var profile: BunkerProfile
+var page := ""
 
 
 func setup(game: Node3D, player_profile: BunkerProfile) -> void:
@@ -48,14 +51,17 @@ func button(value: String, action: Callable) -> Button:
 
 
 func home() -> void:
+	page = "home"
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.4", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.5", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
-	button("Продолжить партию", func(): visible = false)
+	button("Продолжить партию", room.begin_game)
 	button("Новая партия", new_game)
+	button("Помещения и предметы", show_facility)
+	button("Сводка катастрофы / озвучка", briefing)
 	button("Профиль игрока", show_profile)
 	button("Настройки", settings)
 	button("Как играть", instructions)
@@ -66,6 +72,7 @@ func home() -> void:
 
 
 func new_game() -> void:
+	page = "new_game"
 	clear()
 	text("НОВАЯ ПАРТИЯ", 28)
 	text("Число участников (включая вас)")
@@ -76,7 +83,29 @@ func new_game() -> void:
 	count.custom_minimum_size.y = 48
 	column.add_child(count)
 	text("Половина группы останется. 3–5 раундов исключения, 7 характеристик на персонажа, 40 профессий. Новая раздача при каждом старте.", 18)
+	text("Катастрофа", 18)
+	var scenario_picker := OptionButton.new()
+	scenario_picker.add_item("Случайная", 0)
+	var all: Array = Content.scenarios()
+	for i in all.size():
+		scenario_picker.add_item(all[i]["title"], i + 1)
+		if all[i]["id"] == profile.scenario_choice:
+			scenario_picker.select(i + 1)
+	scenario_picker.custom_minimum_size.y = 48
+	column.add_child(scenario_picker)
+	var seed_input := LineEdit.new()
+	seed_input.placeholder_text = "Seed убежища (необязательно)"
+	seed_input.custom_minimum_size.y = 48
+	column.add_child(seed_input)
+	text("Три варианта планировки, зеркальное расположение отсеков и случайная мебель. Указанный seed повторяет расстановку.", 17)
 	button("Начать новую партию", func():
+		var seed_text := seed_input.text.strip_edges()
+		if not seed_text.is_empty() and not seed_text.is_valid_int():
+			text("Seed должен быть целым числом.", 16)
+			return
+		if not seed_text.is_empty():
+			get_tree().set_meta("world_seed", seed_text.to_int())
+		profile.scenario_choice = "random" if scenario_picker.selected == 0 else all[scenario_picker.selected - 1]["id"]
 		profile.player_count = count.get_selected_id()
 		if not save_profile():
 			return
@@ -93,6 +122,7 @@ func save_profile() -> bool:
 
 
 func show_profile() -> void:
+	page = "show_profile"
 	clear()
 	text("ЛОКАЛЬНЫЙ ПРОФИЛЬ", 28)
 	var name_input := LineEdit.new()
@@ -114,6 +144,7 @@ func show_profile() -> void:
 
 
 func settings() -> void:
+	page = "settings"
 	clear()
 	text("НАСТРОЙКИ", 28)
 	var shadow_toggle := CheckButton.new()
@@ -132,6 +163,19 @@ func settings() -> void:
 	appearance.custom_minimum_size.y = 48
 	column.add_child(appearance)
 	text("После раскрытия карточки «Биология» модель примет указанный в карточке пол.", 17)
+	text("Громкость", 18)
+	var volume := HSlider.new()
+	volume.min_value = 0
+	volume.max_value = 1
+	volume.step = 0.05
+	volume.value = profile.volume
+	volume.custom_minimum_size.y = 48
+	column.add_child(volume)
+	var narration_toggle := CheckButton.new()
+	narration_toggle.text = "Зачитывать катастрофу системным голосом"
+	narration_toggle.button_pressed = profile.narration
+	column.add_child(narration_toggle)
+	text("Для русской озвучки нужен установленный голос синтеза речи Android. Радио работает без интернета.", 16)
 	text("Отдаление камеры (9 — ближе, 14 — дальше)", 18)
 	var zoom := HSlider.new()
 	zoom.min_value = 9
@@ -141,6 +185,8 @@ func settings() -> void:
 	zoom.custom_minimum_size.y = 48
 	column.add_child(zoom)
 	button("Применить и сохранить", func():
+		profile.volume = volume.value
+		profile.narration = narration_toggle.button_pressed
 		profile.appearance = "male" if appearance.selected == 0 else "female"
 		profile.shadows = shadow_toggle.button_pressed
 		profile.reduced_motion = motion_toggle.button_pressed
@@ -152,8 +198,43 @@ func settings() -> void:
 
 
 func instructions() -> void:
+	page = "instructions"
 	clear()
 	text("КАК ИГРАТЬ", 28)
 	text("1. Коснитесь свободного пола — персонаж обойдёт стол.\n2. Профессия открыта обязательно. Выберите ещё одну карту. Биология содержит пол и возраст; её раскрытие меняет модель.\n3. Перейдите к обсуждению, затем к голосованию.\n4. Выберите другого активного участника и проголосуйте. Остальные голоса пока задаются тестовым сценарием.\n5. Исключённый покинет комнату через наружный проход. Нажмите «Следующий раунд».\n6. Когда останется половина группы, партия завершится.\nТест собственного изгнания доступен из главного меню: после ухода можно один раз бросить d6 (1–3 — не выжил, 4–6 — выжил). Это правило прототипа.", 19)
 	text("Меню приостанавливает движение. Партия в этой версии не сохраняется между перезапусками приложения; профиль и настройки сохраняются.", 17)
 	button("Назад", home)
+
+
+func briefing(_unused: bool = false) -> void:
+	page = "briefing"
+	visible = true
+	clear()
+	text("АВАРИЙНАЯ СВОДКА", 27)
+	text(room.scenario["title"], 23)
+	text(room.scenario["brief"], 18)
+	text("Убежище: seed %d • план %d" % [room.layout_seed, room.layout["variant"] + 1], 17)
+	text(room.audio.narration_status, 16)
+	button("Зачитать / повторить", func():
+		room.audio.narrate()
+		briefing())
+	button("В убежище", func(): visible = false)
+	button("Назад в меню", home)
+
+
+func show_facility() -> void:
+	page = "facility"
+	visible = true
+	clear()
+	text("ПОМЕЩЕНИЯ И ПРЕДМЕТЫ", 26)
+	text("Бодрость: %d/100 • Ремкомплекты: %d" % [room.stamina, room.inventory["repair"]], 18)
+	text(room.medical_status(), 17)
+	text("Выберите предмет — персонаж сам подойдёт к нему. Отдых и обследование доступны один раз за раунд.", 17)
+	for key in room.layout["items"]:
+		var id: String = key
+		button(room.layout["items"][key]["title"], func():
+			if room.request_interaction(id):
+				visible = false
+			else:
+				text(room.log_label.text, 17))
+	button("Вернуться в игру", func(): visible = false)

@@ -28,3 +28,15 @@ static func random_hidden_card(player: Dictionary, rng: RandomNumberGenerator = 
 	if hidden.is_empty():
 		return {}
 	return hidden.pick_random() if rng == null else hidden[rng.randi_range(0, hidden.size() - 1)]
+
+
+static func scenarios() -> Array:
+	return JSON.parse_string(FileAccess.get_file_as_string("res://data/scenarios.json"))
+
+
+static func pick_scenario(choice: String = "random") -> Dictionary:
+	var all := scenarios()
+	for scenario in all:
+		if scenario["id"] == choice:
+			return scenario.duplicate(true)
+	return all.pick_random().duplicate(true)

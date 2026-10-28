@@ -34,7 +34,7 @@ func run_test() -> void:
 	room.set_physics_process(false)
 	room.menu.visible = false
 	check(room.menu_button.size.x <= 70, "Compact menu button")
-	check(room.weather.emitters.size() == 4, "Exterior snow for winter scenario")
+	check(room.weather.kind == room.scenario["weather"], "Weather matches selected catastrophe")
 	# Force opposite appearance and a rotated/translated actor: replacement must
 	# preserve world placement and visual scale, without revealing sex beforehand.
 	room._change_appearance(0, "female")
