@@ -28,6 +28,18 @@ func run() -> void:
    check(deck.navigation.get_global_rect().end.y <= root.get_visible_rect().size.y + 1, "Navigation reachable without scrolling: " + method)
    for node in deck.pages[page]:
     check(node.visible, "All cards accessible on selected page")
+ var dice: Control = room.survival_panel
+ dice.mode.select(4)
+ dice.configure()
+ dice.column.rebuild()
+ dice.column.page_index = 0
+ dice.column.rebuild()
+ dice.chosen.erase(1)
+ dice.update_choice()
+ check(dice.chosen.size() == 9 and dice.roll_button.disabled, "Dice validation uses selected mode, not off-page visibility")
+ dice.chosen.append(1)
+ dice.update_choice()
+ check(not dice.roll_button.disabled, "A valid d20 wager remains valid across pages")
  room.menu.visible = false
  room.phase = "reveal"
  room.speech.start(room.active)

@@ -287,11 +287,11 @@ func show_council() -> void:
 		var actions := HBoxContainer.new()
 		actions.add_theme_constant_override("separation", 8)
 		content.add_child(actions)
-		var yes := room._button("За открытие", func():
+		var yes: Button = room._button("За открытие", func():
 			room.vote_warehouse(voter, true)
 			show_council(), actions)
 		yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var no := room._button("Оставить закрытым", func():
+		var no: Button = room._button("Оставить закрытым", func():
 			room.vote_warehouse(voter, false)
 			show_council(), actions)
 		no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -319,7 +319,7 @@ func show_negative_actions() -> void:
 		content.add_child(room._label("Характер: " + ", ".join(action["traits"]), 16))
 		content.add_child(room._label(action["effect"] + ".", 17))
 		var reason: String = room.negative_action_block(key)
-		var use := room._button(action["title"], func(): confirm_negative_action(key), content)
+		var use: Button = room._button(action["title"], func(): confirm_negative_action(key), content)
 		use.disabled = not reason.is_empty()
 		if not reason.is_empty():
 			content.add_child(room._label(reason, 15))

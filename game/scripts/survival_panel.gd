@@ -105,7 +105,7 @@ func configure() -> void:
    Cards.button(button, true)
    button.toggle_mode = true
    button.button_pressed = value in chosen
-   button.custom_minimum_size = Vector2(70, 42)
+   button.custom_minimum_size = Vector2(70, 52)
    number_grid.add_child(button)
    number_buttons.append(button)
    button.pressed.connect(func():

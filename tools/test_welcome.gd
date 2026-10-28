@@ -20,6 +20,18 @@ func run() -> void:
   check(card.get_global_rect().end.y <= root.get_visible_rect().size.y, "All cards fit vertically")
  welcome.edit_profile()
  check(is_instance_valid(welcome.name_input) and welcome.page == "profile", "Profile editable on separate page")
+ for method in ["edit_profile", "game_options", "settings", "instructions"]:
+  welcome.call(method)
+  for frame in 3:
+   await process_frame
+  check(welcome.find_children("*", "ScrollContainer", true, false).is_empty(), "No scrolling in welcome subsection " + method)
+  check(welcome.find_children("*", "OptionButton", true, false).is_empty(), "No scrollable selector popups in " + method)
+  for page in welcome.column.pages.size():
+   welcome.column.page_index = page
+   welcome.column.rebuild()
+   for frame in 2:
+    await process_frame
+   check(welcome.column.navigation.get_global_rect().end.y <= root.get_visible_rect().size.y, "Welcome card pagination fits " + method)
  welcome.home()
  check(not welcome.has_node("BunkerPrototype"), "No game generated behind welcome")
  check(welcome.profile.world_count == original.world_count, "Welcome does not generate a world")
