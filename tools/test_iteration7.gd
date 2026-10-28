@@ -82,6 +82,14 @@ func run() -> void:
  check(room.speech.speaker() == room.active[1], "Integrated timed turn")
  room.survival_panel.mode.select(4)
  room.survival_panel.configure()
+ room.survival_panel.number_buttons[0].button_pressed = false
+ room.survival_panel.number_buttons[0].pressed.emit()
+ check(room.survival_panel.roll_button.disabled, "Custom selection requires exactly half the faces")
+ room.survival_panel.roll_dice()
+ check(room.survival_panel.outcome.is_empty(), "Invalid custom prediction cannot roll")
+ room.survival_panel.number_buttons[19].button_pressed = true
+ room.survival_panel.number_buttons[19].pressed.emit()
+ check(20 in room.survival_panel.chosen and 1 not in room.survival_panel.chosen, "Number callbacks use their actual face")
  room.survival_panel.roll_dice()
  check(room.survival_panel.outcome["sides"] == 20, "Selected d20 used by UI")
  var old: Dictionary = room.survival_panel.outcome.duplicate(true)

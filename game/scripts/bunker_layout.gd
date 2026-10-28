@@ -17,7 +17,7 @@ static func generate(seed_value: int, capacity: int = 4) -> Dictionary:
 		"medical": {"title": "Медблок — обследование", "at": Vector3(side * 6.6, 0.7, -2.6), "goal": Vector3(side * 5.0, 0, -2.6)},
 		"gate": {"title": "Дверь медблока — условия", "at": Vector3(side * 4.4, 1.0, -1.6), "goal": Vector3(side * 3.6, 0, -1.6)},
 		"terminal": {"title": "Терминал — восстановить систему", "at": terminal + Vector3(0, 1, 0), "goal": terminal + Vector3(0, 0, 1.2)},
-		"supply": {"title": "Склад — взять ремкомплект", "at": supply + Vector3(0, 0.5, 0), "goal": Vector3(side * 5.0, 0, 3.4)},
+		"supply": {"title": "Склад — забрать снабжение", "at": supply + Vector3(0, 0.5, 0), "goal": Vector3(side * 5.0, 0, 3.4)},
 		"radio": {"title": "Радио — включить / выключить", "at": table + Vector3(-0.7, 1.05, 0), "goal": table + Vector3(-0.7, 0, 1.6)}
 	}
 	var blockers: Array[Rect2] = [Rect2(Vector2(table.x - 1.95, table.z - 1.25), Vector2(3.9, 2.5))]

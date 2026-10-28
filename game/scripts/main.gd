@@ -781,7 +781,7 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 	match key:
 		"supply":
 			if supply_taken:
-				log_label.text = "Склад проверен: ремкомплект уже забрали."
+				log_label.text = "Склад проверен: снабжение уже получено."
 			else:
 				supply_taken = true
 				inventory["tools"] += 2

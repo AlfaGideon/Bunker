@@ -34,6 +34,8 @@ func capture() -> void:
 	room.menu.visible = show_menu
 	var show_survival := OS.get_cmdline_user_args().has("--survival")
 	if show_survival:
+		room.survival_panel.mode.select(4)
+		room.survival_panel.configure()
 		room.survival_panel.visible = true
 	if args.has("--open-med"):
 		room.systems_ready = true
@@ -41,6 +43,11 @@ func capture() -> void:
 		room._update_medical_access()
 		room._refresh()
 		await create_timer(0.7).timeout
+		room.ui_root.visible = false
+		room.camera.size = 7
+		var focus := Vector3(room.layout["med_side"] * 6, 0.8, -1.6)
+		room.camera.position = focus + Vector3(7, 9, 13)
+		room.camera.look_at(focus)
 		shot_prefix = "MEDICALSHOT"
 	if args.has("--sleep"):
 		room.set_physics_process(false)
@@ -54,6 +61,16 @@ func capture() -> void:
 			quit(1)
 			return
 		shot_prefix = "SLEEPSHOT"
+	if args.has("--council"):
+		room.menu.show_council()
+		shot_prefix = "COUNCILSHOT"
+	if args.has("--facilities"):
+		room.ui_root.visible = false
+		room.camera.size = 8
+		var focus := Vector3(0, 0.5, -1)
+		room.camera.position = focus + Vector3(7, 9, 13)
+		room.camera.look_at(focus)
+		shot_prefix = "FACILITYSHOT"
 	if args.has("--characters"):
 		room.ui_root.visible = false
 		room.set_physics_process(false)

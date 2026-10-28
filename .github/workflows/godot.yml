@@ -85,3 +85,7 @@ jobs:
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteor-detail
       - name: Render solar storm
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --solar
+      - name: Render council decision
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
+      - name: Render kitchen and shared food
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --facilities
