@@ -40,8 +40,8 @@ func run_test() -> void:
 					tracks[side].append(foot - hip)
 					check(knee.y < hip.y, "Knee must remain below hip, including during stride")
 					check(foot.y < knee.y, "Foot must remain below knee")
-		var forward := actor.global_basis.z.normalized()
-		var sideways := actor.global_basis.x.normalized()
+		var forward: Vector3 = actor.global_basis.z.normalized()
+		var sideways: Vector3 = actor.global_basis.x.normalized()
 		for side in ["L", "R"]:
 			var along: Array = []
 			var lateral: Array = []
