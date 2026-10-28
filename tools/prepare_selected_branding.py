@@ -17,3 +17,11 @@ icon=Image.new('RGBA',(512,512),(6,8,8,255))
 mark=logo.copy();mark.thumbnail((480,480),Image.Resampling.LANCZOS)
 icon.alpha_composite(mark,((512-mark.width)//2,(512-mark.height)//2))
 icon.convert('RGB').save(root/'icon.png',optimize=True)
+
+# Android adaptive masks crop foreground margins. Keep the complete mark in
+# the central safe zone instead of letting circular/squircle launchers cut it.
+adaptive=Image.new('RGBA',(432,432),(0,0,0,0))
+mark=logo.copy();mark.thumbnail((260,260),Image.Resampling.LANCZOS)
+adaptive.alpha_composite(mark,((432-mark.width)//2,(432-mark.height)//2))
+adaptive.save(root/'icon-adaptive-foreground.png',optimize=True)
+Image.new('RGB',(432,432),(6,8,8)).save(root/'icon-adaptive-background.png',optimize=True)
