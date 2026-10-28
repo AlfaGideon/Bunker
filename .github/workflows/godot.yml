@@ -33,10 +33,10 @@ jobs:
           godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/scene.log
       - name: Render visual preview
-        run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd
       - name: Render menu preview
-        run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd -- --menu
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --menu
       - name: Render wide phone aspect ratio
-        run: timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --script tools/capture_scene.gd -- --wide
+        run: timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" godot --windowed --resolution 2460x1080 --path . --script tools/capture_scene.gd -- --wide
       - name: Render survival panel
-        run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd -- --survival
+        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --survival
