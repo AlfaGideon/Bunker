@@ -42,6 +42,10 @@ Workflow также поддерживает `workflow_dispatch`. Для поя�
 
 Обычный debug workflow использует постоянный ключ, если Secrets заданы. Без них он остаётся только временным preview с явным предупреждением и не публикуется как обновление.
 
+## Текущая публикация 0.15
+
+[APK](https://github.com/AlfaGideon/Bunker/releases/download/android-15/Bunker-Posledniy-Shlyuz-15.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-15) · [Проверка подписи](https://github.com/AlfaGideon/Bunker/actions/runs/40704103210). Version code 15, package ID `org.bunker.prototype`. Сертификат совпал с опубликованной 0.14. Оба APK имеют размер 59 876 268 байт и SHA-256 `d5005bca735748de6bbdf16147c23832786c9217b7e435b29eb7ebbcd345f664`; legacy-имя сохранено для клиента 0.13. Реальная установка поверх 0.14 на BL9000 ещё требует проверки.
+
 ## Что проверено автоматически
 
 Тесты разбора metadata: новая/равная/старая версия, URL из другого источника, некорректный тег, неверная схема, draft/prerelease. Реальный диалог создаётся и закрывается без сетевого запроса, скачивание по умолчанию заблокировано. Release job проверяет итоговый APK инструментами Android SDK.
