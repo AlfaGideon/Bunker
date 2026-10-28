@@ -2,7 +2,7 @@ extends RefCounted
 
 const TAP_SLOP := 12.0
 const MIN_ZOOM := 7.0
-const MAX_ZOOM := 32.0
+const MAX_ZOOM := 40.0
 var room: Node3D
 var fingers: Dictionary = {}
 var mouse_down := false

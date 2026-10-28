@@ -90,6 +90,15 @@ func run() -> void:
  event.canceled = true
  event.pressed = false
  check(not controller.handle(event).has("tap"), "Canceled touch cannot order movement")
+ # BL9000 aspect ratio: restrictions apply to the full expanded viewport.
+ root.size = Vector2i(2460, 1080)
+ for frame in 3:
+  await process_frame
+ center = root.get_visible_rect().size * 0.5
+ for offset in [Vector2.ZERO, Vector2(20000, 20000), Vector2(-40000, -40000)]:
+  controller.transform_view(center, center + offset, 1000)
+  var wide_bounds: Rect2 = controller.ground_bounds()
+  check(wide_bounds.position.x >= -56.01 and wide_bounds.end.x <= 56.01 and wide_bounds.position.y >= -56.01 and wide_bounds.end.y <= 56.01, "Wide phone cannot expose any terrain edge")
  room.free()
  print("Camera gesture failures: ", failures)
  quit(1 if failures else 0)
