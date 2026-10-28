@@ -128,10 +128,10 @@ func build_journey_environment() -> void:
  forest_extension = Node3D.new()
  forest_extension.name = "JourneyForest"
  camp.add_child(forest_extension)
- for i in 18:
+ for i in 26:
   var source: Node3D = camp.camp_assets.trees[i % camp.camp_assets.trees.size()]
   var tree := source.duplicate() as Node3D
-  tree.position = Vector3(8.0 + float(i % 9) * 2.15, 0, -4.5 - float(i / 9) * 2.5)
+  tree.position = Vector3(7.0 + float(i % 13) * 1.65, 0, -4.5 - float(i / 13) * 2.5)
   forest_extension.add_child(tree)
  var grass_scene := load("res://assets/quaternius/nature_pack_Grass_Short.glb") as PackedScene
  for i in 100:

@@ -55,7 +55,7 @@ func _ready() -> void:
  shape.height = 2.0
  mound.mesh = shape
  mound.scale = Vector3(3.8, 2.9, 2.2)
- mound.position = Vector3(0, 0.25, -1.4)
+ mound.position = Vector3(0, 0.25, -3.0)
  mound.material_override = material("3f5648")
  add_child(mound)
  bar(self, Vector3(0, 1.55, -0.6), Vector3(3.35, 3.1, 0.7), "78847d")
