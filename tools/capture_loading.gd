@@ -9,10 +9,12 @@ func capture() -> void:
   await process_frame
  await create_timer(1.1).timeout
  var argument := OS.get_cmdline_user_args()
- var t := 2.5 if not argument.has("--arrival") else 4.7
+ var t := 3.4 if not argument.has("--arrival") else 6.95
+ if argument.has("--start"):
+  t = 0.4
  loading.elapsed = t
  loading.advance_cinematic()
- if t < 4.0:
+ if t > 0.85 and t < 6.0:
   loading.animator.advance(0.35)
  for frame in 8:
   await process_frame
@@ -24,6 +26,8 @@ func capture() -> void:
   bytes = image.save_jpg_to_buffer(0.25)
  var encoded := Marshalls.raw_to_base64(bytes)
  var prefix := "LOADINGARRIVALSHOT" if argument.has("--arrival") else "LOADINGSHOT"
+ if argument.has("--start"):
+  prefix = "LOADINGSTARTSHOT"
  for index in ceili(encoded.length() / 3500.0):
   print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))
  quit()

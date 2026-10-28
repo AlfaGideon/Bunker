@@ -3,10 +3,10 @@ const Cards = preload("res://game/scripts/card_style.gd")
 const Profile = preload("res://game/scripts/local_profile.gd")
 const MAIN := "res://game/main.tscn"
 const RUN_START := Vector3(-1.7, 0, 0)
-const RUN_END := Vector3(3.95, 0, -1.62)
+const RUN_END := Vector3(16.0, 0, 0)
 const STAND_TIME := 0.85
-const RUN_TIME := 3.8
-const ARRIVAL_TIME := 4.9
+const RUN_TIME := 6.0
+const ARRIVAL_TIME := 7.15
 var profile
 var camp
 var runner: Node3D
@@ -26,6 +26,8 @@ var running := false
 var arrived := false
 var camera_from: Vector3
 var camera_target_from := Vector3(0.7, 1.2, 0)
+var vault: Node3D
+var forest_extension: Node3D
 
 func _ready() -> void:
  # Reuse the actual welcome scene: same stump, avatar, forest, fire and door.
@@ -36,12 +38,17 @@ func _ready() -> void:
  runner = camp.avatar
  animator = camp.animator
  camera_from = camp.camera.position
+ # Hide the old in-game rectangular entrance; this is a distinct vault prop.
+ for node in camp.entrance_nodes:
+  node.visible = false
+ build_journey_environment()
  camp.ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
  for button in camp.find_children("*", "Button", true, false):
   button.disabled = true
  if profile.reduced_motion:
   camp.panel.visible = false
   runner.position = RUN_END
+  place_camera(1.0, 1.0)
   animator.play("Idle")
   arrived = true
  else:
@@ -116,21 +123,49 @@ func build_ui() -> void:
  enter.anchor_bottom = 0.97
  enter.pressed.connect(finish)
 
+func build_journey_environment() -> void:
+ # Extend the actual forest along the route so the background never ends.
+ forest_extension = Node3D.new()
+ forest_extension.name = "JourneyForest"
+ camp.add_child(forest_extension)
+ for i in 18:
+  var source: Node3D = camp.camp_assets.trees[i % camp.camp_assets.trees.size()]
+  var tree := source.duplicate() as Node3D
+  tree.position = Vector3(8.0 + float(i % 9) * 2.15, 0, -4.5 - float(i / 9) * 2.5)
+  forest_extension.add_child(tree)
+ var grass_scene := load("res://assets/quaternius/nature_pack_Grass_Short.glb") as PackedScene
+ for i in 100:
+  var tuft := grass_scene.instantiate() as Node3D
+  tuft.position = Vector3(7.0 + float(i % 20) * 0.85, 0, -3.3 + float(i / 20) * 1.45)
+  tuft.scale = Vector3.ONE * (0.28 + 0.05 * sin(float(i)))
+  tuft.rotation.y = float(i) * 1.7
+  forest_extension.add_child(tuft)
+ vault = preload("res://game/scripts/cinematic_vault.gd").new()
+ vault.name = "CinematicVault"
+ vault.position = Vector3(18.0, 0, -0.8)
+ camp.add_child(vault)
+
+func place_camera(stage: float, travel: float) -> void:
+ # Translate a side-on camera with the runner: all stationary forest and the
+ # fire move left on screen, while the vault enters naturally from the right.
+ var camera_track := Vector3(-0.4 + (RUN_END.x - RUN_START.x) * travel, 3.15, 14.0)
+ var target_track := Vector3(camera_track.x, 1.0, 0)
+ camp.camera.position = camera_from.lerp(camera_track, stage)
+ camp.camera.size = lerpf(5.2, 7.4, stage)
+ camp.camera.look_at(camera_target_from.lerp(target_track, stage))
+
 func advance_cinematic() -> void:
  if profile.reduced_motion:
   return
- var camera_progress := smoothstep(0.0, 1.8, elapsed)
- camp.camera.position = camera_from.lerp(Vector3(7.0, 5.3, 13.0), camera_progress)
- camp.camera.size = lerpf(5.2, 8.0, camera_progress)
- camp.camera.look_at(camera_target_from.lerp(Vector3(1.0, 0.8, -0.6), camera_progress))
+ var stage := smoothstep(0.0, 0.85, elapsed)
+ var travel := clampf((elapsed - STAND_TIME) / RUN_TIME, 0.0, 1.0)
+ place_camera(stage, travel)
  if elapsed >= STAND_TIME and not running:
   running = true
   animator.get_animation("Running_A").loop_mode = Animation.LOOP_LINEAR
   animator.play("Running_A", 0.16)
-  var direction := RUN_END - RUN_START
-  runner.rotation.y = atan2(direction.x, direction.z)
+  runner.rotation.y = PI / 2
  if running and not arrived:
-  var travel := clampf((elapsed - STAND_TIME) / RUN_TIME, 0.0, 1.0)
   runner.position = RUN_START.lerp(RUN_END, travel)
   if travel >= 1.0:
    arrived = true

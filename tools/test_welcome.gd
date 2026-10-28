@@ -91,10 +91,16 @@ func run() -> void:
  loading.advance_cinematic()
  check(loading.animator.current_animation == "Running_A", "Authored run follows stand-up")
  var before_x: float = loading.runner.position.x
+ var before_fire_x: float = loading.camp.camera.unproject_position(loading.camp.camp_assets.fire_model.global_position).x
+ check(loading.vault.get_node("CircularBlastDoor") != null, "Dedicated circular vault door")
+ for old_door in loading.camp.entrance_nodes:
+  check(not old_door.visible, "Rectangular game entrance hidden in cinematic")
  loading.elapsed = 2.5
  loading.advance_cinematic()
- check(loading.runner.position.x > before_x and loading.runner.position.z < 0, "Runner moves across grass toward entrance")
- loading.elapsed = 4.7
+ check(loading.runner.position.x > before_x and is_equal_approx(loading.runner.position.z, 0.0), "Runner moves right across grass")
+ check(loading.camp.camera.unproject_position(loading.camp.camp_assets.fire_model.global_position).x < before_fire_x, "Campfire moves left on screen")
+ check(loading.forest_extension.get_child_count() >= 100, "Forest and grass extend along route")
+ loading.elapsed = 6.9
  loading.advance_cinematic()
  check(loading.arrived and loading.runner.position.distance_to(loading.RUN_END) < 0.01, "Runner stops at door without looping")
  check(loading.profile.nickname == "У костра", "Loading preserves nickname")
