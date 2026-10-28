@@ -22,14 +22,14 @@ func run() -> void:
  check(not room.perform_negative_action("unknown"), "Unknown action rejected")
  room.menu.show_negative_actions()
  var start: Button
- for child in room.menu.column.card_nodes:
+ for child in room.menu.column.find_children("*", "Button", true, false):
   if child is Button and child.text == "Устроить ссору":
    start = child
  check(is_instance_valid(start) and not start.disabled, "Matching flaw enables actual menu button")
  if is_instance_valid(start):
   start.pressed.emit()
   var confirm: Button
-  for child in room.menu.column.card_nodes:
+  for child in room.menu.column.find_children("*", "Button", true, false):
    if child is Button and child.text == "Подтвердить":
     confirm = child
   check(is_instance_valid(confirm), "Harmful action needs confirmation")

@@ -35,6 +35,17 @@ func setup(game: Node3D, player_profile: BunkerProfile) -> void:
 	margin.add_child(column)
 	column.set_exit(home)
 
+	var close := Button.new()
+	close.text = "×"
+	Cards.button(close, true)
+	add_child(close)
+	close.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	close.offset_left = -90
+	close.offset_right = -24
+	close.offset_top = 24
+	close.offset_bottom = 80
+	close.tooltip_text = "Вернуться в партию"
+	close.pressed.connect(func(): visible = false)
 	home()
 
 
@@ -233,15 +244,8 @@ func show_facility() -> void:
 	visible = true
 	clear()
 	text("ПОМЕЩЕНИЯ И ПРЕДМЕТЫ", 26)
-	text("Бодрость: %d/100 • Ремкомплекты: %d" % [room.stamina, room.inventory["repair"]], 18)
-	text(room.medical_status(), 17)
-	text(room.supplies.summary(), 17)
-	text(room.supplies.last_report, 16)
-	text("Каждый раунд: −12 бодрости; при дефиците −20. Усталость замедляет ходьбу, но не блокирует управление.", 16)
-	text("Характеристики здоровья влияют на расход запасов всей группы. Симуляции заражения нет; голоса и d6 не меняются автоматически.", 16)
-	text("Порций за столом: %d. Инструменты: %d; оружие: %d (инвентарь, без боя)." % [room.meals, room.inventory["tools"], room.inventory["weapons"]], 17)
-	text("Выберите предмет — персонаж сам подойдёт к нему. Отдых и обследование доступны один раз за раунд.", 17)
-	text("Осмотреть отдельную пристройку (без выполнения работы):", 17)
+	text(room.supplies.summary() + "\nБодрость: %d/100 • Порций: %d" % [room.stamina, room.meals], 17)
+	button("Условия доступа и состояние убежища", facility_information)
 	for kind in room.layout["modules"]:
 		var module_kind: String = kind
 		button("Осмотреть: " + room.layout["items"][kind]["title"].split(" — ")[0], func():
@@ -255,8 +259,8 @@ func show_facility() -> void:
 	column.add_card(operator_picker)
 	for key in room.layout["items"]:
 		var id: String = key
-		text(Professions.requirement(key) if key not in ["gate", "warehouse_gate"] else "Доступ определяется условиями / советом", 15)
-		button(room.layout["items"][key]["title"], func():
+
+		button(room.layout["items"][key]["title"] + "\n" + (Professions.requirement(key) if key not in ["gate", "warehouse_gate"] else "Доступ определяется условиями / советом"), func():
 			if room.request_interaction(id, operator_picker.get_selected_id()):
 				visible = false
 			else:
@@ -274,13 +278,24 @@ func show_council() -> void:
 	text("Статус: " + ("открыт" if room.warehouse_open else "опечатан"), 20)
 	for id in room.active:
 		var voter: int = id
-		text(room.players[id]["name"], 18)
-		button("За открытие", func():
+		var frame := PanelContainer.new()
+		frame.add_theme_stylebox_override("panel", Cards.panel())
+		var content := VBoxContainer.new()
+		content.add_theme_constant_override("separation", 8)
+		frame.add_child(content)
+		content.add_child(room._label(room.players[id]["name"], 19))
+		var actions := HBoxContainer.new()
+		actions.add_theme_constant_override("separation", 8)
+		content.add_child(actions)
+		var yes := room._button("За открытие", func():
 			room.vote_warehouse(voter, true)
-			show_council())
-		button("Оставить закрытым", func():
+			show_council(), actions)
+		yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var no := room._button("Оставить закрытым", func():
 			room.vote_warehouse(voter, false)
-			show_council())
+			show_council(), actions)
+		no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		column.add_card(frame)
 	button("Вернуться в игру", func(): visible = false)
 
 
@@ -296,13 +311,20 @@ func show_negative_actions() -> void:
 		text("У вашего персонажа нет подходящего недостатка характера. Эти действия ему недоступны.", 18)
 	for key in room.NegativeActions.ACTIONS:
 		var action: Dictionary = room.NegativeActions.ACTIONS[key]
-		text("Требуется характер: " + ", ".join(action["traits"]), 16)
-		text(action["effect"] + ".", 18)
+		var frame := PanelContainer.new()
+		frame.add_theme_stylebox_override("panel", Cards.panel())
+		var content := VBoxContainer.new()
+		content.add_theme_constant_override("separation", 8)
+		frame.add_child(content)
+		content.add_child(room._label("Характер: " + ", ".join(action["traits"]), 16))
+		content.add_child(room._label(action["effect"] + ".", 17))
 		var reason: String = room.negative_action_block(key)
-		var use := button(action["title"], func(): confirm_negative_action(key))
+		var use := room._button(action["title"], func(): confirm_negative_action(key), content)
 		use.disabled = not reason.is_empty()
 		if not reason.is_empty():
-			text(reason, 16)
+			content.add_child(room._label(reason, 15))
+		frame.custom_minimum_size.y = 230
+		column.add_card(frame)
 	button("Вернуться в партию", func(): visible = false)
 
 
@@ -314,3 +336,13 @@ func confirm_negative_action(key: String) -> void:
 		room.perform_negative_action(key)
 		show_negative_actions())
 	button("Отмена", show_negative_actions)
+
+
+func facility_information() -> void:
+	clear()
+	text("СОСТОЯНИЕ УБЕЖИЩА", 26)
+	text(room.medical_status(), 18)
+	text(room.supplies.last_report, 18)
+	text("Инструменты: %d • Оружие: %d (бой пока не реализован). Ремкомплекты: %d." % [room.inventory["tools"], room.inventory["weapons"], room.inventory["repair"]], 17)
+	text("Каждый раунд: −12 бодрости, при дефиците −20. Характеристики здоровья увеличивают расход общих запасов. Предметы выполняются после подхода персонажа. Отдых и осмотр — раз в раунд.", 17)
+	button("К помещениям", show_facility)
