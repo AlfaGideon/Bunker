@@ -28,7 +28,8 @@ func run_test() -> void:
 	room.set_physics_process(false)
 	room.menu.visible = false
 	for i in room.actors.size():
-		room._change_appearance(i, "male" if i % 2 == 0 else "female")
+		var ids: Array = preload("res://game/scripts/avatar_catalog.gd").IDS
+		room._change_appearance(i, ids[i % ids.size()])
 	# Keep the old rigs covered as well: exterior infected still use them.
 	for name in ["modular_men_Worker", "modular_women_Casual"]:
 		var legacy := Node3D.new()
