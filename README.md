@@ -11,7 +11,15 @@
 
 Направление прототипа: Godot 4, стилизованное 3D с камерой сверху под углом и карточным 2D-интерфейсом; целевая платформа — Android. Подключены 3D-модели Quaternius (CC0); источники и лицензии — в [THIRD_PARTY.md](THIRD_PARTY.md).
 
-## Текущий APK — 0.19: выбор фигурки персонажа
+## Текущий APK — 0.20: обсуждение и голосование
+
+[**Скачать APK 0.20**](https://github.com/AlfaGideon/Bunker/releases/download/android-20/Bunker-Posledniy-Shlyuz-20.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-20) · [Подробности](docs/ITERATION_20.md)
+
+После всех речей — **60 секунд обсуждения**, затем в центре появляется голосование на **20 секунд**. Пропуск или истечение времени означает **голос за себя**. При ничьей проводится повторное голосование. Остальные участники пока локальные тестовые персонажи; сетевой игры нет. Проверены таймеры, собственное исключение, повторное голосование и поле на десять участников. Физическая проверка на BL9000 ещё нужна.
+
+![Поле голосования](docs/previews/vote.jpg)
+
+## Предыдущий APK — 0.19: выбор фигурки персонажа
 
 [**Скачать APK 0.19**](https://github.com/AlfaGideon/Bunker/releases/download/android-19/Bunker-Posledniy-Shlyuz-19.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-19) · [Подробнее](docs/ITERATION_19.md)
 
