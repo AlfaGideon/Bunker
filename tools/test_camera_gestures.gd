@@ -56,31 +56,28 @@ func run() -> void:
  room._input(InputEventMouseMotion.new())
  check(controller.fingers.is_empty(), "Modal cancels active fingers")
  room.menu.visible = false
- # Real viewport dispatch: GUI buttons must not start a world gesture.
+ # Local viewport coordinates: headless has a 64px physical window, so
+ # Input.parse_input_event would multiply these logical coordinates by 20.
+ # Dispatch through GUI normally, without applying physical stretch twice.
  var event := InputEventScreenTouch.new()
  event.index = 4
  event.position = Vector2(root.get_visible_rect().size.x - 60, 70)
  event.pressed = true
- Input.parse_input_event(event)
+ root.push_input(event, true)
  await process_frame
- if not controller.fingers.is_empty():
-  print("Gesture HUD diagnostics: root=", root.get_visible_rect(), " ui=", room.ui_root.get_global_rect(), " fingers=", controller.fingers)
-  for control in room.ui_root.get_children():
-   if control is Control and control.visible:
-    print(control.get_class(), " ", control.get_global_rect(), " canvas=", control.get_global_transform_with_canvas())
  check(controller.fingers.is_empty(), "Touch over HUD stays in GUI")
  event = InputEventScreenTouch.new()
  event.index = 4
  event.position = Vector2(root.get_visible_rect().size.x - 60, 70)
  event.pressed = false
- Input.parse_input_event(event)
+ root.push_input(event, true)
  await process_frame
  room.menu.visible = false
  event = InputEventScreenTouch.new()
  event.index = 5
  event.position = center
  event.pressed = true
- Input.parse_input_event(event)
+ root.push_input(event, true)
  await process_frame
  check(controller.fingers.has(5), "Touch over world starts gesture")
  event = InputEventScreenTouch.new()
