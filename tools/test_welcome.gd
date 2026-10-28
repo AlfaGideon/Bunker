@@ -17,6 +17,27 @@ func run() -> void:
  check(not welcome.has_node("BunkerPrototype"), "No game generated behind welcome")
  check(welcome.profile.world_count == original.world_count, "Welcome does not generate a world")
  check(welcome.animator.current_animation == "Sit_Chair_Idle", "Real seated animation")
+ var camp: Node3D = welcome.camp_assets
+ check(camp.trees.size() == 13, "Imported pine forest instead of stacked cones")
+ for tree in camp.trees:
+  check("nature_pack_PineTree_" in tree.get_meta("source"), "Licensed pine mesh")
+ check("survival_pack_Bonfire_Fire" in camp.fire_model.get_meta("source"), "Imported bonfire model")
+ var animated_fire := false
+ for mesh in camp.fire_model.find_children("*", "MeshInstance3D", true, false):
+  for surface in mesh.mesh.get_surface_count():
+   if mesh.get_surface_override_material(surface) == camp.fire_material:
+    animated_fire = true
+ check(animated_fire, "Flame shader actually attached to imported fire surface")
+ var wind_time: float = camp.wind_materials[0].get_shader_parameter("wind_time")
+ var tree_root: Transform3D = camp.trees[0].transform
+ camp._process(0.5)
+ check(camp.wind_materials[0].get_shader_parameter("wind_time") > wind_time, "Wind shader advances")
+ check(camp.trees[0].transform == tree_root, "Tree root remains anchored")
+ camp.reduced_motion = true
+ camp._process(0.1)
+ check(camp.wind_materials[0].get_shader_parameter("wind_strength") == 0.0, "Reduced-motion disables wind")
+ check(not camp.embers.emitting and not camp.smoke.emitting, "Reduced-motion disables particles")
+ camp.reduced_motion = false
  var time_before: float = welcome.animator.current_animation_position
  welcome._process(0.2)
  check(welcome.animator.current_animation_position != time_before, "Avatar animated before game")

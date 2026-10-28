@@ -217,13 +217,6 @@
     "sha256": "996806cadf03c7ae8ea08602e140e00c5588a46d25ae2e082c8ccf67768a07cf"
   },
   {
-    "file": "assets/quaternius/survival_pack_Bonfire.glb",
-    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/survival_pack/Bonfire.glb",
-    "author": "Quaternius",
-    "license": "CC0-1.0",
-    "sha256": "e8fe4435fa69adf252512b824569867721a186208cdfe82c3dc3df7f9e2487a0"
-  },
-  {
     "file": "assets/quaternius/survival_pack_Bonfire_Fire.glb",
     "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/survival_pack/Bonfire_Fire.glb",
     "author": "Quaternius",

@@ -114,7 +114,7 @@ func _process(delta: float) -> void:
  if is_instance_valid(animator):
   animator.advance(delta)
  if is_instance_valid(fire_light):
-  fire_light.light_energy = 2.1 + sin(clock * 9) * 0.15 + sin(clock * 17) * 0.1
+  fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.15 + sin(clock * 17) * 0.1
  if is_instance_valid(camp_assets):
   camp_assets.reduced_motion = profile.reduced_motion
 
@@ -299,7 +299,7 @@ func settings() -> void:
  narration.toggled.connect(func(value): profile.narration = value)
  column.add_child(narration)
  var reduced := CheckButton.new()
- reduced.text = "Уменьшить вторичные движения в партии"
+ reduced.text = "Уменьшить эффекты, ветер и искры"
  reduced.button_pressed = profile.reduced_motion
  reduced.toggled.connect(func(value): profile.reduced_motion = value)
  column.add_child(reduced)

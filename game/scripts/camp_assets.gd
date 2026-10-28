@@ -100,11 +100,12 @@ func particles(amount: int, lifetime: float, color: Color, radius: float, is_smo
  material.albedo_color = color
  material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
  material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+ material.vertex_color_use_as_albedo = true
  effect.material_override = material
  var gradient := Gradient.new()
  gradient.set_color(0, Color(1,1,1,0))
  gradient.add_point(0.2, Color.WHITE)
- gradient.set_color(1, Color(1,1,1,0))
+ gradient.set_color(2, Color(1,1,1,0))
  effect.color_ramp = gradient
  add_child(effect)
  return effect

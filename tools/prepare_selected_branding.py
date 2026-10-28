@@ -11,3 +11,8 @@ splash=Image.new('RGBA',(1280,720),(6,8,8,255))
 copy=logo.copy();copy.thumbnail((1040,650),Image.Resampling.LANCZOS)
 splash.alpha_composite(copy,((1280-copy.width)//2,(720-copy.height)//2))
 splash.convert('RGB').save(root/'splash.png',optimize=True)
+
+icon=Image.new('RGBA',(512,512),(6,8,8,255))
+door=original.crop((405,235,830,720));door.thumbnail((448,448),Image.Resampling.LANCZOS)
+icon.alpha_composite(door,((512-door.width)//2,(512-door.height)//2))
+icon.convert('RGB').save(root/'icon.png',optimize=True)
