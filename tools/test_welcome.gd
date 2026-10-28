@@ -69,6 +69,7 @@ func run() -> void:
  check(not welcome.save_draft(), "Reject empty nickname")
  welcome.draft_name = "У костра"
  welcome.profile.outfit = 2
+ welcome.profile.reduced_motion = false
  check(welcome.save_draft(), "Save configured welcome profile")
  var saved := preload("res://game/scripts/local_profile.gd").new()
  check(saved.nickname == "У костра" and saved.outfit == 2, "Nickname and outfit persist")
@@ -82,10 +83,20 @@ func run() -> void:
  await scene_changed
  var loading: Node3D = current_scene
  check(loading.scene_file_path == "res://game/loading.tscn", "Start opens real preparation screen")
- check(loading.animator.current_animation == "Running_A", "Authored run animation on preparation")
+ check(loading.animator.current_animation == "Sit_Chair_StandUp", "Character stands from the original stump")
+ check(loading.camp.camp_assets.trees.size() == 13, "Preparation reuses forest and camp")
+ check(loading.runner == loading.camp.avatar, "Actual seated avatar makes the journey")
+ check(loading.runner.position.distance_to(loading.RUN_START) < 0.01, "Character starts on the stump")
+ loading.elapsed = 1.1
+ loading.advance_cinematic()
+ check(loading.animator.current_animation == "Running_A", "Authored run follows stand-up")
  var before_x: float = loading.runner.position.x
- loading._process(0.2)
- check(loading.runner.position.x > before_x, "Runner advances left to right")
+ loading.elapsed = 2.5
+ loading.advance_cinematic()
+ check(loading.runner.position.x > before_x and loading.runner.position.z < 0, "Runner moves across grass toward entrance")
+ loading.elapsed = 4.7
+ loading.advance_cinematic()
+ check(loading.arrived and loading.runner.position.distance_to(loading.RUN_END) < 0.01, "Runner stops at door without looping")
  check(loading.profile.nickname == "У костра", "Loading preserves nickname")
  loading.cancel_loading()
  await scene_changed

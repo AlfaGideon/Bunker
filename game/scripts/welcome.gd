@@ -71,14 +71,14 @@ func build_camp() -> void:
  moon.light_energy = 0.8
  moon.shadow_enabled = profile.shadows
  add_child(moon)
- box(Vector3(0, -0.16, 0), Vector3(60, 0.3, 60), Color("253b37"))
+ box(Vector3(0, -0.17, 0), Vector3(60, 0.3, 60), Color("253b37"))
  # A real little campsite outside the bunker, unrelated to the game world.
- box(Vector3(-1.9, 0.17, -0.16), Vector3(1.8, 0.35, 0.55), Color("534235"))
+ box(Vector3(-1.9, 0.17, -0.17), Vector3(1.8, 0.35, 0.55), Color("534235"))
  for i in 10:
   var angle := float(i) * TAU / 10
   var rock := MeshInstance3D.new()
   var mesh := SphereMesh.new()
-  mesh.radius = 0.16
+  mesh.radius = 0.17
   mesh.height = 0.25
   rock.mesh = mesh
   rock.position = Vector3(cos(angle) * 0.6, 0.08, 1.0 + sin(angle) * 0.6)
@@ -93,7 +93,7 @@ func build_camp() -> void:
  fire_light.omni_range = 6
  add_child(fire_light)
  box(Vector3(4, 0.6, -3), Vector3(3.8, 1.2, 2), Color("445354"))
- Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.16))
+ Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.17))
  camera = Camera3D.new()
  camera.projection = Camera3D.PROJECTION_ORTHOGONAL
  camera.size = 5.2
@@ -120,7 +120,7 @@ func _process(delta: float) -> void:
  if is_instance_valid(animator):
   animator.advance(delta)
  if is_instance_valid(fire_light):
-  fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.16 + sin(clock * 17) * 0.1
+  fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.17 + sin(clock * 17) * 0.1
  if is_instance_valid(camp_assets):
   camp_assets.reduced_motion = profile.reduced_motion
 
@@ -290,7 +290,7 @@ func home() -> void:
  card("ОБНОВЛЕНИЯ", "Проверить новую версию", func(): preload("res://game/scripts/app_updates.gd").show_updates(self), grid)
  card("КАК ИГРАТЬ", "Правила и управление", instructions, grid)
  card("ВЫХОД", "Завершить приложение", func(): get_tree().quit(), grid)
- error_label = label("Локальная партия • 0.16 • без сетевого поиска", 15)
+ error_label = label("Локальная партия • 0.17 • без сетевого поиска", 15)
 
 func edit_profile() -> void:
  page = "profile"
