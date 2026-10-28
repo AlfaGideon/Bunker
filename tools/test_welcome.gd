@@ -92,6 +92,10 @@ func run() -> void:
  check(loading.animator.current_animation == "Running_A", "Authored run follows stand-up")
  var before_x: float = loading.runner.position.x
  var before_fire_x: float = loading.camp.camera.unproject_position(loading.camp.camp_assets.fire_model.global_position).x
+ var tree: Node3D = loading.forest_extension.get_child(0)
+ var before_tree_x: float = loading.camp.camera.unproject_position(tree.global_position).x
+ var start_vault_x: float = loading.camp.camera.unproject_position(loading.vault.global_position).x
+ check(start_vault_x > root.get_visible_rect().size.x, "Vault starts off the right side")
  check(loading.vault.get_node("CircularBlastDoor") != null, "Dedicated circular vault door")
  for old_door in loading.camp.entrance_nodes:
   check(not old_door.visible, "Rectangular game entrance hidden in cinematic")
@@ -99,10 +103,13 @@ func run() -> void:
  loading.advance_cinematic()
  check(loading.runner.position.x > before_x and is_equal_approx(loading.runner.position.z, 0.0), "Runner moves right across grass")
  check(loading.camp.camera.unproject_position(loading.camp.camp_assets.fire_model.global_position).x < before_fire_x, "Campfire moves left on screen")
+ check(loading.camp.camera.unproject_position(tree.global_position).x < before_tree_x, "Forest moves left opposite the runner")
  check(loading.forest_extension.get_child_count() >= 100, "Forest and grass extend along route")
  loading.elapsed = 6.9
  loading.advance_cinematic()
  check(loading.arrived and loading.runner.position.distance_to(loading.RUN_END) < 0.01, "Runner stops at door without looping")
+ var end_vault_x: float = loading.camp.camera.unproject_position(loading.vault.global_position).x
+ check(end_vault_x > 0 and end_vault_x < root.get_visible_rect().size.x, "Vault enters and remains in view")
  check(loading.profile.nickname == "У костра", "Loading preserves nickname")
  loading.cancel_loading()
  await scene_changed
