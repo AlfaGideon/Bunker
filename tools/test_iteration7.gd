@@ -84,7 +84,7 @@ func run() -> void:
  room.survival_panel.configure()
  room.survival_panel.roll_dice()
  check(room.survival_panel.outcome["sides"] == 20, "Selected d20 used by UI")
- var old := room.survival_panel.outcome.duplicate(true)
+ var old: Dictionary = room.survival_panel.outcome.duplicate(true)
  room.survival_panel.configure()
  room.survival_panel.roll_dice()
  check(room.survival_panel.outcome == old, "Prediction and outcome immutable after roll")
