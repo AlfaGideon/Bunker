@@ -236,6 +236,12 @@ func show_facility() -> void:
 	text("Характеристики здоровья влияют на расход запасов всей группы. Симуляции заражения нет; голоса и d6 не меняются автоматически.", 16)
 	text("Порций за столом: %d. Инструменты: %d; оружие: %d (инвентарь, без боя)." % [room.meals, room.inventory["tools"], room.inventory["weapons"]], 17)
 	text("Выберите предмет — персонаж сам подойдёт к нему. Отдых и обследование доступны один раз за раунд.", 17)
+	text("Осмотреть отдельную пристройку (без выполнения работы):", 17)
+	for kind in room.layout["modules"]:
+		var module_kind: String = kind
+		button("Осмотреть: " + room.layout["items"][kind]["title"].split(" — ")[0], func():
+			room.focus_module(module_kind)
+			visible = false)
 	text("Исполнитель (тестовые участники выполняют ваше поручение, это не сетевые игроки):", 16)
 	var operator_picker := OptionButton.new()
 	for id in room.active:

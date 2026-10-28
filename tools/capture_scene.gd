@@ -27,9 +27,15 @@ func capture() -> void:
 	if args.has("--solar"):
 		scenario_id = "solar_superstorm"
 		shot_prefix = "AURORASHOT"
+	if args.has("--architecture-alt"):
+		seed_value = 17
 	room.profile.scenario_choice = scenario_id
 	set_meta("world_seed", seed_value)
 	root.add_child(room)
+	if args.has("--architecture") or args.has("--architecture-alt"):
+		room.ui_root.visible = false
+		room._frame_camera()
+		shot_prefix = "ARCHALTSHOT" if args.has("--architecture-alt") else "ARCHSHOT"
 	var show_menu := OS.get_cmdline_user_args().has("--menu")
 	room.menu.visible = show_menu
 	var show_survival := OS.get_cmdline_user_args().has("--survival")

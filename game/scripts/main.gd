@@ -25,6 +25,7 @@ var ability_buttons: Array[Button] = []
 var warehouse_open := false
 var warehouse_door: Node3D
 var exit_hatch: Node3D
+var camera_tween: Tween
 var warehouse_votes := {}
 var jobs := {}
 var npc_rests := {}
@@ -358,6 +359,7 @@ func _build_ui() -> void:
 	left.add_child(speech_label)
 	_button("Передать ход / пропустить", pass_speech, left)
 	_button("Совет: доступ к складу", func(): menu.show_council(), left)
+	_button("Общий вид бункера", _frame_camera, left)
 	menu = Menu.new()
 	root.add_child(menu)
 	menu.setup(self, profile)
@@ -750,6 +752,8 @@ func request_interaction(key: String, operator: int = 0) -> bool:
 	else:
 		pending_inspection = key
 		_set_route(goal)
+	if layout["modules"].has(key):
+		focus_module(key)
 	log_label.text = "Идём: " + layout["items"][key]["title"]
 	return true
 
@@ -889,14 +893,39 @@ func _update_medical_access() -> void:
 func _frame_camera() -> void:
 	if is_instance_valid(survival_panel) and survival_panel.visible:
 		return
+	if is_instance_valid(camera_tween):
+		camera_tween.kill()
 	var viewport_size := get_viewport().get_visible_rect().size
-	var usable_width := maxf(500, viewport_size.x - 630)
-	camera.size = maxf(28.0, 44.0 * viewport_size.y / usable_width) * profile.camera_size / 11.0
+	var ui_margin := 630.0 if ui_root.visible else 40.0
+	var usable_width := maxf(500, viewport_size.x - ui_margin)
+	var bounds: Rect2 = layout["bounds"].merge(Rect2(3, 5, 7, 3))
 	var right := Vector3(13, 0, -7.2).normalized()
-	var focus := right * (camera.size / viewport_size.y * 35)
+	var up := Vector3(7.2, 13, 13).normalized().cross(right)
+	var width := 0.0
+	var height := 0.0
+	for x in [-bounds.size.x * 0.5, bounds.size.x * 0.5]:
+		for z in [-bounds.size.y * 0.5, bounds.size.y * 0.5]:
+			var corner := Vector3(x, 0, z)
+			width = maxf(width, absf(corner.dot(right)) * 2)
+			height = maxf(height, absf(corner.dot(up)) * 2)
+	camera.size = (maxf(height * viewport_size.y / maxf(400, viewport_size.y - 120), width * viewport_size.y / usable_width) + 2.0) * profile.camera_size / 11.0
+	var center := bounds.get_center()
+	var focus := Vector3(center.x, 0, center.y) + right * (camera.size / viewport_size.y * (35.0 if ui_root.visible else 0.0))
 	camera.position = focus + Vector3(7.2, 13, 13)
 	camera.look_at(focus)
 	original_camera = camera.transform
+
+
+func focus_module(kind: String) -> void:
+	if not layout["modules"].has(kind):
+		return
+	if is_instance_valid(camera_tween):
+		camera_tween.kill()
+	var focus: Vector3 = layout["modules"][kind]["center"]
+	var desired := Transform3D(Basis.IDENTITY, focus + Vector3(7.2, 13, 13)).looking_at(focus)
+	camera_tween = create_tween().set_parallel(true)
+	camera_tween.tween_property(camera, "transform", desired, 0.5)
+	camera_tween.tween_property(camera, "size", 12.0 * profile.camera_size / 11.0, 0.5)
 
 
 func _refresh_left() -> void:
