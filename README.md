@@ -11,7 +11,15 @@
 
 Направление прототипа: Godot 4, стилизованное 3D с камерой сверху под углом и карточным 2D-интерфейсом; целевая платформа — Android. Подключены 3D-модели Quaternius (CC0); источники и лицензии — в [THIRD_PARTY.md](THIRD_PARTY.md).
 
-## Текущий APK — 0.15: карточки везде и замки характеристик
+## Текущий APK — 0.16: исправленный экран обновлений
+
+[**Скачать APK 0.16**](https://github.com/AlfaGideon/Bunker/releases/download/android-16/Bunker-Posledniy-Shlyuz-16.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-16) · [Подробнее](docs/ITERATION_16.md)
+
+Обновлён экран проверки: вместо серого диалога — анимированная карточка с текущей и последней сборкой и горизонтальными кнопками. Основная проверка работает через публичный адрес GitHub, не используя лимитируемый API; есть запасной запрос и повторная попытка. Реальный запрос к GitHub прошёл в CI. Сертификат совпадает с 0.15; установка на физическом BL9000 пока не проверена. Если старая версия показывает 403, скачайте APK по ссылке выше и подтвердите обновление вручную.
+
+![Пример нового экрана: номер следующей сборки для демонстрации](docs/previews/update.jpg)
+
+## Предыдущий APK — 0.15: карточки везде и замки характеристик
 
 [**Скачать APK**](https://github.com/AlfaGideon/Bunker/releases/download/android-15/Bunker-Posledniy-Shlyuz-15.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-15) · [Подпись и совместимость](https://github.com/AlfaGideon/Bunker/actions/runs/40704103210) · [Godot CI](https://github.com/AlfaGideon/Bunker/actions/runs/40704103644)
 
