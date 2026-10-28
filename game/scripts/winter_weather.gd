@@ -27,9 +27,9 @@ func setup(room: Node3D, weather: String) -> void:
 	if weather != "snow":
 		_build_hazard(room, weather)
 		return
-	room._box(Vector3(0, -0.45, 0), Vector3(80, 0.1, 80), Color("c7d5de"))
+	room._box(Vector3(0, -0.45, 0), Vector3(80, 0.1, 80), Color("91a7b4"))
 	var snow_material := StandardMaterial3D.new()
-	snow_material.albedo_color = Color("e2edf2")
+	snow_material.albedo_color = Color("9fb3bf")
 	snow_material.roughness = 1.0
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 8146

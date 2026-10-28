@@ -4,9 +4,9 @@ static func build(room: Node3D) -> void:
  var weather: String = room.scenario["weather"]
  var snow := weather == "snow"
  var dry := weather in ["heat", "sand", "volcano"]
- var tint := Color("667b88") if snow else Color("71604a") if dry else Color("435446")
+ var tint := Color("a4b5bf") if snow else Color("71604a") if dry else Color("435446")
  var shader := Shader.new()
- shader.code = """shader_type spatial; render_mode cull_disabled;
+ shader.code = """shader_type spatial;
  varying vec3 world;
  uniform vec4 tint: source_color;
  void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;}
@@ -21,7 +21,7 @@ static func build(room: Node3D) -> void:
   for z in range(-22, 24, 2):
    if abs(x) < 9 and abs(z) < 6:
     continue
-   for offset in [Vector2(0, 0), Vector2(0, 2), Vector2(2, 0), Vector2(2, 0), Vector2(0, 2), Vector2(2, 2)]:
+   for offset in [Vector2(0, 0), Vector2(2, 0), Vector2(0, 2), Vector2(2, 0), Vector2(2, 2), Vector2(0, 2)]:
     var px: float = float(x) + offset.x
     var pz: float = float(z) + offset.y
     var y := -0.31 + sin(px * 0.44) * cos(pz * 0.31) * 0.09
