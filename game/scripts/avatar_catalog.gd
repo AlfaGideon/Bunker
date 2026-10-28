@@ -8,8 +8,8 @@ static func index_of(id: String) -> int:
 
 static func model(id: String, index: int = 0) -> String:
  match id:
-  "male_young": return "kaykit_Barbarian"
-  "male_senior": return "kaykit_Mage"
+  "male_young": return "kaykit_Mage"
+  "male_senior": return "kaykit_Barbarian"
   "female_young": return "kaykit_Rogue_Hooded"
   "female_senior": return "kaykit_Rogue"
   "female": return "kaykit_Rogue" if index % 2 == 0 else "kaykit_Rogue_Hooded"
