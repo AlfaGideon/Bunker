@@ -40,7 +40,7 @@ func transform_view(before: Vector2, after: Vector2, factor: float = 1.0) -> voi
  # With orthographic zoom, lower screen rays can otherwise start below
  # ground and expose a near-plane strip. Move back along the view axis:
  # framing/ground anchors remain unchanged, but all rays start above terrain.
- var required_height := room.camera.size * absf(room.camera.basis.y.y) * 0.5 + 2.0
+ var required_height: float = room.camera.size * absf(room.camera.basis.y.y) * 0.5 + 2.0
  var rise := maxf(0.0, required_height - room.camera.position.y)
  if rise > 0.0 and room.camera.basis.z.y > 0.01:
   room.camera.position += room.camera.basis.z * (rise / room.camera.basis.z.y)
