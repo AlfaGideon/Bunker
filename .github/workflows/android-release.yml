@@ -87,6 +87,24 @@ jobs:
           cd builds
           cp "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk"
           sha256sum "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk" > SHA256SUMS
+      - name: Verify upgrade signing compatibility with published version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if previous=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null); then
+            if [[ "$previous" =~ ^android-([0-9]+)$ ]]; then
+              previous_code="${BASH_REMATCH[1]}"
+              test "$VERSION_CODE" -gt "$previous_code"
+              mkdir -p /tmp/previous-bunker
+              gh release download "$previous" --pattern "bunker-$previous_code.apk" --dir /tmp/previous-bunker
+              signer="$ANDROID_HOME/build-tools/35.0.1/apksigner"
+              old=$($signer verify --print-certs "/tmp/previous-bunker/bunker-$previous_code.apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+              new=$($signer verify --print-certs "builds/bunker-$VERSION_CODE.apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+              test -n "$old" && test "$old" = "$new" || { echo '::error::Signing certificate changed; in-place updates would fail.'; exit 1; }
+              echo "::notice::Signing certificate matches published Android $previous_code; package ID is unchanged."
+            fi
+          fi
       - name: Publish complete public update (no private key artifacts)
         env:
           GH_TOKEN: ${{ github.token }}

@@ -14,6 +14,7 @@ var retained: Array[Resource] = []
 var elapsed := 0.0
 var ready_to_enter := false
 var transitioning := false
+var cancel_requested := false
 var failed := false
 var total := 0
 
@@ -141,6 +142,10 @@ func _process(delta: float) -> void:
    pending.remove_at(index)
  progress.value = 100.0 * float(total - pending.size()) / maxf(1, total)
  ready_to_enter = pending.is_empty()
+ if ready_to_enter and cancel_requested:
+  transitioning = true
+  get_tree().change_scene_to_file("res://game/welcome.tscn")
+  return
  enter.disabled = not ready_to_enter
  status.text = "Убежище готово • входим…" if ready_to_enter else "Загружено ресурсов: %d / %d" % [total - pending.size(), total]
  # A short skippable transition, not a simulated online matchmaking wait.
@@ -166,8 +171,11 @@ func finish() -> void:
 func cancel_loading() -> void:
  if transitioning:
   return
- transitioning = true
- get_tree().change_scene_to_file("res://game/welcome.tscn")
+ cancel_requested = true
+ status.text = "Возвращаемся к костру…"
+ if ready_to_enter or failed:
+  transitioning = true
+  get_tree().change_scene_to_file("res://game/welcome.tscn")
 
 func _notification(what: int) -> void:
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
