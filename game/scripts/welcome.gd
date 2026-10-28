@@ -92,8 +92,29 @@ func build_camp() -> void:
  fire_light.light_energy = 2.2
  fire_light.omni_range = 6
  add_child(fire_light)
- box(Vector3(4, 0.6, -3), Vector3(3.8, 1.2, 2), Color("445354"))
+ # A framed entrance sits in the same camp in both scenes.
+ box(Vector3(4, 0.68, -3.05), Vector3(3.8, 1.36, 1.9), Color("455359"))
+ box(Vector3(4, 1.48, -3.05), Vector3(4.15, 0.28, 2.1), Color("394c43"))
+ for x in [2.35, 5.65]:
+  box(Vector3(x, 0.83, -2.04), Vector3(0.25, 1.66, 0.28), Color("7a8987"))
+ box(Vector3(4, 1.75, -2.04), Vector3(3.55, 0.25, 0.3), Color("72817f"))
+ box(Vector3(4, 0.08, -1.75), Vector3(2.0, 0.16, 0.65), Color("667274"))
  Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.17))
+ # Authored CC0 grass remains visible in both welcome and the journey.
+ var rng := RandomNumberGenerator.new()
+ rng.seed = 73147
+ var grass: Node3D = Art.spawn(self, "nature_pack_Grass_Short", Vector3(-6, 0, 3), Vector3(0.55, 0.3, 0.55), true)
+ for i in 100:
+  var x := rng.randf_range(-8, 8)
+  var z := rng.randf_range(-4, 4)
+  if (x > 1.8 and z < -1.1) or (absf(x) < 2.5 and absf(z) < 1.4):
+   continue
+  var tuft := grass.duplicate() as Node3D
+  tuft.position = Vector3(x, 0, z)
+  tuft.rotation.y = rng.randf_range(-PI, PI)
+  var scale_factor := rng.randf_range(0.7, 1.4)
+  tuft.scale = Vector3.ONE * scale_factor
+  add_child(tuft)
  camera = Camera3D.new()
  camera.projection = Camera3D.PROJECTION_ORTHOGONAL
  camera.size = 5.2
