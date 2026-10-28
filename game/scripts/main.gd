@@ -112,8 +112,6 @@ func _ready() -> void:
 	add_child(audio)
 	audio.setup(self, layout["items"]["radio"]["at"])
 	_build_ui()
-	var screen_center := viewport_size * 0.5
-	camera_gestures.transform_view(screen_center, screen_center)
 	original_camera = camera.transform
 	apply_settings()
 	_refresh()
