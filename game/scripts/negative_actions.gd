@@ -2,8 +2,8 @@ extends RefCounted
 
 # Only personality flaws grant these actions. Illness/disability is not villainy.
 const ACTIONS := {
- "quarrel": {"title": "Устроить ссору", "traits": ["Вспыльчивый"], "cost": {"water": 3}, "effect": "В суматохе проливается 3 воды"},
- "hoard": {"title": "Испортить общий рацион, пряча еду", "traits": ["Эгоистичный"], "cost": {"food": 4}, "effect": "Общий запас теряет 4 рациона"},
+ "quarrel": {"title": "Устроить ссору", "traits": ["Вспыльчивый"], "cost": {"water": 3}, "effect": "В пылу ссоры разбита ёмкость: общий запас воды −3"},
+ "hoard": {"title": "Испортить общий рацион, пряча еду", "traits": ["Эгоистичный"], "cost": {"food": 4}, "effect": "Спрятанные без правильного хранения продукты портятся: общий рацион −4"},
  "neglect": {"title": "Пропустить обслуживание фильтра", "traits": ["Небрежный", "Упрямый"], "cost": {"filters": 1}, "effect": "Из-за пропущенного обслуживания теряется 1 фильтр"}
 }
 

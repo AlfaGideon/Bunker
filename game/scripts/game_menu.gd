@@ -290,8 +290,9 @@ func show_negative_actions() -> void:
 	var available: Array = room.NegativeActions.available(room.players[0])
 	if available.is_empty():
 		text("У вашего персонажа нет подходящего недостатка характера. Эти действия ему недоступны.", 18)
-	for key in available:
+	for key in room.NegativeActions.ACTIONS:
 		var action: Dictionary = room.NegativeActions.ACTIONS[key]
+		text("Требуется характер: " + ", ".join(action["traits"]), 16)
 		text(action["effect"] + ".", 18)
 		var reason: String = room.negative_action_block(key)
 		var use := button(action["title"], func(): confirm_negative_action(key))
