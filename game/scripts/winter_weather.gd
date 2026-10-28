@@ -27,7 +27,7 @@ func setup(room: Node3D, weather: String) -> void:
 	if weather != "snow":
 		_build_hazard(room, weather)
 		return
-	room._box(Vector3(0, -0.45, 0), Vector3(80, 0.1, 80), Color("91a7b4"))
+	room._box(Vector3(0, -0.45, 0), Vector3(160, 0.1, 160), Color("91a7b4"))
 	var snow_material := StandardMaterial3D.new()
 	snow_material.albedo_color = Color("9fb3bf")
 	snow_material.roughness = 1.0
@@ -111,7 +111,7 @@ func _exterior_particles(color: Color, falling: bool) -> void:
 
 
 func _build_flood(room: Node3D) -> void:
-	water = room._box(Vector3(0, -0.24, 0), Vector3(80, 0.08, 80), Color("285b7b"))
+	water = room._box(Vector3(0, -0.24, 0), Vector3(160, 0.08, 160), Color("285b7b"))
 	_exterior_particles(Color("9fc2d9"), true)
 	for i in 14:
 		var debris: MeshInstance3D = room._box(Vector3(-11 if i % 2 == 0 else 11, -0.13, float(i) - 6), Vector3(0.7, 0.1, 0.3), Color("76654d"))
@@ -164,7 +164,7 @@ func _process(delta: float) -> void:
 
 func _build_hazard(room: Node3D, weather: String) -> void:
 	var colors := {"radiation": Color("616342"), "toxic": Color("3b5a4b"), "volcano": Color("4a3028"), "sand": Color("a68a58"), "heat": Color("8e624b"), "blackout": Color("162333"), "quake": Color("5b5550"), "solar": Color("253346")}
-	room._box(Vector3(0, -0.43, 0), Vector3(80, 0.08, 80), colors.get(weather, Color("384550")))
+	room._box(Vector3(0, -0.43, 0), Vector3(160, 0.08, 160), colors.get(weather, Color("384550")))
 	if weather == "solar":
 		_build_aurora()
 	elif weather == "blackout":

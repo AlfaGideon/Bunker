@@ -17,8 +17,8 @@ static func build(room: Node3D) -> void:
  material.set_shader_parameter("tint", tint)
  var surface := SurfaceTool.new()
  surface.begin(Mesh.PRIMITIVE_TRIANGLES)
- for x in range(-24, 24, 2):
-  for z in range(-22, 24, 2):
+ for x in range(-64, 64, 2):
+  for z in range(-64, 64, 2):
    if abs(x) < 9 and abs(z) < 6:
     continue
    for offset in [Vector2(0, 0), Vector2(2, 0), Vector2(0, 2), Vector2(2, 0), Vector2(2, 2), Vector2(0, 2)]:

@@ -898,19 +898,27 @@ func _frame_camera() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var ui_margin := 630.0 if ui_root.visible else 40.0
 	var usable_width := maxf(500, viewport_size.x - ui_margin)
-	var bounds: Rect2 = layout["bounds"].merge(Rect2(3, 5, 7, 3))
 	var right := Vector3(13, 0, -7.2).normalized()
 	var up := Vector3(7.2, 13, 13).normalized().cross(right)
-	var width := 0.0
-	var height := 0.0
-	for x in [-bounds.size.x * 0.5, bounds.size.x * 0.5]:
-		for z in [-bounds.size.y * 0.5, bounds.size.y * 0.5]:
-			var corner := Vector3(x, 0, z)
-			width = maxf(width, absf(corner.dot(right)) * 2)
-			height = maxf(height, absf(corner.dot(up)) * 2)
+	var min_x := INF
+	var max_x := -INF
+	var min_y := INF
+	var max_y := -INF
+	var footprints: Array = layout["floors"].duplicate()
+	footprints.append(Rect2(3, 5, 7, 3))
+	for footprint in footprints:
+		var rect: Rect2 = footprint
+		for x in [rect.position.x, rect.end.x]:
+			for z in [rect.position.y, rect.end.y]:
+				var corner := Vector3(x, 0, z)
+				min_x = minf(min_x, corner.dot(right))
+				max_x = maxf(max_x, corner.dot(right))
+				min_y = minf(min_y, corner.dot(up))
+				max_y = maxf(max_y, corner.dot(up))
+	var width := max_x - min_x
+	var height := max_y - min_y
 	camera.size = (maxf(height * viewport_size.y / maxf(400, viewport_size.y - 120), width * viewport_size.y / usable_width) + 2.0) * profile.camera_size / 11.0
-	var center := bounds.get_center()
-	var focus := Vector3(center.x, 0, center.y) + right * (camera.size / viewport_size.y * (35.0 if ui_root.visible else 0.0))
+	var focus := right * ((min_x + max_x) * 0.5) + up * ((min_y + max_y) * 0.5) + right * (camera.size / viewport_size.y * (35.0 if ui_root.visible else 0.0))
 	camera.position = focus + Vector3(7.2, 13, 13)
 	camera.look_at(focus)
 	original_camera = camera.transform
