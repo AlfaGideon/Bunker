@@ -2,7 +2,7 @@
 # Retain meaningful diagnostics via check annotations when log storage is unreachable.
 set -uo pipefail
 log=$(mktemp)
-godot "$@" > "$log" 2>&1
+timeout "${GODOT_TIMEOUT:-120}" godot "$@" > "$log" 2>&1
 result=$?
 cat "$log"
 if grep -Eq 'SCRIPT ERROR|Parse Error|Failed to load script' "$log"; then result=1; fi

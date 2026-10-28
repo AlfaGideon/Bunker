@@ -20,7 +20,7 @@ jobs:
         run: |
           bash tools/check_godot.sh --headless --editor --path . --quit
       - name: Render visual preview
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd
       - name: Check vote rules
         run: |
           bash tools/check_godot.sh --headless --path . --script tools/test_profile.gd
@@ -41,11 +41,11 @@ jobs:
           godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/scene.log
       - name: Render menu preview
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd
       - name: Render wide phone aspect ratio
-        run: timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" godot --windowed --resolution 2460x1080 --path . --script tools/capture_scene.gd -- --wide
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" bash tools/check_godot.sh --windowed --resolution 2460x1080 --path . --script tools/capture_scene.gd -- --wide
       - name: Render survival panel
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --survival
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --survival
   visual-variants:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -60,15 +60,15 @@ jobs:
       - name: Import project
         run: bash tools/check_godot.sh --headless --editor --path . --quit
       - name: Render flood and mirrored layout
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --flood
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --flood
       - name: Render meteor catastrophe
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteors
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteors
       - name: Render infection exterior
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --infection
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --infection
       - name: Render unlocked medical room
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --open-med
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --open-med
       - name: Render actual bed interaction
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --sleep
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --sleep
   visual-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -83,15 +83,15 @@ jobs:
       - name: Import project
         run: bash tools/check_godot.sh --headless --editor --path . --quit
       - name: Render new character close-up
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --characters
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --characters
       - name: Render burning meteor close-up
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteor-detail
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteor-detail
       - name: Render solar storm
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --solar
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --solar
       - name: Render council decision
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
       - name: Render kitchen and shared food
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --facilities
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --facilities
   visual-architecture:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -105,8 +105,8 @@ jobs:
       - name: Import project
         run: bash tools/check_godot.sh --headless --editor --path . --quit
       - name: Render modular building seed 0
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture
       - name: Render modular building seed 17
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture-alt
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture-alt
       - name: Render welcome appearance preview
-        run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --female
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --female

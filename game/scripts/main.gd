@@ -1101,7 +1101,7 @@ func perform_negative_action(key: String) -> bool:
 	for resource in action["cost"]:
 		supplies.stock[resource] -= action["cost"][resource]
 	used_actions["negative_0"] = round_number
-	NegativeActions.quality_card(players[0])["revealed"] = true
+	_reveal_card(0, NegativeActions.quality_card(players[0]))
 	log_label.text = players[0]["name"] + ": " + action["title"] + ". " + action["effect"] + ". Недостаток характера раскрыт группе."
 	_refresh()
 	return true
