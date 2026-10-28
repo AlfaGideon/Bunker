@@ -30,15 +30,15 @@ func run() -> void:
 	var original := Profile.new()
 	var variants := {}
 	for seed_value in range(-12, 48):
-		var plan := Layout.generate(seed_value)
-		var repeated := Layout.generate(seed_value)
+		var plan := Layout.generate(seed_value, 3 + posmod(seed_value, 3))
+		var repeated := Layout.generate(seed_value, 3 + posmod(seed_value, 3))
 		check(plan == repeated, "Seed reproducible: %d" % seed_value)
 		variants[plan["variant"]] = true
 		var nav := Navigation.new(plan)
 		var start := nav.nearest_walkable(Vector3(-2.5, 0, 1.8))
 		check(not nav.is_walkable(plan["items"]["medical"]["goal"]), "Medical inaccessible while locked")
 		for key in plan["items"]:
-			if key == "medical":
+			if key in ["medical", "supply"]:
 				continue
 			var route := nav.path_between(start, plan["items"][key]["goal"])
 			check(not route.is_empty(), "Seed %d: reachable %s" % [seed_value, key])
@@ -58,15 +58,23 @@ func run() -> void:
 		room.set_physics_process(false)
 		room.menu.visible = false
 		check(room.scenario["weather"] == room.weather.kind, "Selected catastrophe drives exterior")
-		check(room.med_cover.visible and room.med_light.light_energy == 0, "Locked medblock dark")
+		check(not room.med_cover.visible and room.med_cover.mesh == null and room.med_light.light_energy == 0, "Locked medblock dark")
 		check(not room.request_interaction("medical"), "Locked interaction refused")
 		check(not room.medical_open, "No premature opening")
+		room.players[0]["cards"][0]["value"] = "Электрик"
+		room.inventory["repair"] = 0
 		walk(room, "terminal")
 		check(not room.systems_ready, "Repair requires warehouse kit")
+		check(not room.request_interaction("supply"), "Warehouse initially sealed")
+		for voter in room.active:
+			room.vote_warehouse(voter, true)
+		room.players[0]["cards"][0]["value"] = "Логист"
 		walk(room, "supply")
-		check(room.inventory["repair"] == 1, "Warehouse provides a kit")
+		check(room.inventory["tools"] == 2, "Warehouse provides tools")
 		walk(room, "supply")
-		check(room.inventory["repair"] == 1, "No infinite kit farming")
+		check(room.inventory["tools"] == 2, "No infinite supply farming")
+		room.players[0]["cards"][0]["value"] = "Электрик"
+		room.inventory["repair"] = 1
 		walk(room, "terminal")
 		check(room.systems_ready and not room.medical_open, "Repair alone insufficient during round one")
 		check(room.inventory["repair"] == 0, "Repair consumes kit")
@@ -88,6 +96,7 @@ func run() -> void:
 		check(room.round_number == 2 and room.medical_open, "Actual next-round transition opens repaired medblock")
 		check(room.stamina == 68, "Next round consumes stamina: rest remains meaningful")
 		check(not room.med_cover.visible and room.med_light.light_energy > 0, "Unlock removes roof and enables light")
+		room.players[0]["cards"][0]["value"] = "Фельдшер"
 		walk(room, "medical")
 		check(room.medicines == 1 and room.stamina == 83, "Limited medical treatment")
 		walk(room, "medical")

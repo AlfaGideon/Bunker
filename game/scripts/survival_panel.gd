@@ -1,64 +1,141 @@
 extends Control
-
 const Rules = preload("res://game/scripts/survival_rules.gd")
 var room: Node3D
 var face_label: Label
 var result_label: Label
 var roll_button: Button
 var continue_button: Button
+var mode: OptionButton
+var prediction: OptionButton
+var number_grid: GridContainer
+var choice_label: Label
+var number_buttons: Array[Button] = []
+var chosen: Array = [1, 2, 3]
+var sides := 6
 var outcome: Dictionary = {}
 
-
 func setup(game: Node3D) -> void:
-	room = game
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var shade := ColorRect.new()
-	shade.color = Color(0.015, 0.04, 0.075, 0.8)
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(shade)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(600, 560)
-	center.add_child(panel)
-	var margin := MarginContainer.new()
-	for edge in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + edge, 24)
-	panel.add_child(margin)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
-	margin.add_child(column)
-	column.add_child(room._label("ВЫ ПОКИНУЛИ БУНКЕР", 30))
-	column.add_child(room._label(room.scenario["exile_prompt"], 20))
-	column.add_child(room._label("Правило прототипа: один бросок d6. 1–3 — не выжили; 4–6 — выжили. Вероятность 50%. Повторного броска нет.", 18))
-	face_label = room._label("?", 64)
-	face_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(face_label)
-	roll_button = room._button("Бросить кубик d6", roll_dice, column)
-	result_label = room._label("Ваш исход ещё не определён.", 20)
-	column.add_child(result_label)
-	continue_button = room._button("Продолжить наблюдателем", func():
-		visible = false
-		room.restore_camera(), column)
-	continue_button.disabled = true
-	visible = false
+ room = game
+ set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ var shade := ColorRect.new()
+ shade.color = Color(0.015, 0.04, 0.075, 0.85)
+ shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ add_child(shade)
+ var center := CenterContainer.new()
+ center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ add_child(center)
+ var panel := PanelContainer.new()
+ center.add_child(panel)
+ var margin := MarginContainer.new()
+ for edge in ["left", "right", "top", "bottom"]:
+  margin.add_theme_constant_override("margin_" + edge, 20)
+ panel.add_child(margin)
+ var scroll := ScrollContainer.new()
+ scroll.custom_minimum_size = Vector2(560, 560)
+ scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+ margin.add_child(scroll)
+ var column := VBoxContainer.new()
+ column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ column.add_theme_constant_override("separation", 10)
+ scroll.add_child(column)
+ column.add_child(room._label("ВЫ ПОКИНУЛИ БУНКЕР", 28))
+ column.add_child(room._label(room.scenario["exile_prompt"], 18))
+ column.add_child(room._label("Выберите кубик и выигрышные числа ДО броска. Везде шанс 50%: половина граней. Бросок один, прогноз после него изменить нельзя.", 17))
+ mode = OptionButton.new()
+ for label in ["d6: 1–3 или 4–6", "d6: чётное / нечётное", "d6: свои три числа", "d20: 1–10 или 11–20", "d20: свои десять чисел"]:
+  mode.add_item(label)
+ mode.custom_minimum_size.y = 48
+ column.add_child(mode)
+ mode.item_selected.connect(func(_index): configure())
+ prediction = OptionButton.new()
+ prediction.custom_minimum_size.y = 48
+ column.add_child(prediction)
+ prediction.item_selected.connect(func(_index): update_choice())
+ choice_label = room._label("", 18)
+ column.add_child(choice_label)
+ number_grid = GridContainer.new()
+ number_grid.columns = 5
+ column.add_child(number_grid)
+ face_label = room._label("?", 48)
+ face_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+ column.add_child(face_label)
+ roll_button = room._button("Бросить выбранный кубик", roll_dice, column)
+ result_label = room._label("Исход ещё не определён.", 18)
+ column.add_child(result_label)
+ continue_button = room._button("Продолжить наблюдателем", func():
+  visible = false
+  room.restore_camera(), column)
+ continue_button.disabled = true
+ configure()
+ visible = false
 
+func configure() -> void:
+ if not outcome.is_empty():
+  return
+ sides = 20 if mode.selected >= 3 else 6
+ prediction.clear()
+ if mode.selected == 1:
+  prediction.add_item("Нечётное: 1, 3, 5")
+  prediction.add_item("Чётное: 2, 4, 6")
+ else:
+  prediction.add_item("1–3" if sides == 6 else "1–10")
+  prediction.add_item("4–6" if sides == 6 else "11–20")
+ prediction.visible = mode.selected not in [2, 4]
+ chosen.clear()
+ for number in range(1, sides / 2 + 1):
+  chosen.append(number)
+ for child in number_grid.get_children():
+  number_grid.remove_child(child)
+  child.queue_free()
+ number_buttons.clear()
+ number_grid.visible = not prediction.visible
+ if number_grid.visible:
+  for number in range(1, sides + 1):
+   var value: int = number
+   var button := Button.new()
+   button.text = str(number)
+   button.toggle_mode = true
+   button.button_pressed = value in chosen
+   button.custom_minimum_size = Vector2(70, 42)
+   number_grid.add_child(button)
+   number_buttons.append(button)
+   button.pressed.connect(func():
+    if not outcome.is_empty():
+     return
+    if button.button_pressed:
+     chosen.append(value)
+    else:
+     chosen.erase(value)
+    update_choice())
+ update_choice()
+
+func update_choice() -> void:
+ if not outcome.is_empty():
+  return
+ if prediction.visible:
+  chosen.clear()
+  for number in range(1, sides + 1):
+   if (mode.selected == 1 and number % 2 == (1 if prediction.selected == 0 else 0)) or (mode.selected != 1 and (number <= sides / 2) == (prediction.selected == 0)):
+    chosen.append(number)
+ choice_label.text = "Ваш прогноз: %s. Нужно выбрать %d чисел." % [str(chosen), sides / 2]
+ roll_button.disabled = not Rules.valid_choice(sides, chosen)
 
 func roll_dice() -> void:
-	if not outcome.is_empty():
-		return
-	outcome = Rules.roll()
-	roll_button.disabled = true
-	var tween := create_tween()
-	var steps := 1 if room.profile.reduced_motion else 8
-	for index in steps:
-		tween.tween_callback(func(): face_label.text = str(randi_range(1, 6)))
-		tween.tween_interval(0.1)
-	tween.tween_callback(show_result)
-
+ if not outcome.is_empty() or not Rules.valid_choice(sides, chosen):
+  return
+ outcome = Rules.roll(null, sides, chosen)
+ roll_button.disabled = true
+ mode.disabled = true
+ prediction.disabled = true
+ for button in number_buttons:
+  button.disabled = true
+ var tween := create_tween()
+ for index in (1 if room.profile.reduced_motion else 8):
+  tween.tween_callback(func(): face_label.text = str(randi_range(1, sides)))
+  tween.tween_interval(0.1)
+ tween.tween_callback(show_result)
 
 func show_result() -> void:
-	face_label.text = str(outcome["face"])
-	result_label.text = ("ВЫ ВЫЖИЛИ. " + room.scenario["survived_text"]) if outcome["survived"] else ("ВЫ НЕ ВЫЖИЛИ. " + room.scenario["failed_text"])
-	continue_button.disabled = false
+ face_label.text = str(outcome["face"])
+ result_label.text = ("ВЫ ВЫЖИЛИ. " + room.scenario["survived_text"]) if outcome["survived"] else ("ВЫ НЕ ВЫЖИЛИ. " + room.scenario["failed_text"])
+ continue_button.disabled = false

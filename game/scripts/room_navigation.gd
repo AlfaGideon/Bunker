@@ -8,6 +8,7 @@ const SIZE := Vector2i(85, 49)
 var grid := AStarGrid2D.new()
 var layout: Dictionary
 var medical_open := false
+var warehouse_open := false
 
 
 func _init(plan: Dictionary = {}) -> void:
@@ -30,6 +31,8 @@ func rebuild() -> void:
 				if obstacle.has_point(point):
 					solid = true
 			if not medical_open and (layout["gate_blocker"].has_point(point) or layout["med_bounds"].has_point(point)):
+				solid = true
+			if not warehouse_open and (layout["warehouse_bounds"].has_point(point) or layout["warehouse_gate"].has_point(point)):
 				solid = true
 			grid.set_point_solid(cell, solid)
 
@@ -74,3 +77,8 @@ func path_between(start: Vector3, destination: Vector3) -> PackedVector3Array:
 	for point in grid.get_point_path(cell_at(start), cell_at(destination)):
 		result.append(Vector3(point.x, 0, point.y))
 	return result
+
+
+func unlock_warehouse() -> void:
+	warehouse_open = true
+	rebuild()

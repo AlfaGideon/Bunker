@@ -32,6 +32,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_iteration4.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_iteration5.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_iteration6.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration7.gd
       - name: Smoke test scene
         run: |
           godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log

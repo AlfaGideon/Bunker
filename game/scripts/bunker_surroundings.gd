@@ -1,5 +1,7 @@
 extends RefCounted
 
+const Facilities = preload("res://game/scripts/facility_art.gd")
+const Ground = preload("res://game/scripts/exterior_ground.gd")
 const Finish = preload("res://game/scripts/bunker_finish.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 
@@ -12,7 +14,7 @@ static func build(room: Node3D) -> void:
 	# One continuous floor and real partitions, not a room placed inside a set.
 	for x in range(-8, 9, 2):
 		Art.spawn(room, "modular_sci_fi_Wall_1", Vector3(x, 0, -5.2), Vector3(1.95, 2.0, 0.2))
-	for wall in plan["blockers"].slice(6):
+	for wall in plan["walls"]:
 		var center: Vector2 = wall.get_center()
 		var size: Vector2 = wall.size
 		Finish.wall(room, center, size)
@@ -21,7 +23,7 @@ static func build(room: Node3D) -> void:
 	for mesh in desk.find_children("*", "MeshInstance3D", true, false):
 		mesh.material_override = Finish.metal(Color("35434e"))
 	Art.spawn(room, "survival_pack_Radio", plan["items"]["radio"]["at"] - Vector3(0, 0.14, 0), Vector3(0.5, 0.3, 0.25))
-	for key in ["bed", "bed2", "medical"]:
+	for key in plan["beds"] + ["medical"]:
 		var at: Vector3 = plan["items"][key]["at"]
 		Art.spawn(room, "house_interior_pack_Bed_Single", Vector3(at.x, 0, at.z), Vector3(1.9, 0.65, 0.9))
 	var medical_at: Vector3 = plan["items"]["medical"]["at"]
@@ -35,7 +37,9 @@ static func build(room: Node3D) -> void:
 	room.med_label = room._world_label("МЕДБЛОК • ЗАКРЫТ", Vector3(side * 6.5, 2.1, -4.7), 24)
 	room.med_gate = room._box(Vector3(side * 4.4, 1, -1.6), Vector3(0.17, 2, 1.8), Color("33464c"))
 	room.door = room.med_gate
-	room.med_cover = room._box(Vector3(side * 6.5, 1.85, -1.65), Vector3(3.75, 0.08, 6.3), Color("10191f"))
+	room.med_cover = MeshInstance3D.new()
+	room.med_cover.visible = false
+	room.add_child(room.med_cover)
 	room.med_light = OmniLight3D.new()
 	room.med_light.position = Vector3(side * 6.5, 2.2, -1.8)
 	room.med_light.light_color = Color("8ee3d3")
@@ -43,8 +47,7 @@ static func build(room: Node3D) -> void:
 	room.med_light.omni_range = 5
 	room.add_child(room.med_light)
 	room._world_label("УБЕЖИЩЕ %d • ПЛАН %d" % [room.capacity, plan["variant"] + 1], Vector3(0, 2.2, -5.1), 26)
-	room._box(Vector3(3.8, -0.07, 6.5), Vector3(1.2, 0.12, 3.1), Color("8d7848"))
-	room._box(Vector3(6.0, -0.07, 7.4), Vector3(5.5, 0.12, 1.2), Color("8d7848"))
+
 	room._world_label("НАРУЖНЫЙ ВЫХОД →", Vector3(3.8, 0.8, 5.5), 22)
 	var lamp := OmniLight3D.new()
 	lamp.position = Vector3(0, 3, 0)
@@ -53,3 +56,5 @@ static func build(room: Node3D) -> void:
 	lamp.light_energy = 1.4
 	room.add_child(lamp)
 	Finish.decorate(room)
+	Facilities.build(room)
+	Ground.build(room)

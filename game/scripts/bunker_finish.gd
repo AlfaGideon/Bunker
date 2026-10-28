@@ -67,7 +67,7 @@ static func decorate(room: Node3D) -> void:
 		for z in [-4.2, -2.8, 2.8, 4.2]:
 			glow(room, Vector3(x, 0.045, z), Vector3(0.04, 0.015, 0.8), Color("edba63"))
 	# Equipment stays on the wall or within existing furniture footprints.
-	for key in ["bed", "bed2", "medical"]:
+	for key in room.layout["beds"] + ["medical"]:
 		var at: Vector3 = room.layout["items"][key]["at"]
 		glow(room, Vector3(at.x, 0.11, at.z), Vector3(1.7, 0.04, 0.65), Color("6cc4d3") if key == "medical" else Color("d4ab72"))
 		for end in [-1.0, 1.0]:

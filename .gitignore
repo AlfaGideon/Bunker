@@ -5,3 +5,6 @@
 export_credentials.cfg
 builds/
 __pycache__/
+
+.venv/
+.cache/

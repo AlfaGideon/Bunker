@@ -1,5 +1,6 @@
 extends Control
 
+const Professions = preload("res://game/scripts/profession_rules.gd")
 const Content = preload("res://game/scripts/game_content.gd")
 
 var room: Node3D
@@ -55,7 +56,7 @@ func home() -> void:
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.6", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.7", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
 	button("Продолжить партию", room.begin_game)
@@ -233,12 +234,39 @@ func show_facility() -> void:
 	text(room.supplies.last_report, 16)
 	text("Каждый раунд: −12 бодрости; при дефиците −20. Усталость замедляет ходьбу, но не блокирует управление.", 16)
 	text("Характеристики здоровья влияют на расход запасов всей группы. Симуляции заражения нет; голоса и d6 не меняются автоматически.", 16)
+	text("Порций за столом: %d. Инструменты: %d; оружие: %d (инвентарь, без боя)." % [room.meals, room.inventory["tools"], room.inventory["weapons"]], 17)
 	text("Выберите предмет — персонаж сам подойдёт к нему. Отдых и обследование доступны один раз за раунд.", 17)
+	text("Исполнитель (тестовые участники выполняют ваше поручение, это не сетевые игроки):", 16)
+	var operator_picker := OptionButton.new()
+	for id in room.active:
+		operator_picker.add_item(room.players[id]["name"] + " — " + Professions.profession(room.players[id]), id)
+	operator_picker.custom_minimum_size.y = 48
+	column.add_child(operator_picker)
 	for key in room.layout["items"]:
 		var id: String = key
+		text(Professions.requirement(key) if key not in ["gate", "warehouse_gate"] else "Доступ определяется условиями / советом", 15)
 		button(room.layout["items"][key]["title"], func():
-			if room.request_interaction(id):
+			if room.request_interaction(id, operator_picker.get_selected_id()):
 				visible = false
 			else:
 				text(room.log_label.text, 17))
+	button("Вернуться в игру", func(): visible = false)
+
+
+func show_council() -> void:
+	page = "council"
+	visible = true
+	clear()
+	text("СОВЕТ: ОТКРЫВАТЬ ЛИ СКЛАД?", 24)
+	text("Локальный тест решений: отметьте голоса участников. Это не реальные онлайн-голоса. Больше половины активных — открыть. Без большинства склад остаётся закрытым, в том числе до конца партии.", 17)
+	text("Статус: " + ("открыт" if room.warehouse_open else "опечатан"), 20)
+	for id in room.active:
+		var voter: int = id
+		text(room.players[id]["name"], 18)
+		button("За открытие", func():
+			room.vote_warehouse(voter, true)
+			show_council())
+		button("Оставить закрытым", func():
+			room.vote_warehouse(voter, false)
+			show_council())
 	button("Вернуться в игру", func(): visible = false)

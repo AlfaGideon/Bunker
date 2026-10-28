@@ -64,8 +64,9 @@ func run_test() -> void:
 	room.survival_panel.visible = false
 	room._advance()
 	check(room.phase == "reveal", "Observer reaches next round")
-	room._advance()
-	check(room.phase == "discussion", "Observer does not block reveal phase")
+	for turn in room.active.size():
+		room.pass_speech()
+	check(room.phase == "discussion", "Observer completes round of speeches")
 	print("Iteration 4 failures: ", failures)
 	room.queue_free()
 	await process_frame

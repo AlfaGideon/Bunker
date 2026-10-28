@@ -1,5 +1,8 @@
 extends Node3D
 
+const Professions = preload("res://game/scripts/profession_rules.gd")
+const Speech = preload("res://game/scripts/speech_turns.gd")
+const Abilities = preload("res://game/scripts/special_abilities.gd")
 const Supplies = preload("res://game/scripts/group_supplies.gd")
 const Layout = preload("res://game/scripts/bunker_layout.gd")
 const BunkerAudio = preload("res://game/scripts/bunker_audio.gd")
@@ -15,6 +18,16 @@ const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
+var speech := Speech.new()
+var abilities := Abilities.new()
+var speech_label: Label
+var ability_buttons: Array[Button] = []
+var warehouse_open := false
+var warehouse_door: Node3D
+var warehouse_votes := {}
+var jobs := {}
+var npc_rests := {}
+var meals := 0
 var supplies := Supplies.new()
 var scenario: Dictionary
 var layout: Dictionary
@@ -26,7 +39,7 @@ var med_label: Label3D
 var med_light: OmniLight3D
 var systems_ready := false
 var medical_open := false
-var inventory := {"repair": 0}
+var inventory := {"repair": 1, "tools": 0, "weapons": 0}
 var supply_taken := false
 var medicines := 2
 var stamina := 60
@@ -79,7 +92,7 @@ func _ready() -> void:
 		get_tree().remove_meta("world_seed")
 	if not explicit_seed and posmod(layout_seed, 3) == profile.last_layout:
 		layout_seed += 1
-	layout = Layout.generate(layout_seed)
+	layout = Layout.generate(layout_seed, profile.player_count / 2)
 	profile.world_count += 1
 	profile.last_layout = layout["variant"]
 	profile.save()
@@ -87,6 +100,8 @@ func _ready() -> void:
 	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance)
 	active.assign(range(players.size()))
 	capacity = players.size() / 2
+	meals = capacity
+	speech.start(active)
 	_build_world()
 	audio = BunkerAudio.new()
 	add_child(audio)
@@ -144,7 +159,12 @@ func _world_label(text: String, at: Vector3, size: int = 32) -> Label3D:
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
 	var settings := Environment.new()
-	settings.background_mode = Environment.BG_COLOR
+	settings.background_mode = Environment.BG_SKY
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color("395a76")
+	sky_material.sky_horizon_color = Color("a4b6bd")
+	settings.sky = Sky.new()
+	settings.sky.sky_material = sky_material
 	settings.background_color = Color("101a22")
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	settings.ambient_light_color = Color("b2c6d3")
@@ -321,6 +341,20 @@ func _build_ui() -> void:
 	hint.size = Vector2(560, 60)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint)
+	var left := VBoxContainer.new()
+	left.position = Vector2(20, 130)
+	left.custom_minimum_size.x = 245
+	left.size.x = 245
+	left.add_theme_constant_override("separation", 8)
+	root.add_child(left)
+	for slot in 2:
+		var number: int = slot
+		var button := _button("", func(): use_ability(number), left)
+		ability_buttons.append(button)
+	speech_label = _label("", 17)
+	left.add_child(speech_label)
+	_button("Передать ход / пропустить", pass_speech, left)
+	_button("Совет: доступ к складу", func(): menu.show_council(), left)
 	menu = Menu.new()
 	root.add_child(menu)
 	menu.setup(self, profile)
@@ -332,6 +366,7 @@ func _build_ui() -> void:
 
 
 func _refresh() -> void:
+	_refresh_left()
 	for child in detail.get_children():
 		detail.remove_child(child)
 		child.queue_free()
@@ -345,13 +380,12 @@ func _refresh() -> void:
 		detail.add_child(_label(card["label"] + ": " + (card["value"] if visible else "скрыто")))
 		if card["id"] == "health" and visible:
 			detail.add_child(_label("Доп. нагрузка: " + Supplies.cost_text(card.get("cost", {})), 16))
-		if selected == 0 and not card["revealed"] and phase == "reveal" and active.has(0):
+		if selected == 0 and not card["revealed"] and phase == "reveal" and active.has(0) and speech.speaker() == 0 and not speech.revealed:
 			_button("Раскрыть: " + card["label"], func():
 				actors[0].get_child(0).gesture = 1.5
 				_reveal_card(0, card)
-				_demo_reveals()
-				phase = "discussion"
-				log_label.text = "Карта раскрыта. Тестовые персонажи тоже открыли по карте. В сети здесь будет общий чат."
+				speech.revealed = true
+				log_label.text = "Карта раскрыта. Объясните выбор, затем передайте ход. На речь — до 60 секунд; голосовой связи в прототипе нет."
 				_refresh(), detail)
 	if phase == "vote" and active.has(0) and selected != 0 and active.has(selected):
 		_button("Голосовать (тестовые участники)", _demo_vote, detail)
@@ -411,12 +445,7 @@ func _change_appearance(index: int, appearance: String) -> void:
 func _advance() -> void:
 	match phase:
 		"reveal":
-			if active.has(0):
-				log_label.text = "Профессия уже открыта. Раскройте одну дополнительную карту."
-			else:
-				_demo_reveals()
-				phase = "discussion"
-				log_label.text = "Наблюдатель: тестовые участники раскрыли случайные характеристики."
+			pass_speech()
 		"discussion":
 			phase = "vote"
 			log_label.text = "Демонстрация результата: выберите другого участника и нажмите «Голосовать». Остальные голоса задаёт явно тестовый сценарий."
@@ -430,6 +459,8 @@ func _advance() -> void:
 				supplies.charge_round(round_number, players, active, scenario["weather"])
 				stamina = maxi(0, stamina - (20 if supplies.shortage else 12))
 				phase = "reveal"
+				speech.start(active)
+				_begin_speaker()
 				_update_medical_access()
 				log_label.text = "Новый раунд. Откройте следующую характеристику. " + supplies.last_report
 		"end":
@@ -562,6 +593,11 @@ func _set_route(destination: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	if actors.is_empty() or menu.visible or survival_panel.visible:
 		return
+	if started and phase == "reveal":
+		if speech.tick(delta):
+			_begin_speaker()
+		_refresh_left()
+	_tick_jobs(delta)
 	if rest_remaining > 0:
 		_tick_rest(delta)
 		return
@@ -612,7 +648,9 @@ func _physics_process(delta: float) -> void:
 		if actor.position.distance_to(points[index]) < 0.03:
 			entry["index"] = index + 1
 	for i in actors.size():
-		actors[i].get_child(0).animate(delta, (i == 0 and direction.length_squared() > 0.000001) or departures.has(i), float(i), profile.reduced_motion)
+		if npc_rests.has(i):
+			continue
+		actors[i].get_child(0).animate(delta, (i == 0 and direction.length_squared() > 0.000001) or departures.has(i) or jobs.has(i), float(i), profile.reduced_motion)
 
 
 func _notification(what: int) -> void:
@@ -666,12 +704,24 @@ func _narrate_intro() -> void:
 func medical_status() -> String:
 	if medical_open:
 		return "Медблок открыт. Осталось наборов: %d." % medicines
-	return "Медблок закрыт: нужен ремкомплект со склада, восстановленная система и начало второго раунда. Система: %s; раунд: %d." % ["готова" if systems_ready else "не восстановлена", round_number]
+	return "Медблок закрыт: техник восстанавливает систему аварийным набором у терминала; доступ со второго раунда. Система: %s; раунд: %d." % ["готова" if systems_ready else "не восстановлена", round_number]
 
 
-func request_interaction(key: String) -> bool:
+func request_interaction(key: String, operator: int = 0) -> bool:
 	if not active.has(0) or rest_remaining > 0:
 		log_label.text = "Сейчас персонаж не может взаимодействовать."
+		return false
+	if operator not in active or jobs.has(operator) or npc_rests.has(operator):
+		log_label.text = "Исполнитель недоступен или занят."
+		return false
+	if key == "warehouse_gate":
+		log_label.text = "Доступ к складу решает совет. Нужны голоса более половины оставшихся участников."
+		return false
+	if key == "supply" and not warehouse_open:
+		log_label.text = "Склад опечатан решением совета. Он может остаться закрытым до конца партии."
+		return false
+	if not Professions.allowed(players[operator], key) and key != "gate":
+		log_label.text = "Профессия не подходит. " + Professions.requirement(key)
 		return false
 	if key == "gate" or (key == "medical" and not medical_open):
 		log_label.text = medical_status()
@@ -679,33 +729,52 @@ func request_interaction(key: String) -> bool:
 	if not layout["items"].has(key):
 		return false
 	var goal: Vector3 = layout["items"][key]["goal"]
-	var path: PackedVector3Array = navigation.path_between(actors[0].position, goal)
+	var path: PackedVector3Array = navigation.path_between(actors[operator].position, goal)
 	if path.is_empty():
 		log_label.text = "Проход недоступен."
 		return false
-	pending_inspection = key
-	_set_route(goal)
+	if operator != 0:
+		jobs[operator] = {"path": path, "index": 0, "key": key}
+	else:
+		pending_inspection = key
+		_set_route(goal)
 	log_label.text = "Идём: " + layout["items"][key]["title"]
 	return true
 
 
-func _complete_interaction(key: String) -> void:
+func _complete_interaction(key: String, operator: int = 0) -> void:
 	if not active.has(0):
 		return
-	actors[0].get_child(0).gesture = 1.2
+	if not active.has(operator) or not Professions.allowed(players[operator], key):
+		log_label.text = "Действие отменено: профессия или доступ изменились по пути."
+		return
+	if key == "supply" and not warehouse_open:
+		return
+	actors[operator].get_child(0).gesture = 1.2
+	if key.begins_with("bed") and key not in ["bed", "bed2"]:
+		_start_extra_bed(key, operator)
+		return
+	if operator != 0 and key in ["bed", "bed2"]:
+		_start_extra_bed(key, operator)
+		return
 	match key:
 		"supply":
 			if supply_taken:
 				log_label.text = "Склад проверен: ремкомплект уже забрали."
 			else:
 				supply_taken = true
-				inventory["repair"] += 1
-				log_label.text = "Взяли ремкомплект. Теперь можно восстановить систему терминалом."
+				inventory["tools"] += 2
+				inventory["weapons"] += 2
+				supplies.stock["water"] += 20
+				supplies.stock["food"] += 15
+				supplies.stock["medicine"] += 5
+				supplies.stock["filters"] += 4
+				log_label.text = "Снабжение получено: вода, рацион, лекарства, фильтры, 2 инструмента и 2 единицы оружия. Бой пока не реализован."
 		"terminal":
 			if systems_ready:
 				log_label.text = medical_status()
 			elif inventory["repair"] < 1:
-				log_label.text = "Для ремонта нужен ремкомплект со склада."
+				log_label.text = "Аварийный ремонтный набор уже использован."
 			else:
 				inventory["repair"] -= 1
 				systems_ready = true
@@ -729,6 +798,37 @@ func _complete_interaction(key: String) -> void:
 			visual.position = Vector3(0.7, 0.7, 0)
 			rest_remaining = 3.0
 			log_label.text = "Отдых на койке… (3 секунды)"
+		"food":
+			var eaten_key := "food_%d" % operator
+			if meals <= 0 or used_actions.get(eaten_key, 0) == round_number:
+				log_label.text = "Еды нет или участник уже ел в этом раунде."
+			else:
+				meals -= 1
+				used_actions[eaten_key] = round_number
+				stamina = mini(100, stamina + 10) if operator == 0 else stamina
+				log_label.text = players[operator]["name"] + " поел за общим столом. Порций: %d." % meals
+		"kitchen", "gym", "workshop", "greenhouse":
+			if used_actions.get(key, 0) == round_number:
+				log_label.text = "Это помещение уже использовано в этом раунде."
+				return
+			if key == "kitchen":
+				if supplies.stock["food"] < 4 or supplies.stock["water"] < 2:
+					log_label.text = "Для готовки нужны 4 рациона и 2 воды."
+					return
+				supplies.stock["food"] -= 4
+				supplies.stock["water"] -= 2
+				meals += capacity + 2
+			elif key == "greenhouse":
+				if supplies.stock["water"] < 3:
+					return
+				supplies.stock["water"] -= 3
+				supplies.stock["food"] += 4
+			elif key == "workshop":
+				supplies.stock["filters"] += 2
+			else:
+				stamina = mini(100, stamina + 10)
+			used_actions[key] = round_number
+			log_label.text = players[operator]["name"] + ": " + layout["items"][key]["title"] + ". Готово."
 		"medical":
 			if not medical_open:
 				log_label.text = medical_status()
@@ -776,3 +876,107 @@ func _frame_camera() -> void:
 	camera.position = focus + Vector3(7.2, 13, 13)
 	camera.look_at(focus)
 	original_camera = camera.transform
+
+
+func _refresh_left() -> void:
+	if not is_instance_valid(speech_label):
+		return
+	for slot in 2:
+		ability_buttons[slot].text = "%d. %s%s" % [slot + 1, Abilities.NAMES[abilities.cards[slot]], " • использована" if abilities.used[slot] else ""]
+		ability_buttons[slot].disabled = abilities.used[slot] or not active.has(0) or phase in ["vote", "end"]
+	speech_label.text = ("Речь: %s\nОсталось %d сек.\nРаскройте карту, объясните выбор и передайте ход. Меню = пауза." % [players[speech.speaker()]["name"], ceili(speech.remaining)]) if phase == "reveal" and not speech.finished else "Выступления завершены."
+
+
+func use_ability(slot: int) -> void:
+	if not active.has(0) or selected not in active or phase in ["vote", "end"]:
+		return
+	var result := abilities.apply(slot, players[0], players[selected])
+	log_label.text = result["message"]
+	if result.get("ok", false) and result.get("card", {}).get("id", "") == "biology" and result["card"]["revealed"]:
+		_change_appearance(selected, players[selected]["sex"])
+	_refresh()
+
+
+func pass_speech() -> void:
+	if phase != "reveal":
+		return
+	speech.pass_turn()
+	_begin_speaker()
+
+
+func _begin_speaker() -> void:
+	if speech.finished:
+		phase = "discussion"
+		log_label.text = "Круг выступлений завершён. Обсудите решение, затем перейдите к голосованию."
+	else:
+		selected = speech.speaker()
+		if selected != 0:
+			var card := Content.random_hidden_card(players[selected])
+			if not card.is_empty():
+				_reveal_card(selected, card)
+				speech.revealed = true
+		log_label.text = "Ход: " + players[selected]["name"] + (". Тестовый участник: карта открыта, речь не генерируется; можно пропустить." if selected != 0 else ". Раскройте одну карту и объясните решение.")
+	_refresh()
+
+
+func vote_warehouse(voter: int, open_vote: bool) -> void:
+	if not active.has(0) or voter not in active or warehouse_open:
+		return
+	warehouse_votes[voter] = open_vote
+	var yes := 0
+	for id in active:
+		if warehouse_votes.get(id, false):
+			yes += 1
+	if yes > active.size() / 2:
+		warehouse_open = true
+		navigation.unlock_warehouse()
+		create_tween().tween_property(warehouse_door, "position:y", -2.0, 0.7)
+		audio.blip("door")
+	log_label.text = "Совет склада: за %d/%d. %s" % [yes, active.size(), "Открыт." if warehouse_open else "Остаётся закрытым."]
+
+
+func _tick_jobs(delta: float) -> void:
+	for id in jobs.keys():
+		var job: Dictionary = jobs[id]
+		if id not in active:
+			jobs.erase(id)
+			continue
+		var points: PackedVector3Array = job["path"]
+		var index: int = job["index"]
+		if index >= points.size():
+			jobs.erase(id)
+			_complete_interaction(job["key"], id)
+		else:
+			var travel := points[index] - actors[id].position
+			actors[id].position = actors[id].position.move_toward(points[index], delta * 1.8)
+			if travel.length_squared() > 0.0001:
+				actors[id].rotation.y = lerp_angle(actors[id].rotation.y, atan2(travel.x, travel.z), delta * 10)
+			if actors[id].position.distance_to(points[index]) < 0.03:
+				job["index"] = index + 1
+	for id in npc_rests.keys():
+		npc_rests[id]["remaining"] -= delta
+		if npc_rests[id]["remaining"] <= 0:
+			actors[id].position = npc_rests[id]["return"]
+			actors[id].get_child(0).rotation = Vector3.ZERO
+			actors[id].get_child(0).position = Vector3.ZERO
+			npc_rests.erase(id)
+
+
+func _start_extra_bed(key: String, operator: int) -> void:
+	if operator == 0:
+		# Reuse the tested rest state machine with the chosen bed's geometry.
+		var first: Dictionary = layout["items"]["bed"]
+		layout["items"]["bed"] = layout["items"][key]
+		_complete_interaction("bed", 0)
+		layout["items"]["bed"] = first
+		return
+	var cooldown := "rest_%d" % operator
+	if used_actions.get(cooldown, 0) == round_number:
+		return
+	used_actions[cooldown] = round_number
+	npc_rests[operator] = {"remaining": 3.0, "return": actors[operator].position}
+	var at: Vector3 = layout["items"][key]["at"]
+	actors[operator].position = Vector3(at.x, 0, at.z)
+	actors[operator].rotation.y = 0
+	actors[operator].get_child(0).rotation.z = PI / 2
+	actors[operator].get_child(0).position = Vector3(0.7, 0.7, 0)
