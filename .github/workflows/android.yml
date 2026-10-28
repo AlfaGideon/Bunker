@@ -48,11 +48,11 @@ jobs:
       - name: Export debug APK
         run: |
           set +e
-          godot --headless --path . --export-debug Android builds/bunker-debug.apk > /tmp/export.log 2>&1
+          godot --headless --verbose --editor --path . --export-debug Android builds/bunker-debug.apk > /tmp/export.log 2>&1
           result=$?
           cat /tmp/export.log
           if [ "$result" -ne 0 ]; then
-            while IFS= read -r line; do echo "::error::$line"; done < <(tail -35 /tmp/export.log)
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -80 /tmp/export.log)
             exit "$result"
           fi
           test -s builds/bunker-debug.apk
