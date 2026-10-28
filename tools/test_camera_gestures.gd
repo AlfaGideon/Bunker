@@ -22,7 +22,8 @@ func run() -> void:
  root.add_child(room)
  room.menu.visible = false
  room.set_physics_process(false)
- await process_frame
+ for frame in 4:
+  await process_frame
  var controller: RefCounted = room.camera_gestures
  var center := root.get_visible_rect().size * 0.5
  var original: Transform3D = room.camera.transform
@@ -62,6 +63,11 @@ func run() -> void:
  event.pressed = true
  Input.parse_input_event(event)
  await process_frame
+ if not controller.fingers.is_empty():
+  print("Gesture HUD diagnostics: root=", root.get_visible_rect(), " ui=", room.ui_root.get_global_rect(), " fingers=", controller.fingers)
+  for control in room.ui_root.get_children():
+   if control is Control and control.visible:
+    print(control.get_class(), " ", control.get_global_rect(), " canvas=", control.get_global_transform_with_canvas())
  check(controller.fingers.is_empty(), "Touch over HUD stays in GUI")
  event = InputEventScreenTouch.new()
  event.index = 4

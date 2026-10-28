@@ -569,7 +569,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# event is consumed by a button. Explicitly exclude visible HUD rectangles.
 	if event is InputEventScreenTouch or event is InputEventScreenDrag or event is InputEventMouse or event is InputEventGesture:
 		for control in ui_root.get_children():
-			if control is Control and control.visible and control.mouse_filter != Control.MOUSE_FILTER_IGNORE and control.get_global_rect().has_point(event.position):
+			if control is Control and control.visible and control.mouse_filter != Control.MOUSE_FILTER_IGNORE and Rect2(Vector2.ZERO, control.size).has_point(control.make_input_local(event).position):
 				return
 	_apply_camera_event(event)
 
