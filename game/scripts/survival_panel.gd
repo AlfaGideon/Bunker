@@ -39,14 +39,13 @@ func setup(game: Node3D) -> void:
  shell.add_theme_constant_override("separation", 10)
  margin.add_child(shell)
  column = Deck.new()
- column.page_height = 400
+ column.page_height = 360
  shell.add_child(column)
  var footer := HBoxContainer.new()
  footer.add_theme_constant_override("separation", 10)
  shell.add_child(footer)
  column.add_card(room._label("ВЫ ПОКИНУЛИ БУНКЕР", 28))
  column.add_card(room._label(room.scenario["exile_prompt"], 18))
- column.add_card(room._label("Выберите кубик и выигрышные числа ДО броска. Везде шанс 50%: половина граней. Бросок один, прогноз после него изменить нельзя.", 17))
  mode = Choice.new()
  for label in ["d6: 1–3 или 4–6", "d6: чётное / нечётное", "d6: свои три числа", "d20: 1–10 или 11–20", "d20: свои десять чисел"]:
   mode.add_item(label)
@@ -58,10 +57,12 @@ func setup(game: Node3D) -> void:
  column.add_card(prediction)
  prediction.item_selected.connect(func(_index): update_choice())
  choice_label = room._label("", 18)
- column.add_card(choice_label)
+ shell.add_child(choice_label)
+ shell.move_child(choice_label, 1)
  number_grid = GridContainer.new()
  number_grid.columns = 5
  column.add_card(number_grid)
+ column.add_card(room._label("Выберите кубик и выигрышные числа ДО броска. Везде шанс 50%: половина граней. Бросок один, прогноз после него изменить нельзя.", 17))
  face_label = room._label("?", 48)
  face_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
  column.add_card(face_label)

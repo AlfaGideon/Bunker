@@ -16,6 +16,7 @@ var caption: Label
 func _init() -> void:
  set_meta("touch_choice", true)
  custom_minimum_size.y = 64
+ size_flags_vertical = Control.SIZE_SHRINK_CENTER
  add_theme_constant_override("separation", 6)
  previous = Button.new()
  previous.text = "‹"

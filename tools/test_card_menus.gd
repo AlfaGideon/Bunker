@@ -36,6 +36,7 @@ func run() -> void:
  dice.column.rebuild()
  dice.column.page_index = 0
  dice.column.rebuild()
+ check(dice.number_grid.visible, "All d20 choices are accessible on the initial wager page")
  dice.chosen.erase(1)
  dice.update_choice()
  check(dice.chosen.size() == 9 and dice.roll_button.disabled, "Dice validation uses selected mode, not off-page visibility")

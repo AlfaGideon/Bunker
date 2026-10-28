@@ -43,7 +43,7 @@ func nav_button(value: String) -> Button:
  var node := Button.new()
  node.text = value
  Style.button(node, true)
- node.custom_minimum_size.x = 75
+ node.custom_minimum_size.x = 95
  navigation.add_child(node)
  return node
 
@@ -163,8 +163,8 @@ func rebuild() -> void:
    pages.append(page)
    page = []
    height = 0
+  height += row_height + (10 if not page.is_empty() else 0)
   page.append_array(row)
-  height += row_height + 10
  if not page.is_empty():
   pages.append(page)
  page_index = clampi(page_index, 0, maxi(0, pages.size() - 1))
