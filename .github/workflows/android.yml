@@ -52,7 +52,7 @@ jobs:
           result=$?
           cat /tmp/export.log
           if [ "$result" -ne 0 ]; then
-            while IFS= read -r line; do echo "::error::$line"; done < <(tail -80 /tmp/export.log)
+            python3 -c 'from pathlib import Path; s=Path("/tmp/export.log").read_text()[-18000:]; print("::error::" + s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))' 
             exit "$result"
           fi
           test -s builds/bunker-debug.apk
