@@ -32,7 +32,7 @@ static func build(room: Node3D) -> void:
 	Art.spawn(room, "modular_sci_fi_Props_ComputerSmall", Vector3(terminal.x, 0, terminal.z), Vector3(1.0, 1.5, 0.8))
 	var supply: Vector3 = plan["items"]["supply"]["at"]
 	Art.spawn(room, "modular_sci_fi_Props_Chest", Vector3(supply.x, 0, supply.z), Vector3(1.1, 0.8, 0.8))
-	room._world_label("РЕМКОМПЛЕКТ", supply + Vector3(0, 0.65, 0), 22)
+	room._world_label("СНАБЖЕНИЕ • СКЛАД", supply + Vector3(0, 0.65, 0), 22)
 	room._world_label("СПАЛЬНЯ • ОТДЫХ", Vector3(-side * 6.5, 2.1, -4.7), 24)
 	room.med_label = room._world_label("МЕДБЛОК • ЗАКРЫТ", Vector3(side * 6.5, 2.1, -4.7), 24)
 	room.med_gate = room._box(Vector3(side * 4.4, 1, -1.6), Vector3(0.17, 2, 1.8), Color("33464c"))

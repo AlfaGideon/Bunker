@@ -58,6 +58,8 @@ static func build(room: Node3D) -> void:
    for i in 5:
     cylinder(room, at + Vector3(float(i) * 0.19 - 0.4, 0, 0), 0.07, 0.55, Color("719862"))
   room._world_label(plan["items"][kind]["title"], at + Vector3(0, 0.8, 0), 18)
+ for x in [3.8, 5.5, 7.5]:
+  room._box(Vector3(x, -0.31, 6.7), Vector3(0.35, 0.5, 0.5), Color("4b575c"))
  # A real cutaway dog-leg corridor aligned to the departure route.
  for part in [{"at": Vector3(3.8, -0.09, 6), "size": Vector3(1.5, 0.18, 2.4)}, {"at": Vector3(6, -0.09, 6.7), "size": Vector3(5.9, 0.18, 1.5)}]:
   var floor: MeshInstance3D = room._box(part["at"], part["size"], Color("596c76"))

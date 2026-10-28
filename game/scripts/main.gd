@@ -750,6 +750,15 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 		return
 	if key == "supply" and not warehouse_open:
 		return
+	if key.begins_with("bed"):
+		var bed_at: Vector3 = layout["items"][key]["at"]
+		for sleeper in npc_rests.keys():
+			if actors[sleeper].position.distance_to(Vector3(bed_at.x, 0, bed_at.z)) < 0.3:
+				log_label.text = "Койка занята."
+				return
+		if rest_remaining > 0 and actors[0].position.distance_to(Vector3(bed_at.x, 0, bed_at.z)) < 0.3:
+			log_label.text = "Койка занята."
+			return
 	actors[operator].get_child(0).gesture = 1.2
 	if key.begins_with("bed") and key not in ["bed", "bed2"]:
 		_start_extra_bed(key, operator)

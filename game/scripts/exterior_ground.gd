@@ -22,8 +22,8 @@ static func build(room: Node3D) -> void:
    if abs(x) < 9 and abs(z) < 6:
     continue
    for offset in [Vector2(0, 0), Vector2(0, 2), Vector2(2, 0), Vector2(2, 0), Vector2(0, 2), Vector2(2, 2)]:
-    var px := float(x) + offset.x
-    var pz := float(z) + offset.y
+    var px: float = float(x) + offset.x
+    var pz: float = float(z) + offset.y
     var y := -0.31 + sin(px * 0.44) * cos(pz * 0.31) * 0.09
     if pz > 5 and pz < 8.5 and px > 2 and px < 10:
      y = -0.4
