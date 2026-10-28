@@ -891,7 +891,7 @@ func _frame_camera() -> void:
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	var usable_width := maxf(500, viewport_size.x - 630)
-	camera.size = maxf(14.0, 22.0 * viewport_size.y / usable_width) * profile.camera_size / 11.0
+	camera.size = maxf(28.0, 44.0 * viewport_size.y / usable_width) * profile.camera_size / 11.0
 	var right := Vector3(13, 0, -7.2).normalized()
 	var focus := right * (camera.size / viewport_size.y * 35)
 	camera.position = focus + Vector3(7.2, 13, 13)

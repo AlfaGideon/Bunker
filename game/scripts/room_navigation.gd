@@ -3,8 +3,8 @@ extends RefCounted
 
 const Layout = preload("res://game/scripts/bunker_layout.gd")
 const STEP := 0.2
-const ORIGIN := Vector2(-8.4, -4.8)
-const SIZE := Vector2i(85, 49)
+const ORIGIN := Vector2(-20, -16)
+const SIZE := Vector2i(201, 161)
 var grid := AStarGrid2D.new()
 var layout: Dictionary
 var medical_open := false
@@ -26,7 +26,11 @@ func rebuild() -> void:
 		for y in SIZE.y:
 			var cell := Vector2i(x, y)
 			var point := grid.get_point_position(cell)
-			var solid := false
+			var solid := not on_floor(point)
+			if not solid:
+				for offset in [Vector2(0.18, 0), Vector2(-0.18, 0), Vector2(0, 0.18), Vector2(0, -0.18)]:
+					if not on_floor(point + offset):
+						solid = true
 			for obstacle in layout["blockers"]:
 				if obstacle.has_point(point):
 					solid = true
@@ -82,3 +86,10 @@ func path_between(start: Vector3, destination: Vector3) -> PackedVector3Array:
 func unlock_warehouse() -> void:
 	warehouse_open = true
 	rebuild()
+
+
+func on_floor(point: Vector2) -> bool:
+	for footprint in layout["floors"]:
+		if footprint.has_point(point):
+			return true
+	return false

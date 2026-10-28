@@ -17,6 +17,52 @@ static func cylinder(room: Node3D, at: Vector3, radius: float, height: float, co
 static func build(room: Node3D) -> void:
  var plan: Dictionary = room.layout
  var side: float = plan["med_side"]
+ # Each exterior room has an equipment set, not a lone interaction prop.
+ for kind in plan["modules"]:
+  var bounds: Rect2 = plan["modules"][kind]["bounds"]
+  var corners: Array[Vector2] = [bounds.position + Vector2(0.85, 0.85), Vector2(bounds.end.x - 0.85, bounds.position.y + 0.85), Vector2(bounds.position.x + 0.85, bounds.end.y - 0.85), bounds.end - Vector2(0.85, 0.85)]
+  for index in corners.size():
+   var point: Vector2 = corners[index]
+   var at := Vector3(point.x, 0, point.y)
+   if kind == "medical":
+    room._box(at + Vector3(0, 0.65, 0), Vector3(0.85, 1.3, 0.8), Color("b4cfd0"))
+    for y in [0.3, 0.65, 1.0]:
+     room._box(at + Vector3(0, y, 0.42), Vector3(0.6, 0.04, 0.04), Color("51777c"))
+    if index == 0:
+     Finish.glow(room, at + Vector3(0, 1.55, 0), Vector3(0.55, 0.1, 0.08), Color("dd6b61"))
+     Finish.glow(room, at + Vector3(0, 1.55, 0), Vector3(0.1, 0.55, 0.08), Color("dd6b61"))
+   elif kind == "kitchen":
+    room._box(at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95), Color("95a8a8"))
+    room._box(at + Vector3(0, 0.94, 0), Vector3(1, 0.08, 1), Color("c5cfbd"))
+    if index == 0:
+     Art.spawn(room, "house_interior_pack_Kitchen_Fridge", at, Vector3(0.8, 1.8, 0.8))
+    else:
+     cylinder(room, at + Vector3(0, 1.05, 0), 0.2, 0.16, Color("5d797f"))
+   elif kind == "supply" or kind == "workshop":
+    for y in [0.15, 0.75, 1.35]:
+     room._box(at + Vector3(0, y, 0), Vector3(1, 0.08, 0.9), Color("75848a"))
+     Art.spawn(room, "modular_sci_fi_Props_Crate", at + Vector3(0, y + 0.05, 0), Vector3(0.65, 0.45, 0.6))
+    for x in [-0.44, 0.44]:
+     room._box(at + Vector3(x, 0.7, 0), Vector3(0.06, 1.5, 0.85), Color("56636a"))
+   elif kind == "gym":
+    room._box(at + Vector3(0, 0.06, 0), Vector3(0.95, 0.12, 0.95), Color("426b79"))
+    if index % 2 == 0:
+     room._box(at + Vector3(0, 0.3, 0), Vector3(0.7, 0.12, 0.9), Color("8b6150"))
+     for x in [-0.3, 0.3]:
+      cylinder(room, at + Vector3(x, 0.16, 0), 0.035, 0.3, Color("9dabad"))
+    else:
+     for y in [0.3, 0.65, 1.0]:
+      var bar := cylinder(room, at + Vector3(0, y, 0), 0.06, 0.8, Color("243942"))
+      bar.rotation.z = PI / 2
+   else:
+    room._box(at + Vector3(0, 0.3, 0), Vector3(0.95, 0.6, 0.95), Color("626d4d"))
+    for x in [-0.25, 0.25]:
+     cylinder(room, at + Vector3(x, 0.9, 0), 0.13, 0.7, Color("64a45a"))
+ var exam: Vector3 = plan["items"]["medical"]["at"]
+ room._box(exam - Vector3(0, 0.3, 0), Vector3(1.9, 0.15, 0.85), Color("b9d9d7"))
+ room._box(exam - Vector3(0.65, 0.1, 0), Vector3(0.5, 0.15, 0.75), Color("d2e2dc"))
+ for x in [-0.7, 0.7]:
+  room._box(exam + Vector3(x, -0.55, 0), Vector3(0.09, 0.5, 0.7), Color("76999f"))
  var kitchen: Vector3 = plan["items"]["kitchen"]["at"]
  room._box(kitchen - Vector3(0, 0.5, 0), Vector3(1.2, 0.8, 0.65), Color("727f83"))
  for x in [-0.3, 0.3]:
@@ -38,9 +84,9 @@ static func build(room: Node3D) -> void:
  var warehouse: Vector3 = plan["items"]["supply"]["at"]
  for z in [-0.3, 0.3]:
   Art.spawn(room, "modular_sci_fi_Props_Crate", warehouse + Vector3(0.5, 0.3, z), Vector3(0.4, 0.4, 0.35))
- room._world_label("СКЛАД • ЗАПАСЫ / ИНСТРУМЕНТЫ / ОРУЖИЕ", Vector3(side * 6.5, 1.8, 4.7), 18)
- room.warehouse_door = Art.spawn(room, "modular_sci_fi_Door_Single", Vector3(side * 4.4, 0, 3.4), Vector3(1.7, 1.8, 0.18))
- room.warehouse_door.rotation.y = PI / 2
+ room._world_label("СКЛАД • ЗАПАСЫ / ИНСТРУМЕНТЫ / ОРУЖИЕ", warehouse + Vector3(0, 1.3, 1.7), 18)
+ room.warehouse_door = Art.spawn(room, "modular_sci_fi_Door_Single", plan["modules"]["supply"]["gate"] - Vector3(0, 1, 0), Vector3(2.3, 1.8, 0.18))
+ room.warehouse_door.rotation.y = PI / 2 if plan["modules"]["supply"]["horizontal"] else 0
  if plan["annex"] != "none":
   var kind: String = plan["annex"]
   var at: Vector3 = plan["items"][kind]["at"]

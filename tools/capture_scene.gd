@@ -45,7 +45,7 @@ func capture() -> void:
 		await create_timer(0.7).timeout
 		room.ui_root.visible = false
 		room.camera.size = 7
-		var focus := Vector3(room.layout["med_side"] * 6, 0.8, -1.6)
+		var focus: Vector3 = room.layout["modules"]["medical"]["center"] + Vector3(0, 0.8, 0)
 		room.camera.position = focus + Vector3(7, 9, 13)
 		room.camera.look_at(focus)
 		shot_prefix = "MEDICALSHOT"
@@ -67,7 +67,7 @@ func capture() -> void:
 	if args.has("--facilities"):
 		room.ui_root.visible = false
 		room.camera.size = 8
-		var focus := Vector3(0, 0.5, -1)
+		var focus: Vector3 = room.layout["modules"]["kitchen"]["center"] + Vector3(0, 0.5, 0)
 		room.camera.position = focus + Vector3(7, 9, 13)
 		room.camera.look_at(focus)
 		shot_prefix = "FACILITYSHOT"

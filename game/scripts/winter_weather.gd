@@ -42,6 +42,8 @@ func setup(room: Node3D, weather: String) -> void:
 		drift.material_override = snow_material
 		var side := -1 if i % 2 == 0 else 1
 		drift.position = Vector3(side * rng.randf_range(9.5, 14), -0.25, rng.randf_range(-10, 13))
+		if preload("res://game/scripts/exterior_ground.gd").covered(room.layout, Vector2(drift.position.x, drift.position.z)):
+			drift.position.x = side * 21.0
 		drift.scale = Vector3(rng.randf_range(0.7, 1.8), rng.randf_range(0.15, 0.45), rng.randf_range(0.8, 2))
 		add_child(drift)
 	for zone in [Vector3(-12, 5, 0), Vector3(12, 5, 0), Vector3(0, 5, 12), Vector3(0, 5, -11)]:

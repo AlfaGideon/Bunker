@@ -53,19 +53,6 @@ static func wall(room: Node3D, center: Vector2, size: Vector2) -> void:
 
 static func decorate(room: Node3D) -> void:
 	var side: float = room.layout["med_side"]
-	for x in range(-8, 9, 2):
-		for z in range(-4, 5, 2):
-			var tile := Art.spawn(room, "modular_sci_fi_FloorTile_Basic2", Vector3(x, 0.004, z), Vector3(1.97, 0.025, 1.97))
-			for mesh in tile.find_children("*", "MeshInstance3D", true, false):
-				mesh.material_override = metal(Color("485965") if absf(x) < 4 else (Color("51534e") if x * side < 0 else Color("365b60")))
-	for x in range(-8, 9, 2):
-		Art.spawn(room, "modular_sci_fi_Details_Vent_2", Vector3(x, 1.1, -5.02), Vector3(0.8, 0.35, 0.14))
-		Art.spawn(room, "modular_sci_fi_Details_Pipes_Long", Vector3(x, 1.65, -5.0), Vector3(1.8, 0.18, 0.18))
-		glow(room, Vector3(x, 2.02, -5.0), Vector3(1.6, 0.055, 0.06), Color("b4e6f3"))
-		Art.spawn(room, "modular_sci_fi_Wall_4", Vector3(x, 0, -5.22), Vector3(0.18, 2.05, 0.25))
-	for x in [-4.05, 4.05]:
-		for z in [-4.2, -2.8, 2.8, 4.2]:
-			glow(room, Vector3(x, 0.045, z), Vector3(0.04, 0.015, 0.8), Color("edba63"))
 	# Equipment stays on the wall or within existing furniture footprints.
 	for key in room.layout["beds"] + ["medical"]:
 		var at: Vector3 = room.layout["items"][key]["at"]
@@ -82,8 +69,8 @@ static func decorate(room: Node3D) -> void:
 			rail.material_override = room._material(Color("a5bac2"))
 			room.add_child(rail)
 	room.med_gate.mesh = null
-	var hatch := Art.spawn(room.med_gate, "modular_sci_fi_Door_Single", Vector3(0, -1, 0), Vector3(1.7, 2, 0.18))
-	hatch.rotation.y = PI / 2
+	var hatch := Art.spawn(room.med_gate, "modular_sci_fi_Door_Single", Vector3(0, -1, 0), Vector3(2.3, 2, 0.18))
+	hatch.rotation.y = PI / 2 if room.layout["modules"]["medical"]["horizontal"] else 0
 	room.med_cover.material_override = metal(Color("1b2e38"))
 	for key in ["terminal", "supply"]:
 		var at: Vector3 = room.layout["items"][key]["at"]

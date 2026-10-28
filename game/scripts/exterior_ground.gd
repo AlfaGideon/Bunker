@@ -43,7 +43,7 @@ static func build(room: Node3D) -> void:
  rock.height = 1
  for i in 34:
   var at := Vector3(rng.randf_range(-19, 19), -0.25, rng.randf_range(-16, 17))
-  if absf(at.x) < 10 and at.z < 9 and at.z > -6:
+  if covered(room.layout, Vector2(at.x, at.z)):
    continue
   var stone := MeshInstance3D.new()
   stone.mesh = rock
@@ -67,8 +67,8 @@ static func build(room: Node3D) -> void:
  for i in batch.instance_count:
   var x := rng.randf_range(-20, 20)
   var z := rng.randf_range(-16, 18)
-  if absf(x) < 10 and z < 9 and z > -6:
-   x = 11.0 if x > 0 else -11.0
+  if covered(room.layout, Vector2(x, z)):
+   x = 21.0 if x > 0 else -21.0
   var scale_value := rng.randf_range(0.4, 1.0)
   batch.set_instance_transform(i, Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(Vector3.ONE * scale_value), Vector3(x, -0.3, z)))
   batch.set_instance_color(i, Color("8b8261") if snow or dry else Color("718450"))
@@ -79,3 +79,9 @@ static func build(room: Node3D) -> void:
  grass_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
  blades.material_override = grass_mat
  room.add_child(blades)
+
+static func covered(plan: Dictionary, point: Vector2) -> bool:
+ for footprint in plan["floors"]:
+  if footprint.grow(1.0).has_point(point):
+   return true
+ return Rect2(2, 4, 8, 5).has_point(point)
