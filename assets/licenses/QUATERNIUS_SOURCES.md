@@ -111,3 +111,18 @@ The file is an unchanged copy of `hdri/potsdamer_platz_1k.hdr` from
 Poly Haven licenses all its assets as CC0: https://polyhaven.com/license.
 The site loaded this file from GitHub until 2026-10-13. It now ships with the
 site.
+
+## Welcome camp 0.11
+
+Pinned mirror revision: `722c39e964360beff2728a8ee4d103e2d11d457c`.
+Pack license table archived as `QUATERNIUS_PACK_LICENSES.md` from
+https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/LICENSES.md
+
+- Ultimate Nature Pack, Quaternius, CC0-1.0: https://quaternius.com/packs/ultimatenature.html
+  Imported `nature_pack/PineTree_1.glb` and `nature_pack/PineTree_3.glb`.
+- Survival Pack, Quaternius, CC0-1.0: https://quaternius.com/packs/survival.html
+  Imported `survival_pack/Bonfire_Fire.glb` (authored wood and fire surfaces).
+
+Exact download paths and SHA-256 hashes are in `assets/manifest.json`.
+Original GLBs are unchanged. Root-anchored wind and flame shaders, particle
+smoke/embers, placement and lighting are applied at runtime.
