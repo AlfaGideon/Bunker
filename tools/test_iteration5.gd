@@ -29,11 +29,27 @@ func walk(room: Node3D, key: String) -> void:
 func run() -> void:
 	var original := Profile.new()
 	var variants := {}
+	var positions := {"medical": {}, "kitchen": {}, "supply": {}}
+	var silhouettes := {}
 	for seed_value in range(-12, 48):
 		var plan := Layout.generate(seed_value, 3 + posmod(seed_value, 3))
 		var repeated := Layout.generate(seed_value, 3 + posmod(seed_value, 3))
 		check(plan == repeated, "Seed reproducible: %d" % seed_value)
 		variants[plan["variant"]] = true
+		var silhouette := ""
+		for kind in plan["modules"]:
+			var module: Dictionary = plan["modules"][kind]
+			var bounds: Rect2 = module["bounds"]
+			check(not bounds.intersection(plan["hall"]).has_area(), "Room is outside hall: " + kind)
+			check(module["corridor"].intersects(plan["hall"]), "Corridor joins hall")
+			check(module["corridor"].intersects(bounds), "Corridor joins module")
+			for other in plan["modules"]:
+				if other != kind:
+					check(not bounds.intersection(plan["modules"][other]["bounds"]).has_area(), "Separate room footprints")
+			if positions.has(kind):
+				positions[kind][module["slot"]] = true
+			silhouette += kind + str(bounds)
+		silhouettes[silhouette] = true
 		var nav := Navigation.new(plan)
 		var start := nav.nearest_walkable(Vector3(-2.5, 0, 1.8))
 		check(not nav.is_walkable(plan["items"]["medical"]["goal"]), "Medical inaccessible while locked")
@@ -47,6 +63,9 @@ func run() -> void:
 		nav.unlock_medical()
 		check(not nav.path_between(start, plan["items"]["medical"]["goal"]).is_empty(), "Medical reachable after unlocking")
 	check(variants.size() == 3, "Three layout variants")
+	for kind in positions:
+		check(positions[kind].size() == 4, "Every mandatory room moves to all four sides: " + kind)
+	check(silhouettes.size() > 12, "Building changes shape, not just furniture")
 	var scenarios := Content.scenarios()
 	check(scenarios.size() >= 12, "Expanded catastrophe stories")
 	var scene := load("res://game/main.tscn") as PackedScene

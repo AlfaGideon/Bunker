@@ -59,12 +59,12 @@ static func build(room: Node3D) -> void:
     for x in [-0.25, 0.25]:
      cylinder(room, at + Vector3(x, 0.9, 0), 0.13, 0.7, Color("64a45a"))
  var exam: Vector3 = plan["items"]["medical"]["at"]
- room._box(exam - Vector3(0, 0.3, 0), Vector3(1.9, 0.15, 0.85), Color("b9d9d7"))
- room._box(exam - Vector3(0.65, 0.1, 0), Vector3(0.5, 0.15, 0.75), Color("d2e2dc"))
+ room._box(exam - Vector3(0, 0.1, 0), Vector3(1.9, 0.15, 0.85), Color("b9d9d7"))
+ room._box(exam - Vector3(0.65, -0.05, 0), Vector3(0.5, 0.15, 0.75), Color("d2e2dc"))
  for x in [-0.7, 0.7]:
-  room._box(exam + Vector3(x, -0.55, 0), Vector3(0.09, 0.5, 0.7), Color("76999f"))
+  room._box(exam + Vector3(x, -0.45, 0), Vector3(0.09, 0.7, 0.7), Color("76999f"))
  var kitchen: Vector3 = plan["items"]["kitchen"]["at"]
- room._box(kitchen - Vector3(0, 0.5, 0), Vector3(1.2, 0.8, 0.65), Color("727f83"))
+ room._box(kitchen - Vector3(0, 0.4, 0), Vector3(1.2, 0.8, 0.65), Color("727f83"))
  for x in [-0.3, 0.3]:
   cylinder(room, kitchen + Vector3(x, 0.04, 0), 0.18, 0.04, Color("172c35"))
   cylinder(room, kitchen + Vector3(x, 0.14, 0), 0.13, 0.17, Color("a2b6bd"))

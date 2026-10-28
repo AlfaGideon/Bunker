@@ -22,23 +22,33 @@ func rebuild() -> void:
 	grid.offset = ORIGIN
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
-	for x in SIZE.x:
-		for y in SIZE.y:
-			var cell := Vector2i(x, y)
-			var point := grid.get_point_position(cell)
-			var solid := not on_floor(point)
-			if not solid:
-				for offset in [Vector2(0.18, 0), Vector2(-0.18, 0), Vector2(0, 0.18), Vector2(0, -0.18)]:
-					if not on_floor(point + offset):
-						solid = true
-			for obstacle in layout["blockers"]:
-				if obstacle.has_point(point):
-					solid = true
-			if not medical_open and (layout["gate_blocker"].has_point(point) or layout["med_bounds"].has_point(point)):
+	grid.fill_solid_region(grid.region, true)
+	for footprint in layout["floors"]:
+		var rect: Rect2 = footprint
+		var first := Vector2i(((rect.position - ORIGIN) / STEP).ceil())
+		var last := Vector2i(((rect.end - ORIGIN) / STEP).floor())
+		for x in range(first.x, last.x + 1):
+			for y in range(first.y, last.y + 1):
+				_mark_cell(Vector2i(x, y))
+
+
+func _mark_cell(cell: Vector2i) -> void:
+	if not grid.is_in_boundsv(cell):
+		return
+	var point := grid.get_point_position(cell)
+	var solid := not on_floor(point)
+	if not solid:
+		for offset in [Vector2(0.18, 0), Vector2(-0.18, 0), Vector2(0, 0.18), Vector2(0, -0.18)]:
+			if not on_floor(point + offset):
 				solid = true
-			if not warehouse_open and (layout["warehouse_bounds"].has_point(point) or layout["warehouse_gate"].has_point(point)):
-				solid = true
-			grid.set_point_solid(cell, solid)
+	for obstacle in layout["blockers"]:
+		if obstacle.has_point(point):
+			solid = true
+	if not medical_open and (layout["gate_blocker"].has_point(point) or layout["med_bounds"].has_point(point)):
+		solid = true
+	if not warehouse_open and (layout["warehouse_bounds"].has_point(point) or layout["warehouse_gate"].has_point(point)):
+		solid = true
+	grid.set_point_solid(cell, solid)
 
 
 func unlock_medical() -> void:
