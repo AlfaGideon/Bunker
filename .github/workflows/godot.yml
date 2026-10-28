@@ -89,6 +89,18 @@ jobs:
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
       - name: Render kitchen and shared food
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --facilities
+  visual-architecture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: bash tools/check_godot.sh --headless --editor --path . --quit
       - name: Render modular building seed 0
         run: timeout 90 xvfb-run -a godot --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture
       - name: Render modular building seed 17
