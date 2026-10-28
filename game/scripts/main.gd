@@ -1,5 +1,8 @@
 extends Node3D
 
+const Navigation = preload("res://game/scripts/room_navigation.gd")
+const Art = preload("res://game/scripts/scene_art.gd")
+const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
@@ -19,6 +22,11 @@ var door: MeshInstance3D
 var target := Vector3(-2.5, 0, 1.8)
 var clock := 0.0
 var finished := false
+var navigation := Navigation.new()
+var route := PackedVector3Array()
+var route_index := 0
+var marker: MeshInstance3D
+var pending_inspection := ""
 
 
 func _ready() -> void:
@@ -69,13 +77,15 @@ func _build_world() -> void:
 	settings.background_color = Color("101a22")
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	settings.ambient_light_color = Color("b2c6d3")
-	settings.ambient_light_energy = 0.65
+	settings.ambient_light_energy = 0.48
 	environment.environment = settings
 	add_child(environment)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-55, -25, 0)
 	light.light_color = Color("ffe0af")
-	light.light_energy = 1.2
+	light.light_energy = 1.0
+	light.shadow_enabled = true
+	light.directional_shadow_max_distance = 30.0
 	add_child(light)
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -85,45 +95,69 @@ func _build_world() -> void:
 	camera.look_at(Vector3(1.8, 0, 0))
 	camera.current = true
 	_box(Vector3(0, -0.2, 0), Vector3(10, 0.4, 8), Color("34444a"))
-	# Back and side walls only: no roof to obstruct the camera.
-	_box(Vector3(0, 0.7, -4), Vector3(10, 1.4, 0.25), Color("52646b"))
-	_box(Vector3(-5, 0.7, 0), Vector3(0.25, 1.4, 8), Color("52646b"))
+	# Modular imported walls: front/right walls are cut away for visibility.
+	for x in [-4.0, -2.0, 2.0, 4.0]:
+		Art.spawn(self, "modular_sci_fi_Wall_1", Vector3(x, 0, -3.9), Vector3(1.95, 2.1, 0.23))
+	for z in [-2.8, -0.8, 1.2, 3.0]:
+		var wall := Art.spawn(self, "modular_sci_fi_Wall_1", Vector3(-4.95, 0, z), Vector3(1.95, 2.1, 0.23))
+		wall.rotation.y = PI / 2
 	for x in range(-4, 5):
 		_box(Vector3(x, 0.006, 0), Vector3(0.018, 0.01, 8), Color("42555b"))
 	for z in range(-3, 4):
 		_box(Vector3(0, 0.006, z), Vector3(10, 0.01, 0.018), Color("42555b"))
-	door = _box(Vector3(0, 0.85, -3.8), Vector3(2.3, 1.7, 0.25), Color("26383e"))
-	_box(Vector3(0, 1.8, -3.65), Vector3(2.4, 0.12, 0.12), Color("caa261"))
-	_world_label("ШЛЮЗ  /  02 МЕСТА", Vector3(0, 2.25, -3.7))
-	_box(Vector3(0, 0.45, 0), Vector3(3.1, 0.9, 1.5), Color("384c4d"))
-	_box(Vector3(0, 0.93, 0), Vector3(3.3, 0.12, 1.7), Color("b18a57"))
-	_box(Vector3(0, 1.02, 0), Vector3(1.1, 0.04, 0.7), Color("68b7b0"))
-	_box(Vector3(-3.7, 0.5, -2.5), Vector3(1.4, 1, 0.8), Color("677d6b"))
-	_world_label("ЗАПАСЫ", Vector3(-3.7, 1.35, -2.5), 22)
-	_box(Vector3(3.5, 0.65, -2.6), Vector3(1.1, 1.3, 0.8), Color("526671"))
-	_world_label("ТЕРМИНАЛ", Vector3(3.5, 1.65, -2.6), 22)
+	door = _box(Vector3(0, 1.0, -3.8), Vector3(1.9, 2.0, 0.25), Color("26383e"))
+	for x in [-0.75, 0.75]:
+		var strip := _box(Vector3(x, 1, -3.64), Vector3(0.04, 1.8, 0.04), Color("68d9c3"))
+		var glow := strip.material_override as StandardMaterial3D
+		glow.emission_enabled = true
+		glow.emission = Color("68d9c3")
+	_box(Vector3(0, 2.1, -3.65), Vector3(2.4, 0.12, 0.12), Color("caa261"))
+	_world_label("ШЛЮЗ  /  02 МЕСТА", Vector3(0, 2.5, -3.7))
+	Art.spawn(self, "house_interior_pack_Table_RoundLarge", Vector3.ZERO, Vector3(3.1, 0.9, 1.7))
+	Art.spawn(self, "survival_pack_Radio", Vector3(-0.8, 0.91, 0), Vector3(0.45, 0.3, 0.25))
+	Art.spawn(self, "survival_pack_FirstAidKit", Vector3(0.65, 0.91, 0), Vector3(0.45, 0.22, 0.3))
+	Art.spawn(self, "modular_sci_fi_Props_Shelf", Vector3(-3.7, 0, -2.6), Vector3(1.5, 1.8, 0.65))
+	Art.spawn(self, "modular_sci_fi_Props_Crate", Vector3(-3.65, 0.15, -2.5), Vector3(0.6, 0.55, 0.55))
+	Art.spawn(self, "modular_sci_fi_Props_Computer", Vector3(3.5, 0, -2.6), Vector3(1.0, 1.5, 0.8))
+	_world_label("ТЕРМИНАЛ", Vector3(3.5, 1.85, -2.6), 22)
+	for x in [-3.0, 3.0]:
+		var pipes := Art.spawn(self, "modular_sci_fi_Details_Pipes_Long", Vector3(x, 1.1, -3.65), Vector3(0.5, 0.25, 1.5))
+		pipes.rotation.x = PI / 2
+		Art.spawn(self, "modular_sci_fi_Details_Vent_1", Vector3(x, 1.6, -3.63), Vector3(0.8, 0.1, 0.45)).rotation.x = PI / 2
+	var lamp := OmniLight3D.new()
+	lamp.position = Vector3(0, 2.5, 0)
+	lamp.light_color = Color("ffcf89")
+	lamp.light_energy = 1.8
+	lamp.omni_range = 6
+	add_child(lamp)
+	marker = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.16
+	ring.outer_radius = 0.21
+	marker.mesh = ring
+	marker.material_override = _material(Color("73dfc5"))
+	marker.visible = false
+	add_child(marker)
 	var positions := [Vector3(-2.5, 0, 1.8), Vector3(2.5, 0, 1.8),
 		Vector3(-2.5, 0, -1.5), Vector3(2.5, 0, -1.5)]
+	var model_names := ["modular_men_Worker", "modular_women_Casual", "modular_men_Adventurer", "modular_women_SciFi"]
 	for i in players.size():
 		var actor := Node3D.new()
-		actor.position = positions[i]
 		add_child(actor)
-		var body := MeshInstance3D.new()
-		var capsule := CapsuleMesh.new()
-		capsule.radius = 0.26
-		capsule.height = 1.05
-		body.mesh = capsule
-		body.position.y = 0.65
-		body.material_override = _material(Color(players[i]["color"]))
-		actor.add_child(body)
+		var visual := Art.spawn(actor, model_names[i], Vector3.ZERO, Vector3(1, 1.45, 1), true)
+		visual.set_script(SurvivorVisual)
+		visual._collect(visual)
+		actor.position = positions[i]
+		actor.rotation.y = PI if i > 1 else 0
 		var label := Label3D.new()
 		label.text = players[i]["name"] + (" • ВЫ" if i == 0 else "")
-		label.position.y = 1.5
+		label.position.y = 1.85
 		label.font_size = 26
 		label.pixel_size = 0.007
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		actor.add_child(label)
 		actors.append(actor)
+
 
 
 func _label(text: String, size: int = 18) -> Label:
@@ -196,10 +230,11 @@ func _build_ui() -> void:
 	_button("Начать заново", func(): get_tree().reload_current_scene(), column)
 	log_label = _label("Вы — Алекс. Выберите свою карту для раскрытия. Остальные участники — тестовые персонажи.", 16)
 	column.add_child(log_label)
-	var hint := _label("Нажмите на пол, чтобы переместить Алекса.\nСерые капсулы — выбывшие наблюдатели.", 16)
+	var hint := _label("Коснитесь пола: персонаж обойдёт стол и мебель.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.position = Vector2(24, -75)
 	hint.size = Vector2(560, 60)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint)
 
 
@@ -217,6 +252,7 @@ func _refresh() -> void:
 		detail.add_child(_label(card["label"] + ": " + (card["value"] if visible else "скрыто")))
 		if selected == 0 and not card["revealed"] and phase == "reveal" and active.has(0):
 			_button("Раскрыть: " + card["label"], func():
+				actors[0].get_child(0).gesture = 1.5
 				card["revealed"] = true
 				_demo_reveals()
 				phase = "discussion"
@@ -267,8 +303,7 @@ func _demo_vote() -> void:
 		return
 	var eliminated: int = result["player"]
 	active.erase(eliminated)
-	var body := actors[eliminated].get_child(0) as MeshInstance3D
-	body.material_override = _material(Color("56616a"))
+	actors[eliminated].get_child(1).modulate = Color("71828c")
 	if active.size() == 2:
 		phase = "end"
 		finished = true
@@ -292,17 +327,57 @@ func _unhandled_input(event: InputEvent) -> void:
 		point = event.position
 	else:
 		return
+	for item in [{"at": Vector3(3.5, 1, -2.6), "goal": Vector3(2.2, 0, -2.2), "name": "terminal"},
+		{"at": Vector3(0.65, 1, 0), "goal": Vector3(0.6, 0, 1.6), "name": "medical"}]:
+		if camera.unproject_position(item["at"]).distance_to(point) < 35:
+			pending_inspection = item["name"]
+			_set_route(item["goal"])
+			log_label.text = "Идём осматривать предмет…"
+			return
 	var hit = Plane(Vector3.UP, 0).intersects_ray(camera.project_ray_origin(point), camera.project_ray_normal(point))
-	if hit != null and absf(hit.x) < 4.5 and absf(hit.z) < 3.3:
-		# First prototype restricts movement to the front aisle; no navigation claim.
-		target = Vector3(clampf(hit.x, -4.3, 4.3), 0, clampf(hit.z, 1.4, 3.2))
+	if hit == null:
+		return
+	if not navigation.is_walkable(hit):
+		log_label.text = "Здесь препятствие. Коснитесь свободного пола рядом с предметом."
+		return
+	pending_inspection = ""
+	_set_route(hit)
 
 
-func _process(delta: float) -> void:
-	clock += delta
+func _set_route(destination: Vector3) -> void:
+	route = navigation.path_between(actors[0].position, destination)
+	route_index = 0
+	marker.visible = not route.is_empty()
+	if marker.visible:
+		marker.position = route[route.size() - 1] + Vector3(0, 0.035, 0)
+
+
+func _physics_process(delta: float) -> void:
 	if actors.is_empty():
 		return
-	actors[0].position = actors[0].position.move_toward(target, delta * 2.5)
+	var budget := delta * 2.4
+	var previous := actors[0].position
+	while route_index < route.size() and budget > 0:
+		var next := route[route_index]
+		var distance := actors[0].position.distance_to(next)
+		if distance <= budget:
+			actors[0].position = next
+			budget -= distance
+			route_index += 1
+		else:
+			actors[0].position = actors[0].position.move_toward(next, budget)
+			budget = 0
+	var direction := actors[0].position - previous
+	if direction.length_squared() > 0.000001:
+		actors[0].rotation.y = lerp_angle(actors[0].rotation.y, atan2(direction.x, direction.z), delta * 12.0)
+	if route_index >= route.size():
+		marker.visible = false
+		if not pending_inspection.is_empty():
+			actors[0].get_child(0).gesture = 1.5
+			if pending_inspection == "terminal":
+				log_label.text = "ТЕРМИНАЛ: генератор исправен, запас топлива — 90 суток. Электрик может обслуживать систему. Это факт для обсуждения, не симуляция запасов."
+			else:
+				log_label.text = "АПТЕЧКА: обнаружены перевязочные материалы. Медицинский специалист поможет оценить их применение."
+			pending_inspection = ""
 	for i in actors.size():
-		var body := actors[i].get_child(0) as MeshInstance3D
-		body.position.y = 0.65 + sin(clock * 2.0 + i) * 0.035
+		actors[i].get_child(0).animate(delta, i == 0 and direction.length_squared() > 0.000001, float(i))
