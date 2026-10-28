@@ -428,6 +428,7 @@ func _advance() -> void:
 			else:
 				round_number += 1
 				supplies.charge_round(round_number, players, active, scenario["weather"])
+				stamina = maxi(0, stamina - (20 if supplies.shortage else 12))
 				phase = "reveal"
 				_update_medical_access()
 				log_label.text = "Новый раунд. Откройте следующую характеристику. " + supplies.last_report
@@ -564,7 +565,7 @@ func _physics_process(delta: float) -> void:
 	if rest_remaining > 0:
 		_tick_rest(delta)
 		return
-	var budget := delta * 1.8
+	var budget := delta * 1.8 * (0.75 + 0.25 * stamina / 100.0)
 	var previous := actors[0].position
 	while route_index < route.size() and budget > 0:
 		var next := route[route_index]

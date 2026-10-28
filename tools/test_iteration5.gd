@@ -86,9 +86,10 @@ func run() -> void:
 		room.phase = "result"
 		room._advance()
 		check(room.round_number == 2 and room.medical_open, "Actual next-round transition opens repaired medblock")
+		check(room.stamina == 68, "Next round consumes stamina: rest remains meaningful")
 		check(not room.med_cover.visible and room.med_light.light_energy > 0, "Unlock removes roof and enables light")
 		walk(room, "medical")
-		check(room.medicines == 1 and room.stamina == 95, "Limited medical treatment")
+		check(room.medicines == 1 and room.stamina == 83, "Limited medical treatment")
 		walk(room, "medical")
 		check(room.medicines == 1, "Treatment cooldown")
 		walk(room, "radio")
