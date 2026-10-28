@@ -70,12 +70,19 @@ func capture() -> void:
 		shot_prefix = "CHARACTERSHOT"
 	if args.has("--meteor-detail"):
 		room.ui_root.visible = false
-		room.camera.size = 7
-		var focus := Vector3(0, 2, 10)
+		room.camera.size = 8
+		var focus := Vector3(0, 2.2, 9)
 		room.camera.position = focus + Vector3(7, 9, 13)
 		room.camera.look_at(focus)
 		shot_prefix = "METEORDETAILSHOT"
 	for i in 15:
+		await process_frame
+	if is_instance_valid(room.weather.meteor_field):
+		# Capture the same travelling-rock phase after shader warm-up, not a
+		# random moment in the short impact flash.
+		room.weather.meteor_field.set_process(false)
+		room.weather.meteor_field.clock = 1.2
+		room.weather.meteor_field._process(0)
 		await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()
@@ -93,14 +100,15 @@ func capture() -> void:
 			print("::error::Letterboxed logical canvas: " + str(logical))
 			quit(1)
 			return
-	image.resize(640, roundi(image.get_height() * 640.0 / image.get_width()))
+	var width := 800 if args.has("--characters") or args.has("--meteor-detail") else 640
+	image.resize(width, roundi(image.get_height() * float(width) / image.get_width()))
 	DirAccess.make_dir_recursive_absolute("res://builds")
 	var bytes := image.save_jpg_to_buffer(0.6)
 	var file := FileAccess.open("res://builds/scene.jpg", FileAccess.WRITE)
 	file.store_buffer(bytes)
-	if bytes.size() > 22000:
+	if bytes.size() > (35000 if width == 800 else 22000):
 		bytes = image.save_jpg_to_buffer(0.3)
-	if bytes.size() > 22000:
+	if bytes.size() > (35000 if width == 800 else 22000):
 		image.resize(512, roundi(image.get_height() * 512.0 / image.get_width()))
 		bytes = image.save_jpg_to_buffer(0.25)
 	var encoded := Marshalls.raw_to_base64(bytes)

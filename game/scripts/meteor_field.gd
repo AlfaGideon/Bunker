@@ -34,7 +34,7 @@ func setup(room: Node3D) -> void:
 	fire.albedo_color = Color("ff8e36")
 	fire.emission_enabled = true
 	fire.emission = Color("ff631c")
-	fire.emission_energy_multiplier = 3
+	fire.emission_energy_multiplier = 1.2
 	var tail_shader := Shader.new()
 	tail_shader.code = """shader_type spatial; render_mode unshaded, blend_add, cull_disabled, depth_draw_never;
 	void fragment(){float fade = UV.y; ALBEDO = mix(vec3(1.0,0.1,0.01),vec3(1.0,0.8,0.25),UV.y); ALPHA = fade*0.7;}"""
@@ -85,7 +85,12 @@ func setup(room: Node3D) -> void:
 		disk.height = 0.04
 		flash.mesh = disk
 		flash.position = locations[i]
-		flash.material_override = fire
+		var blast_shader := Shader.new()
+		blast_shader.code = """shader_type spatial; render_mode unshaded, blend_add, cull_disabled, depth_draw_never;
+		void fragment(){float ring=exp(-pow((length(UV-vec2(0.5))-0.35)*12.0,2.0)); ALBEDO=vec3(1.0,0.25,0.03); ALPHA=ring*0.55;}"""
+		var blast_material := ShaderMaterial.new()
+		blast_material.shader = blast_shader
+		flash.material_override = blast_material
 		add_child(flash)
 		flashes.append(flash)
 		var lamp := OmniLight3D.new()

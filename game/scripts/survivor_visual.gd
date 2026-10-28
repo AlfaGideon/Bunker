@@ -17,6 +17,11 @@ func _collect(node: Node) -> void:
 	if node is AnimationPlayer and get_meta("source", "").contains("kaykit"):
 		animation_player = node
 		animation_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		if current_clip.is_empty():
+			current_clip = "Idle"
+			animation_player.get_animation("Idle").loop_mode = Animation.LOOP_LINEAR
+			animation_player.play("Idle")
+			animation_player.advance(0.01)
 	if node is Skeleton3D:
 		if not skeletons.has(node):
 			skeletons.append(node)

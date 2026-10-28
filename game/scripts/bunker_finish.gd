@@ -1,9 +1,13 @@
 extends RefCounted
 
 const Art = preload("res://game/scripts/scene_art.gd")
+static var materials := {}
 
 
 static func metal(color: Color) -> ShaderMaterial:
+	var key := color.to_html()
+	if materials.has(key):
+		return materials[key]
 	var shader := Shader.new()
 	shader.code = """shader_type spatial;
 	varying vec3 world;
@@ -20,6 +24,7 @@ static func metal(color: Color) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	material.set_shader_parameter("tint", color)
+	materials[key] = material
 	return material
 
 
