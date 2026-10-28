@@ -48,7 +48,7 @@ jobs:
       - name: Export debug APK
         run: |
           set +e
-          godot --headless --verbose --editor --path . --export-debug Android builds/bunker-debug.apk > /tmp/export.log 2>&1
+          godot --headless --editor --path . --export-debug Android builds/bunker-debug.apk > /tmp/export.log 2>&1
           result=$?
           cat /tmp/export.log
           if [ "$result" -ne 0 ]; then
