@@ -50,6 +50,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rig.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_game_flow.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration4.gd
       - name: Export debug APK
         run: |
           set +e

@@ -27,6 +27,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rig.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_game_flow.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_iteration4.gd
       - name: Smoke test scene
         run: |
           godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
@@ -35,3 +36,7 @@ jobs:
         run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd
       - name: Render menu preview
         run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd -- --menu
+      - name: Render wide phone aspect ratio
+        run: timeout 90 xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --script tools/capture_scene.gd -- --wide
+      - name: Render survival panel
+        run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd -- --survival

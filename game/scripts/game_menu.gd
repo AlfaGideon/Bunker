@@ -43,15 +43,15 @@ func text(value: String, size: int = 20) -> void:
 	column.add_child(room._label(value, size))
 
 
-func button(value: String, action: Callable) -> void:
-	room._button(value, action, column)
+func button(value: String, action: Callable) -> Button:
+	return room._button(value, action, column)
 
 
 func home() -> void:
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.3", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.4", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
 	button("Продолжить партию", func(): visible = false)
@@ -59,6 +59,8 @@ func home() -> void:
 	button("Профиль игрока", show_profile)
 	button("Настройки", settings)
 	button("Как играть", instructions)
+	var test_button := button("Тест: меня исключили → кубик", room.test_own_expulsion)
+	test_button.disabled = not room.active.has(0) or room.finished
 	button("Выйти из игры", func(): get_tree().quit())
 	text("Локальная демонстрация. Остальные участники — тестовый сценарий, не онлайн-игроки.", 16)
 
@@ -122,6 +124,14 @@ func settings() -> void:
 	motion_toggle.text = "Уменьшить вторичные движения"
 	motion_toggle.button_pressed = profile.reduced_motion
 	column.add_child(motion_toggle)
+	text("Внешний вид до раскрытия биологии", 18)
+	var appearance := OptionButton.new()
+	appearance.add_item("Мужской", 0)
+	appearance.add_item("Женский", 1)
+	appearance.select(0 if profile.appearance == "male" else 1)
+	appearance.custom_minimum_size.y = 48
+	column.add_child(appearance)
+	text("После раскрытия карточки «Биология» модель примет указанный в карточке пол.", 17)
 	text("Отдаление камеры (9 — ближе, 14 — дальше)", 18)
 	var zoom := HSlider.new()
 	zoom.min_value = 9
@@ -131,6 +141,7 @@ func settings() -> void:
 	zoom.custom_minimum_size.y = 48
 	column.add_child(zoom)
 	button("Применить и сохранить", func():
+		profile.appearance = "male" if appearance.selected == 0 else "female"
 		profile.shadows = shadow_toggle.button_pressed
 		profile.reduced_motion = motion_toggle.button_pressed
 		profile.camera_size = zoom.value
@@ -143,6 +154,6 @@ func settings() -> void:
 func instructions() -> void:
 	clear()
 	text("КАК ИГРАТЬ", 28)
-	text("1. Коснитесь свободного пола — персонаж обойдёт стол.\n2. Раскройте одну характеристику своего досье.\n3. Перейдите к обсуждению, затем к голосованию.\n4. Выберите другого активного участника и проголосуйте. Остальные голоса пока задаются тестовым сценарием.\n5. Исключённый покинет комнату через наружный проход. Нажмите «Следующий раунд».\n6. Когда останется половина группы, партия завершится.", 19)
+	text("1. Коснитесь свободного пола — персонаж обойдёт стол.\n2. Профессия открыта обязательно. Выберите ещё одну карту. Биология содержит пол и возраст; её раскрытие меняет модель.\n3. Перейдите к обсуждению, затем к голосованию.\n4. Выберите другого активного участника и проголосуйте. Остальные голоса пока задаются тестовым сценарием.\n5. Исключённый покинет комнату через наружный проход. Нажмите «Следующий раунд».\n6. Когда останется половина группы, партия завершится.\nТест собственного изгнания доступен из главного меню: после ухода можно один раз бросить d6 (1–3 — не выжил, 4–6 — выжил). Это правило прототипа.", 19)
 	text("Меню приостанавливает движение. Партия в этой версии не сохраняется между перезапусками приложения; профиль и настройки сохраняются.", 17)
 	button("Назад", home)

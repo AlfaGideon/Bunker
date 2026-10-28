@@ -3,6 +3,7 @@ extends RefCounted
 
 const PATH := "user://profile.cfg"
 var nickname := "Алекс"
+var appearance := "male"
 var player_count := 8
 var camera_size := 11.0
 var shadows := true
@@ -17,6 +18,9 @@ func _init() -> void:
 	nickname = str(config.get_value("profile", "nickname", "Алекс")).strip_edges().left(20)
 	if nickname.is_empty():
 		nickname = "Алекс"
+	appearance = str(config.get_value("profile", "appearance", "male"))
+	if not ["male", "female"].has(appearance):
+		appearance = "male"
 	player_count = clampi(int(config.get_value("game", "players", 8)), 6, 10)
 	if not [6, 8, 10].has(player_count):
 		player_count = 8
@@ -29,6 +33,7 @@ func _init() -> void:
 func save() -> Error:
 	var config := ConfigFile.new()
 	config.set_value("profile", "nickname", nickname)
+	config.set_value("profile", "appearance", appearance)
 	config.set_value("profile", "completed", completed_games)
 	config.set_value("game", "players", player_count)
 	config.set_value("settings", "camera", camera_size)

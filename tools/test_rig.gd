@@ -25,17 +25,33 @@ func run_test() -> void:
 	root.add_child(room)
 	room.set_physics_process(false)
 	room.menu.visible = false
+	for i in room.actors.size():
+		room._change_appearance(i, "male" if i % 2 == 0 else "female")
 	for actor in room.actors:
 		var visual = actor.get_child(0)
-		for tick in 24:
-			visual.animate(1.0 / 20.0, tick < 20, 0.0)
+		var tracks := {"L": [], "R": []}
+		for tick in 48:
+			visual.animate(1.0 / 20.0, tick < 44, 0.0)
 			for skeleton in visual.skeletons:
 				for side in ["L", "R"]:
 					var hip := world_bone(skeleton, "UpperLeg." + side)
 					var knee := world_bone(skeleton, "LowerLeg." + side)
 					var foot := world_bone(skeleton, "Foot." + side)
+					tracks[side].append(foot - hip)
 					check(knee.y < hip.y, "Knee must remain below hip, including during stride")
 					check(foot.y < knee.y, "Foot must remain below knee")
+		var forward := actor.global_basis.z.normalized()
+		var sideways := actor.global_basis.x.normalized()
+		for side in ["L", "R"]:
+			var along: Array = []
+			var lateral: Array = []
+			for offset in tracks[side]:
+				along.append(offset.dot(forward))
+				lateral.append(offset.dot(sideways))
+			var forward_range: float = along.max() - along.min()
+			var sideways_range: float = lateral.max() - lateral.min()
+			check(forward_range > 0.1, "Feet move forward/back, not just hang")
+			check(sideways_range < 0.04, "No sideways foot flapping on either rig")
 		visual.animate(1.0, false, 0.0)
 		for skeleton in visual.skeletons:
 			for side in ["L", "R"]:

@@ -1,5 +1,7 @@
 extends Node3D
 
+const Weather = preload("res://game/scripts/winter_weather.gd")
+const SurvivalPanel = preload("res://game/scripts/survival_panel.gd")
 const Profile = preload("res://game/scripts/local_profile.gd")
 const Content = preload("res://game/scripts/game_content.gd")
 const Menu = preload("res://game/scripts/game_menu.gd")
@@ -10,7 +12,7 @@ const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
-const DATA_PATH = "res://data/prototype.json"
+const SCENARIO := {"id": "long_winter", "weather": "snow"}
 var players: Array = []
 var actors: Array[Node3D] = []
 var active: Array[int] = []
@@ -36,14 +38,21 @@ var route := PackedVector3Array()
 var route_index := 0
 var marker: MeshInstance3D
 var pending_inspection := ""
+var weather: Node3D
+var survival_panel: Control
+var ui_root: Control
+var menu_button: Button
+var original_camera: Transform3D
+var reveal_log: Array = []
 
 
 func _ready() -> void:
-	players = Content.create_players(profile.player_count, profile.nickname)
+	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance)
 	active.assign(range(players.size()))
 	capacity = players.size() / 2
 	_build_world()
 	_build_ui()
+	original_camera = camera.transform
 	apply_settings()
 	_refresh()
 	if get_tree().has_meta("start_game"):
@@ -54,6 +63,9 @@ func _ready() -> void:
 func apply_settings() -> void:
 	camera.size = profile.camera_size
 	sun.shadow_enabled = profile.shadows
+	weather.set_reduced_motion(profile.reduced_motion)
+	if not _biology_revealed(0) and actors[0].get_meta("appearance") != profile.appearance:
+		_change_appearance(0, profile.appearance)
 
 
 
@@ -112,6 +124,9 @@ func _build_world() -> void:
 	camera.look_at(Vector3(1.8, 0, 0))
 	camera.current = true
 	Surroundings.build(self)
+	weather = Weather.new()
+	add_child(weather)
+	weather.setup(self, SCENARIO["weather"])
 	_box(Vector3(0, -0.2, 0), Vector3(10, 0.4, 8), Color("34444a"))
 	# Modular imported walls: front/right walls are cut away for visibility.
 	for x in [-4.0, -2.0, 2.0, 4.0]:
@@ -160,11 +175,12 @@ func _build_world() -> void:
 		Vector3(-2.5, 0, -1.5), Vector3(2.5, 0, -1.5),
 		Vector3(-3.8, 0, 0), Vector3(3.8, 0, 0), Vector3(0, 0, 2.7),
 		Vector3(0, 0, -2.7), Vector3(-3.8, 0, 2.6), Vector3(3.8, 0, 2.6)]
-	var model_names := ["modular_men_Worker", "modular_women_Casual", "modular_men_Adventurer", "modular_women_SciFi"]
 	for i in players.size():
 		var actor := Node3D.new()
 		add_child(actor)
-		var visual := Art.spawn(actor, model_names[i % model_names.size()], Vector3.ZERO, Vector3(1, 1.45, 1), true)
+		var appearance: String = players[i]["appearance"]
+		actor.set_meta("appearance", appearance)
+		var visual := Art.spawn(actor, _model_name(i, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
 		visual.set_script(SurvivorVisual)
 		visual._collect(visual)
 		actor.position = positions[i]
@@ -203,6 +219,7 @@ func _build_ui() -> void:
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui_root = root
 	layer.add_child(root)
 	var theme := Theme.new()
 	theme.default_font_size = 18
@@ -230,7 +247,13 @@ func _build_ui() -> void:
 	header.add_child(_label("ЛОКАЛЬНЫЙ ПРОТОТИП • НЕ СЕТЕВАЯ ИГРА", 15))
 	phase_label = _label("", 20)
 	header.add_child(phase_label)
-	_button("☰ Меню / пауза", func(): menu.home(), header)
+	menu_button = _button("☰", func(): menu.home(), root)
+	menu_button.tooltip_text = "Меню / пауза"
+	menu_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	menu_button.offset_left = -438
+	menu_button.offset_right = -382
+	menu_button.offset_top = 16
+	menu_button.offset_bottom = 68
 	var panel := PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	panel.offset_left = -370
@@ -269,7 +292,7 @@ func _build_ui() -> void:
 	status_label = _label("")
 	column.add_child(status_label)
 	var advance_button := _button("Следующий этап →", _advance, column)
-	log_label = _label("Выберите свою карту для раскрытия. Остальные участники — тестовые персонажи. Новая партия: 40 профессий, 7 характеристик, случайная раздача.", 16)
+	log_label = _label("Профессии открыты обязательно. Выберите ещё одну характеристику. У остальных тестовых участников дополнительная карта выбирается случайно.", 16)
 	column.add_child(log_label)
 	# Keep phase controls reachable without scrolling through seven cards.
 	for control in [status_label, advance_button, log_label]:
@@ -284,6 +307,11 @@ func _build_ui() -> void:
 	menu = Menu.new()
 	root.add_child(menu)
 	menu.setup(self, profile)
+	survival_panel = SurvivalPanel.new()
+	root.add_child(survival_panel)
+	survival_panel.setup(self)
+	get_viewport().size_changed.connect(_update_safe_area)
+	call_deferred("_update_safe_area")
 
 
 func _refresh() -> void:
@@ -301,13 +329,15 @@ func _refresh() -> void:
 		if selected == 0 and not card["revealed"] and phase == "reveal" and active.has(0):
 			_button("Раскрыть: " + card["label"], func():
 				actors[0].get_child(0).gesture = 1.5
-				card["revealed"] = true
+				_reveal_card(0, card)
 				_demo_reveals()
 				phase = "discussion"
 				log_label.text = "Карта раскрыта. Тестовые персонажи тоже открыли по карте. В сети здесь будет общий чат."
 				_refresh(), detail)
-	if phase == "vote" and selected != 0 and active.has(selected):
+	if phase == "vote" and active.has(0) and selected != 0 and active.has(selected):
 		_button("Голосовать (тестовые участники)", _demo_vote, detail)
+	if phase == "vote" and not active.has(0):
+		_button("Тестовое голосование оставшихся", _spectator_vote, detail)
 	if not active.has(selected):
 		detail.add_child(_label("Наблюдатель — больше не участвует в голосовании."))
 
@@ -316,16 +346,56 @@ func _demo_reveals() -> void:
 	for i in active:
 		if i == 0:
 			continue
-		for card in players[i]["cards"]:
-			if not card["revealed"]:
-				card["revealed"] = true
-				break
+		var card := Content.random_hidden_card(players[i])
+		if not card.is_empty():
+			_reveal_card(i, card)
+
+
+func _reveal_card(index: int, card: Dictionary) -> void:
+	if card["revealed"]:
+		return
+	card["revealed"] = true
+	reveal_log.append({"player": index, "card": card["id"]})
+	if card["id"] == "biology":
+		_change_appearance(index, players[index]["sex"])
+
+
+func _biology_revealed(index: int) -> bool:
+	for card in players[index]["cards"]:
+		if card["id"] == "biology":
+			return card["revealed"]
+	return false
+
+
+func _model_name(index: int, appearance: String) -> String:
+	var options := ["modular_men_Worker", "modular_men_Adventurer"] if appearance == "male" else ["modular_women_Casual", "modular_women_SciFi"]
+	return options[(index / 2) % 2]
+
+
+func _change_appearance(index: int, appearance: String) -> void:
+	var actor := actors[index]
+	if actor.get_meta("appearance") == appearance:
+		return
+	var old := actor.get_child(0)
+	actor.remove_child(old)
+	old.queue_free()
+	var visual := Art.spawn(actor, _model_name(index, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
+	visual.set_script(SurvivorVisual)
+	visual._collect(visual)
+	actor.move_child(visual, 0)
+	actor.set_meta("appearance", appearance)
+	players[index]["appearance"] = appearance
 
 
 func _advance() -> void:
 	match phase:
 		"reveal":
-			log_label.text = "Сначала раскройте одну свою карту."
+			if active.has(0):
+				log_label.text = "Профессия уже открыта. Раскройте одну дополнительную карту."
+			else:
+				_demo_reveals()
+				phase = "discussion"
+				log_label.text = "Наблюдатель: тестовые участники раскрыли случайные характеристики."
 		"discussion":
 			phase = "vote"
 			log_label.text = "Демонстрация результата: выберите другого участника и нажмите «Голосовать». Остальные голоса задаёт явно тестовый сценарий."
@@ -344,7 +414,7 @@ func _advance() -> void:
 
 
 func _demo_vote() -> void:
-	if phase != "vote" or selected == 0 or not active.has(selected):
+	if phase != "vote" or not active.has(0) or selected == 0 or not active.has(selected):
 		return
 	# Explicit deterministic fixture, not intelligent bots or real online votes.
 	var votes := {0: selected}
@@ -357,6 +427,36 @@ func _demo_vote() -> void:
 		log_label.text = "Тестовый бюллетень не дал результата: " + result["status"]
 		return
 	var eliminated: int = result["player"]
+	_eliminate(eliminated)
+
+
+func _spectator_vote() -> void:
+	if phase != "vote" or active.has(0):
+		return
+	var candidate: int = active.pick_random()
+	var votes := {}
+	for voter in active:
+		if voter != candidate:
+			votes[voter] = candidate
+	var result := VoteRules.resolve(active, votes)
+	if result["status"] == "eliminated":
+		_eliminate(result["player"])
+
+
+func test_own_expulsion() -> void:
+	if not active.has(0) or finished:
+		return
+	menu.visible = false
+	_eliminate(0)
+
+
+func _eliminate(eliminated: int) -> void:
+	if not active.has(eliminated):
+		return
+	if eliminated == 0:
+		route.clear()
+		marker.visible = false
+		pending_inspection = ""
 	active.erase(eliminated)
 	actors[eliminated].get_child(1).modulate = Color("71828c")
 	var departure := navigation.path_between(actors[eliminated].position, Vector3(3.8, 0, 3.2))
@@ -380,12 +480,14 @@ func _demo_vote() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if survival_panel.visible:
+			return
 		if menu.visible:
 			menu.visible = false
 		else:
 			menu.home()
 		return
-	if menu.visible:
+	if menu.visible or survival_panel.visible or not active.has(0):
 		return
 	var point := Vector2.ZERO
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -420,7 +522,7 @@ func _set_route(destination: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if actors.is_empty() or menu.visible:
+	if actors.is_empty() or menu.visible or survival_panel.visible:
 		return
 	var budget := delta * 2.4
 	var previous := actors[0].position
@@ -455,6 +557,8 @@ func _physics_process(delta: float) -> void:
 		if index >= points.size():
 			actor.visible = false
 			departures.erase(id)
+			if id == 0:
+				_show_survival()
 			continue
 		var travel := points[index] - actor.position
 		actor.position = actor.position.move_toward(points[index], delta * 2.2)
@@ -467,5 +571,30 @@ func _physics_process(delta: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(menu):
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(menu) and not (is_instance_valid(survival_panel) and survival_panel.visible):
 		menu.home()
+
+
+func _show_survival() -> void:
+	survival_panel.visible = true
+	var outside := Transform3D(Basis.IDENTITY, Vector3(14, 11, 18)).looking_at(Vector3(6, 0, 7), Vector3.UP)
+	create_tween().tween_property(camera, "transform", outside, 0.8)
+
+
+func restore_camera() -> void:
+	create_tween().tween_property(camera, "transform", original_camera, 0.6)
+
+
+func _update_safe_area() -> void:
+	# Expand the 3D viewport to every pixel, inset only the HUD around cutouts.
+	if not is_instance_valid(ui_root) or not OS.has_feature("android"):
+		return
+	var safe := DisplayServer.get_display_safe_area()
+	var physical := Vector2(get_window().size)
+	if physical.x <= 0 or physical.y <= 0 or safe.size.x <= 0:
+		return
+	var logical := get_viewport().get_visible_rect().size
+	ui_root.offset_left = safe.position.x / physical.x * logical.x
+	ui_root.offset_top = safe.position.y / physical.y * logical.y
+	ui_root.offset_right = -(physical.x - safe.end.x) / physical.x * logical.x
+	ui_root.offset_bottom = -(physical.y - safe.end.y) / physical.y * logical.y

@@ -2,6 +2,8 @@ extends SceneTree
 
 
 func _initialize() -> void:
+	root.mode = Window.MODE_WINDOWED
+	root.size = Vector2i(2460, 1080) if OS.get_cmdline_user_args().has("--wide") else Vector2i(1280, 720)
 	call_deferred("capture")
 
 
@@ -11,11 +13,17 @@ func capture() -> void:
 	root.add_child(room)
 	var show_menu := OS.get_cmdline_user_args().has("--menu")
 	room.menu.visible = show_menu
+	var show_survival := OS.get_cmdline_user_args().has("--survival")
+	if show_survival:
+		room.survival_panel.visible = true
 	for i in 15:
 		await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()
-	image.resize(640, 360)
+	if OS.get_cmdline_user_args().has("--wide"):
+		assert(image.get_size() == Vector2i(2460, 1080), "Full wide framebuffer")
+		assert(absf(room.ui_root.size.x - root.get_visible_rect().size.x) < 1, "HUD fills expanded canvas")
+	image.resize(640, roundi(image.get_height() * 640.0 / image.get_width()))
 	DirAccess.make_dir_recursive_absolute("res://builds")
 	var bytes := image.save_jpg_to_buffer(0.6)
 	var file := FileAccess.open("res://builds/scene.jpg", FileAccess.WRITE)
@@ -25,6 +33,6 @@ func capture() -> void:
 	var encoded := Marshalls.raw_to_base64(bytes)
 	var chunks := ceili(encoded.length() / 3500.0)
 	for index in chunks:
-		var prefix := "MENUSHOT" if show_menu else "SCREENSHOT"
+		var prefix := "MENUSHOT" if show_menu else ("SURVIVALSHOT" if show_survival else ("WIDESHOT" if OS.get_cmdline_user_args().has("--wide") else "SCREENSHOT"))
 		print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))
 	quit()

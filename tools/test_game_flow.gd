@@ -21,6 +21,8 @@ func run_test() -> void:
 		check(players.size() == count, "Selected player count")
 		for player in players:
 			check(player["cards"].size() == 7, "Seven characteristics")
+			check(player["cards"][0]["revealed"], "Profession is mandatory and already public")
+			check(player["cards"][1]["id"] == "biology", "Sex and age share a biology card")
 			professions.append(player["cards"][0]["value"])
 		var unique := {}
 		for profession in professions:
@@ -40,7 +42,7 @@ func run_test() -> void:
 	for index in expected_rounds:
 		for card in room.players[0]["cards"]:
 			if not card["revealed"]:
-				card["revealed"] = true
+				room._reveal_card(0, card)
 				break
 		room._demo_reveals()
 		room.phase = "discussion"

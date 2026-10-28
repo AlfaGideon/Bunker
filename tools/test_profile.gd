@@ -14,6 +14,7 @@ func _initialize() -> void:
 	var original := Profile.new()
 	var profile := Profile.new()
 	profile.nickname = "Тест профиля"
+	profile.appearance = "female"
 	profile.player_count = 10
 	profile.camera_size = 9.5
 	profile.reduced_motion = true
@@ -22,6 +23,7 @@ func _initialize() -> void:
 	check(profile.save() == OK, "Profile saves")
 	var restored := Profile.new()
 	check(restored.nickname == profile.nickname, "Nickname persists")
+	check(restored.appearance == "female", "Preferred appearance persists")
 	check(restored.player_count == 10, "Room size persists")
 	check(restored.camera_size == 9.5, "Zoom persists")
 	check(restored.reduced_motion and not restored.shadows, "Settings persist")

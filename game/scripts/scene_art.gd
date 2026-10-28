@@ -4,15 +4,15 @@ extends RefCounted
 const FOLDER := "res://assets/quaternius/"
 
 
-static func _bounds(node: Node, result: Array) -> void:
+static func _bounds(node: Node, result: Array, reference: Transform3D) -> void:
 	if node is MeshInstance3D and node.mesh != null:
-		var bounds: AABB = node.global_transform * node.get_aabb()
+		var bounds: AABB = reference * node.global_transform * node.get_aabb()
 		if result.is_empty():
 			result.append(bounds)
 		else:
 			result[0] = result[0].merge(bounds)
 	for child in node.get_children():
-		_bounds(child, result)
+		_bounds(child, result, reference)
 
 
 static func spawn(parent: Node3D, filename: String, at: Vector3,
@@ -24,7 +24,7 @@ static func spawn(parent: Node3D, filename: String, at: Vector3,
 	var model := scene.instantiate() as Node3D
 	wrapper.add_child(model)
 	var found: Array = []
-	_bounds(model, found)
+	_bounds(model, found, wrapper.global_transform.affine_inverse())
 	assert(not found.is_empty(), "Model has no meshes: " + filename)
 	var bounds: AABB = found[0]
 	var factor := Vector3(size.x / maxf(bounds.size.x, 0.001),
