@@ -51,6 +51,9 @@ func run() -> void:
  check(room.camera.size == controller.MIN_ZOOM, "Minimum zoom")
  controller.transform_view(center, center, 10000)
  check(room.camera.size <= controller.MAX_ZOOM, "Maximum zoom")
+ var screen := root.get_visible_rect().size
+ for corner in [Vector2.ZERO, Vector2(screen.x, 0), screen, Vector2(0, screen.y)]:
+  check(controller.ground(corner) != null, "No lower-screen ray starts beneath ground at maximum zoom")
  for offset in [Vector2(10000,10000), Vector2(-20000,-20000), Vector2(10000,-10000)]:
   controller.transform_view(center, center + offset, 1000)
   var bounds: Rect2 = controller.ground_bounds()
@@ -95,8 +98,12 @@ func run() -> void:
  for frame in 3:
   await process_frame
  center = root.get_visible_rect().size * 0.5
+ check(root.get_visible_rect().size.x / root.get_visible_rect().size.y > 2.27, "Headless window really expanded to phone aspect ratio")
  for offset in [Vector2.ZERO, Vector2(20000, 20000), Vector2(-40000, -40000)]:
   controller.transform_view(center, center + offset, 1000)
+  var wide_size := root.get_visible_rect().size
+  for corner in [Vector2.ZERO, Vector2(wide_size.x, 0), wide_size, Vector2(0, wide_size.y)]:
+   check(controller.ground(corner) != null, "Wide viewport has no near-plane terrain cut")
   var wide_bounds: Rect2 = controller.ground_bounds()
   check(wide_bounds.position.x >= -56.01 and wide_bounds.end.x <= 56.01 and wide_bounds.position.y >= -56.01 and wide_bounds.end.y <= 56.01, "Wide phone cannot expose any terrain edge")
  room.free()
