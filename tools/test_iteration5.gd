@@ -74,6 +74,8 @@ func run() -> void:
 		check(room.rest_remaining > 0, "Actor lies down on accessible bed")
 		check(is_equal_approx(room.actors[0].get_child(0).rotation.z, PI / 2), "Lying pose")
 		check(not room.request_interaction("radio"), "No actions during sleep")
+		room._change_appearance(0, "female" if room.actors[0].get_meta("appearance") == "male" else "male")
+		check(is_equal_approx(room.actors[0].get_child(0).rotation.z, PI / 2), "Appearance changes preserve sleeping pose")
 		for tick in 200:
 			room._physics_process(1.0 / 60)
 		check(room.stamina == 80 and room.rest_remaining == 0, "Sleep restores stamina")
@@ -94,6 +96,9 @@ func run() -> void:
 		check(room.audio.radio.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "Radio loops")
 		walk(room, "radio")
 		check(not room.audio.radio_on, "Radio toggles off")
+		room.profile.narration = true
+		if not DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
+			check(not room.audio.narrate() and not room.audio.narration_status.is_empty(), "Explicit unavailable native speech fallback")
 		room.profile.narration = false
 		check(not room.audio.narrate() and not room.audio.narration_status.is_empty(), "Explicit disabled/unavailable speech fallback")
 		room.weather.set_reduced_motion(true)

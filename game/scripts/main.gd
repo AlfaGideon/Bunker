@@ -234,6 +234,8 @@ func _build_ui() -> void:
 	layer.add_child(root)
 	var theme := Theme.new()
 	theme.default_font_size = 18
+	theme.set_constant("outline_size", "Label", 3)
+	theme.set_color("font_outline_color", "Label", Color("101b20"))
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color("14272c")
 	panel_style.border_color = Color("42666a")
@@ -398,6 +400,9 @@ func _change_appearance(index: int, appearance: String) -> void:
 	actor.move_child(visual, 0)
 	actor.set_meta("appearance", appearance)
 	players[index]["appearance"] = appearance
+	if index == 0 and rest_remaining > 0:
+		visual.rotation.z = PI / 2
+		visual.position = Vector3(0.7, 0.7, 0)
 
 
 func _advance() -> void:
@@ -760,7 +765,7 @@ func _frame_camera() -> void:
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	var usable_width := maxf(500, viewport_size.x - 330)
-	camera.size = maxf(12.5, 22.0 * viewport_size.y / usable_width) * profile.camera_size / 11.0
+	camera.size = maxf(14.0, 22.0 * viewport_size.y / usable_width) * profile.camera_size / 11.0
 	var right := Vector3(13, 0, -7.2).normalized()
 	var focus := right * (camera.size / viewport_size.y * 165)
 	camera.position = focus + Vector3(7.2, 13, 13)
