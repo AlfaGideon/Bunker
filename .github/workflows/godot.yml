@@ -36,6 +36,8 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_camera_gestures.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_welcome.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_negative_actions.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_app_updates.gd
+          python3 tools/test_release_config.py
       - name: Smoke test scene
         run: |
           godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log

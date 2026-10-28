@@ -56,7 +56,7 @@ func home() -> void:
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.12", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.13", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
 	button("Продолжить партию", room.begin_game)
@@ -66,6 +66,7 @@ func home() -> void:
 	button("Сводка катастрофы / озвучка", briefing)
 	button("Профиль игрока", show_profile)
 	button("Настройки", settings)
+	button("Проверить обновления", func(): preload("res://game/scripts/app_updates.gd").show_updates(self))
 	button("Как играть", instructions)
 	var test_button := button("Тест: меня исключили → кубик", room.test_own_expulsion)
 	test_button.disabled = not room.active.has(0) or room.finished

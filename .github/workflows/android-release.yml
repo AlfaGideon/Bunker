@@ -1,0 +1,69 @@
+name: Publish signed Android update
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: true
+      - name: Configure permanent signing (fail closed if missing)
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+          BUNKER_KEYSTORE_BASE64: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
+          BUNKER_KEYSTORE_PASSWORD: ${{ secrets.BUNKER_KEYSTORE_PASSWORD }}
+          BUNKER_KEY_ALIAS: ${{ secrets.BUNKER_KEY_ALIAS }}
+          BUNKER_RELEASE: '1'
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;35.0.1" "platforms;android-35"
+          mkdir -p builds
+          python3 tools/configure_android_signing.py
+      - name: Validate immutable update version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/test_release_config.py
+          code=$(python3 -c 'import configparser; c=configparser.ConfigParser(interpolation=None); c.read("export_presets.cfg"); print(c.getint("preset.0.options", "version/code"))')
+          echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
+          if gh release view "android-$code" >/dev/null 2>&1; then
+            echo '::error::This version code already has a release. Increase version/code and app_updates.VERSION_CODE.'
+            exit 1
+          fi
+      - name: Import and test
+        run: |
+          bash tools/check_godot.sh --headless --editor --path . --quit
+          for script in tools/test_*.gd; do
+            bash tools/check_godot.sh --headless --path . --script "$script"
+          done
+      - name: Export and verify release APK
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --export-release Android "builds/bunker-$VERSION_CODE.apk" > /tmp/release-export.log 2>&1 || { echo '::error::Release export failed; inspect runner log without sharing secrets.'; exit 1; }
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "builds/bunker-$VERSION_CODE.apk"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "builds/bunker-$VERSION_CODE.apk" > /tmp/apk-badging.txt
+          grep "^package: name='org.bunker.prototype' versionCode='$VERSION_CODE'" /tmp/apk-badging.txt
+          cd builds
+          sha256sum "bunker-$VERSION_CODE.apk" > SHA256SUMS
+      - name: Publish complete public update (no private key artifacts)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "android-$VERSION_CODE" "builds/bunker-$VERSION_CODE.apk" builds/SHA256SUMS --draft --target "$GITHUB_SHA" --title "Бункер — Android $VERSION_CODE" --notes "Подписанное обновление Android. Откройте APK и подтвердите установку. Для обновления поверх старой версии нужны одинаковые подпись и package ID."
+          gh release edit "android-$VERSION_CODE" --draft=false --latest
+      - name: Remove private runner files
+        if: always()
+        run: |
+          rm -f "$HOME/.android/bunker.keystore" "$HOME/.config/godot/editor_settings-4.5.tres" /tmp/release-export.log
+          git restore export_presets.cfg

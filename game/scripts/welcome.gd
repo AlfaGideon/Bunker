@@ -226,10 +226,11 @@ func home() -> void:
  start_button.add_theme_color_override("font_color", Color("14272e"))
  button("Параметры партии", game_options)
  button("Настройки", settings)
+ button("Проверить обновления", func(): preload("res://game/scripts/app_updates.gd").show_updates(self))
  button("Сохранить профиль", save_draft)
  button("Как играть", instructions)
  button("Выйти", func(): get_tree().quit())
- error_label = label("Локальный прототип • 0.12\nПартия начнётся только после нажатия «Начать».", 15)
+ error_label = label("Локальный прототип • 0.13\nПартия начнётся только после нажатия «Начать».", 15)
 
 func save_draft() -> bool:
  var value := draft_name.strip_edges()
