@@ -10,7 +10,13 @@ if [ "$result" -ne 0 ]; then
   python3 - "$log" <<'PY'
 import sys
 from pathlib import Path
-s = Path(sys.argv[1]).read_text(errors='replace')[-12000:]
+text = Path(sys.argv[1]).read_text(errors='replace')
+first = text.find('SCRIPT ERROR')
+if len(text) > 12000:
+    start = max(0, first)
+    s = text[start:start + 7000] + '\n... final diagnostics ...\n' + text[-5000:]
+else:
+    s = text
 # Chunk annotations so diagnostics are not truncated at 4096 characters.
 for i in range(0, len(s), 3500):
     chunk = s[i:i+3500].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')

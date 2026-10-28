@@ -103,6 +103,7 @@ func add_card(control: Control) -> void:
   var frame := PanelContainer.new()
   frame.add_theme_stylebox_override("panel", Style.panel())
   frame.add_child(control)
+  frame.custom_minimum_size.y = 80
   node = frame
  node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  grid.add_child(node)
@@ -139,7 +140,15 @@ func rebuild() -> void:
   var row: Array = active.slice(start, mini(start + columns, active.size()))
   var row_height := 0.0
   for node in row:
-   var estimate: float = node.get_combined_minimum_size().y
+   # Wrapped text can report a huge transient native minimum before its
+   # first width assignment. Never bake that temporary height into a card.
+   var estimate: float = maxf(64, node.custom_minimum_size.y)
+   if node.has_meta("touch_choice") and not node.entries.is_empty():
+    var caption: String = node.entries[node.selected]["text"]
+    estimate = maxf(64, 24 + ceili(caption.length() / maxf(12, (width - 132) / 9)) * 21)
+   elif node is GridContainer:
+    var rows: int = ceili(float(node.get_child_count()) / node.columns)
+    estimate = rows * 52 + maxi(0, rows - 1) * node.get_theme_constant("v_separation")
    if node.has_meta("card_label"):
     var label: Label = node.get_meta("card_label")
     var font: int = label.get_theme_font_size("font_size")

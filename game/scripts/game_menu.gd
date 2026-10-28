@@ -282,6 +282,7 @@ func show_council() -> void:
 		frame.add_theme_stylebox_override("panel", Cards.panel())
 		var content := VBoxContainer.new()
 		content.add_theme_constant_override("separation", 8)
+		frame.custom_minimum_size.y = 132
 		frame.add_child(content)
 		content.add_child(room._label(room.players[id]["name"], 19))
 		var actions := HBoxContainer.new()

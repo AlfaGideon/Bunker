@@ -14,6 +14,7 @@ var next: Button
 var caption: Label
 
 func _init() -> void:
+ set_meta("touch_choice", true)
  custom_minimum_size.y = 64
  add_theme_constant_override("separation", 6)
  previous = Button.new()

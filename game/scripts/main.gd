@@ -342,7 +342,7 @@ func _build_ui() -> void:
 	shell.add_child(status_label)
 	_button("Следующий этап →", _advance, shell)
 	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 15)
-	log_label.max_lines_visible = 3
+	log_label.max_lines_visible = 2
 	shell.add_child(log_label)
 	var hint := _label("Касание — идти; свайп — камера; два пальца — масштаб.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
