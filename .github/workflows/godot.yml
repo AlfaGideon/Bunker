@@ -110,3 +110,5 @@ jobs:
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --architecture-alt
       - name: Render welcome appearance preview
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --female
+      - name: Render harmful-action menu with matching flaw
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --negative-actions
