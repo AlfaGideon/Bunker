@@ -1,4 +1,7 @@
 extends Node3D
+const Choice = preload("res://game/scripts/card_choice.gd")
+const Deck = preload("res://game/scripts/card_deck.gd")
+const Cards = preload("res://game/scripts/card_style.gd")
 const Profile = preload("res://game/scripts/local_profile.gd")
 const Content = preload("res://game/scripts/game_content.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
@@ -14,14 +17,14 @@ var ui: Control
 var panel: PanelContainer
 var panel_style: StyleBoxFlat
 var cards: Array[Button] = []
-var column: VBoxContainer
+var column: Container
 var page := ""
 var clock := 0.0
 var error_label: Label
 var start_button: Button
 var name_input: LineEdit
-var appearance_picker: OptionButton
-var palette_picker: OptionButton
+var appearance_picker: Choice
+var palette_picker: Choice
 
 func mat(color: Color, glow: bool = false) -> StandardMaterial3D:
  var material := StandardMaterial3D.new()
@@ -126,7 +129,7 @@ func label(text: String, size: int = 18) -> Label:
  node.text = text
  node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  node.add_theme_font_size_override("font_size", size)
- column.add_child(node)
+ add_control(node)
  return node
 
 func button(text: String, action: Callable) -> Button:
@@ -134,7 +137,8 @@ func button(text: String, action: Callable) -> Button:
  node.text = text
  node.custom_minimum_size.y = 48
  node.pressed.connect(action)
- column.add_child(node)
+ Cards.button(node)
+ add_control(node)
  return node
 
 func build_ui() -> void:
@@ -183,15 +187,35 @@ func build_ui() -> void:
  column.add_theme_constant_override("separation", 12)
  panel.add_child(column)
 
+func add_control(node: Control) -> void:
+ if column is Deck:
+  column.add_card(node)
+ else:
+  column.add_child(node)
+
 func clear() -> void:
  cards.clear()
  panel_style.bg_color = Color(0.035, 0.075, 0.09, 0.97)
- for child in column.get_children():
-  column.remove_child(child)
-  child.queue_free()
+ if column is Deck:
+  column.clear_cards()
+ else:
+  for child in column.get_children():
+   column.remove_child(child)
+   child.queue_free()
+
+func subpage() -> void:
+ clear()
+ panel.remove_child(column)
+ column.queue_free()
+ var deck := Deck.new()
+ deck.page_height = 480
+ panel.add_child(deck)
+ deck.set_exit(home)
+ column = deck
 
 func card(title: String, description: String, action: Callable, target: Container, primary: bool = false) -> Button:
  var node := Button.new()
+ node.set_meta("card_control", true)
  node.custom_minimum_size = Vector2(0, 108 if primary else 100)
  node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  node.clip_contents = true
@@ -245,6 +269,12 @@ func card(title: String, description: String, action: Callable, target: Containe
 func home() -> void:
  page = "home"
  clear()
+ if column is Deck:
+  panel.remove_child(column)
+  column.queue_free()
+  column = VBoxContainer.new()
+  column.add_theme_constant_override("separation", 12)
+  panel.add_child(column)
  panel_style.bg_color = Color(0, 0, 0, 0)
  label("ПОСЛЕДНИЙ ШЛЮЗ", 28)
  label("У костра перед новым испытанием", 17)
@@ -260,11 +290,11 @@ func home() -> void:
  card("ОБНОВЛЕНИЯ", "Проверить новую версию", func(): preload("res://game/scripts/app_updates.gd").show_updates(self), grid)
  card("КАК ИГРАТЬ", "Правила и управление", instructions, grid)
  card("ВЫХОД", "Завершить приложение", func(): get_tree().quit(), grid)
- error_label = label("Локальная партия • 0.14 • без сетевого поиска", 15)
+ error_label = label("Локальная партия • 0.15 • без сетевого поиска", 15)
 
 func edit_profile() -> void:
  page = "profile"
- clear()
+ subpage()
  label("ВАШ ПЕРСОНАЖ", 27)
  label("Внешность меняется прямо у костра", 17)
  label("Никнейм")
@@ -273,8 +303,8 @@ func edit_profile() -> void:
  name_input.max_length = 20
  name_input.custom_minimum_size.y = 48
  name_input.text_changed.connect(func(value): draft_name = value)
- column.add_child(name_input)
- appearance_picker = OptionButton.new()
+ add_control(name_input)
+ appearance_picker = Choice.new()
  appearance_picker.add_item("Мужской персонаж")
  appearance_picker.add_item("Женский персонаж")
  appearance_picker.select(0 if profile.appearance == "male" else 1)
@@ -282,8 +312,8 @@ func edit_profile() -> void:
  appearance_picker.item_selected.connect(func(index):
   profile.appearance = "male" if index == 0 else "female"
   update_avatar())
- column.add_child(appearance_picker)
- palette_picker = OptionButton.new()
+ add_control(appearance_picker)
+ palette_picker = Choice.new()
  for title in ["Одежда: исходная", "Одежда: песочная", "Одежда: холодный графит"]:
   palette_picker.add_item(title)
  palette_picker.select(profile.outfit)
@@ -291,7 +321,7 @@ func edit_profile() -> void:
  palette_picker.item_selected.connect(func(index):
   profile.outfit = index
   update_avatar())
- column.add_child(palette_picker)
+ add_control(palette_picker)
  button("Сохранить профиль", save_draft)
  button("Назад к карточкам", home)
  error_label = label("Изменения будут сохранены также при старте партии.", 16)
@@ -319,18 +349,18 @@ func launch() -> void:
 
 func game_options() -> void:
  page = "options"
- clear()
+ subpage()
  label("ПАРАМЕТРЫ ПАРТИИ", 25)
  label("Число участников")
- var count := OptionButton.new()
+ var count := Choice.new()
  for number in [6, 8, 10]:
   count.add_item(str(number), number)
  count.select([6, 8, 10].find(profile.player_count))
  count.custom_minimum_size.y = 48
  count.item_selected.connect(func(_index): profile.player_count = count.get_selected_id())
- column.add_child(count)
+ add_control(count)
  label("Катастрофа")
- var picker := OptionButton.new()
+ var picker := Choice.new()
  picker.add_item("Случайная")
  var scenarios: Array = Content.scenarios()
  for index in scenarios.size():
@@ -339,13 +369,13 @@ func game_options() -> void:
    picker.select(index + 1)
  picker.custom_minimum_size.y = 48
  picker.item_selected.connect(func(index): profile.scenario_choice = "random" if index == 0 else scenarios[index - 1]["id"])
- column.add_child(picker)
+ add_control(picker)
  label("Внешние комнаты, коридоры и карты генерируются только при старте партии.")
  button("Назад", home)
 
 func settings() -> void:
  page = "settings"
- clear()
+ subpage()
  label("НАСТРОЙКИ", 25)
  label("Громкость в партии")
  var volume := HSlider.new()
@@ -355,23 +385,25 @@ func settings() -> void:
  volume.value = profile.volume
  volume.custom_minimum_size.y = 48
  volume.value_changed.connect(func(value): profile.volume = value)
- column.add_child(volume)
+ add_control(volume)
  var narration := CheckButton.new()
  narration.text = "Озвучивать сводку катастрофы"
+ Cards.button(narration)
  narration.button_pressed = profile.narration
  narration.toggled.connect(func(value): profile.narration = value)
- column.add_child(narration)
+ add_control(narration)
  var reduced := CheckButton.new()
  reduced.text = "Уменьшить эффекты, ветер и искры"
+ Cards.button(reduced)
  reduced.button_pressed = profile.reduced_motion
  reduced.toggled.connect(func(value): profile.reduced_motion = value)
- column.add_child(reduced)
+ add_control(reduced)
  label("Русскому TTS нужен установленный системный голос Android.", 16)
  button("Назад", home)
 
 func instructions() -> void:
  page = "instructions"
- clear()
+ subpage()
  label("ПЕРЕД НАЧАЛОМ", 25)
  label("Настройте имя и внешность у костра. Изменения видны сразу. Сохраните профиль или нажмите «Начать».\nВ бункере: касание — идти, свайп — камера, два пальца — масштаб. Профессия публична, выступления по минуте, рабочие помещения требуют подходящую профессию.\nДругие участники — локальные тестовые фикстуры, не онлайн-игроки. Профиль сохраняется, партия между перезапусками — нет.")
  button("Назад", home)

@@ -1,7 +1,8 @@
 extends RefCounted
+const Cards = preload("res://game/scripts/card_style.gd")
 
-const VERSION_CODE := 14
-const VERSION_NAME := "0.14.0"
+const VERSION_CODE := 15
+const VERSION_NAME := "0.15.0"
 const REPOSITORY := "https://github.com/AlfaGideon/Bunker"
 const API := "https://api.github.com/repos/AlfaGideon/Bunker/releases/latest"
 
@@ -49,6 +50,8 @@ static func show_updates(parent: Node, check_network: bool = true) -> Confirmati
  dialog.get_ok_button().disabled = true
  dialog.get_cancel_button().text = "Закрыть"
  dialog.get_cancel_button().custom_minimum_size.y = 48
+ Cards.button(dialog.get_ok_button())
+ Cards.button(dialog.get_cancel_button())
  parent.add_child(dialog)
  dialog.popup_centered(Vector2i(620, 340))
  var request := HTTPRequest.new()

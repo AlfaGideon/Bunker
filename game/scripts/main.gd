@@ -1,4 +1,8 @@
 extends Node3D
+const RevealLock = preload("res://game/scripts/reveal_lock.gd")
+const Choice = preload("res://game/scripts/card_choice.gd")
+const Deck = preload("res://game/scripts/card_deck.gd")
+const Cards = preload("res://game/scripts/card_style.gd")
 
 const NegativeActions = preload("res://game/scripts/negative_actions.gd")
 const Professions = preload("res://game/scripts/profession_rules.gd")
@@ -65,7 +69,7 @@ var selected := 0
 var round_number := 1
 var phase := "reveal"
 var camera: Camera3D
-var detail: VBoxContainer
+var detail: Deck
 var status_label: Label
 var log_label: Label
 var phase_label: Label
@@ -249,7 +253,11 @@ func _button(text: String, action: Callable, parent: Node) -> Button:
 	button.pressed.connect(func():
 		if is_instance_valid(audio):
 			audio.blip())
-	parent.add_child(button)
+	Cards.button(button, true)
+	if parent is Deck:
+		parent.add_card(button)
+	else:
+		parent.add_child(button)
 	return button
 
 
@@ -307,42 +315,35 @@ func _build_ui() -> void:
 	for side in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 16)
 	panel.add_child(margin)
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var shell := VBoxContainer.new()
-	shell.add_theme_constant_override("separation", 10)
+	shell.add_theme_constant_override("separation", 7)
 	margin.add_child(shell)
-	shell.add_child(scroll)
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var column := VBoxContainer.new()
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.add_theme_constant_override("separation", 10)
-	scroll.add_child(column)
-	column.add_child(_label(scenario["title"], 25))
-	_button("Помещения и предметы", func(): menu.show_facility(), column)
-	_button("Отрицательные действия", func(): menu.show_negative_actions(), column)
-	_button("Сводка катастрофы / озвучка", func(): menu.briefing(), column)
-	column.add_child(_label("Все уже внутри. Из %d выживших останутся %d. Партия: %d исключений." % [players.size(), capacity, players.size() - capacity]))
-	var roster := OptionButton.new()
-	roster.custom_minimum_size.y = 48
+	shell.add_child(_label(scenario["title"], 21))
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	shell.add_child(actions)
+	var facilities := _button("Помещения", func(): menu.show_facility(), actions)
+	facilities.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var negative := _button("Действия", func(): menu.show_negative_actions(), actions)
+	negative.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var roster := Choice.new()
 	for i in players.size():
 		roster.add_item(players[i]["name"] + (" — вы" if i == 0 else ""), i)
 	roster.item_selected.connect(func(index: int):
 		selected = index
+		detail.page_index = 0
 		_refresh())
-	column.add_child(roster)
-	detail = VBoxContainer.new()
-	detail.add_theme_constant_override("separation", 8)
-	column.add_child(detail)
-	status_label = _label("")
-	column.add_child(status_label)
-	var advance_button := _button("Следующий этап →", _advance, column)
-	log_label = _label("Профессии открыты обязательно. Выберите ещё одну характеристику. У остальных тестовых участников дополнительная карта выбирается случайно.", 16)
-	column.add_child(log_label)
-	# Keep phase controls reachable without scrolling through seven cards.
-	for control in [status_label, advance_button, log_label]:
-		column.remove_child(control)
-		shell.add_child(control)
+	shell.add_child(roster)
+	detail = Deck.new()
+	detail.columns = 1
+	detail.page_height = 170
+	shell.add_child(detail)
+	status_label = _label("", 16)
+	shell.add_child(status_label)
+	_button("Следующий этап →", _advance, shell)
+	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 15)
+	log_label.max_lines_visible = 3
+	shell.add_child(log_label)
 	var hint := _label("Касание — идти; свайп — камера; два пальца — масштаб.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.position = Vector2(24, -75)
@@ -378,32 +379,62 @@ func _build_ui() -> void:
 
 func _refresh() -> void:
 	_refresh_left()
-	for child in detail.get_children():
-		detail.remove_child(child)
-		child.queue_free()
+	var dossier_page := detail.page_index
+	detail.clear_cards()
 	var names := {"reveal": "Раскрытие", "discussion": "Обсуждение", "vote": "Голосование", "result": "Результат", "end": "Итог"}
 	phase_label.text = "РАУНД %d  /  %s" % [round_number, names[phase]]
-	status_label.text = "В бункере: %d  •  Мест: %d  •  Раунд: %d/%d" % [active.size(), capacity, round_number, players.size() - capacity]
-	detail.add_child(_label(players[selected]["name"] + (" — ваше досье" if selected == 0 else " — публичное досье"), 21))
+	status_label.text = "В бункере: %d • Мест: %d • Раунд: %d/%d" % [active.size(), capacity, round_number, players.size() - capacity]
 	for c in players[selected]["cards"]:
 		var card: Dictionary = c
-		var visible: bool = selected == 0 or card["revealed"]
-		detail.add_child(_label(card["label"] + ": " + (card["value"] if visible else "скрыто")))
-		if card["id"] == "health" and visible:
-			detail.add_child(_label("Доп. нагрузка: " + Supplies.cost_text(card.get("cost", {})), 16))
-		if selected == 0 and not card["revealed"] and phase == "reveal" and active.has(0) and speech.speaker() == 0 and not speech.revealed:
-			_button("Раскрыть: " + card["label"], func():
-				actors[0].get_child(0).gesture = 1.5
-				_reveal_card(0, card)
-				speech.revealed = true
-				log_label.text = "Карта раскрыта. Объясните выбор, затем передайте ход. На речь — до 60 секунд; голосовой связи в прототипе нет."
-				_refresh(), detail)
+		var frame := PanelContainer.new()
+		frame.add_theme_stylebox_override("panel", Cards.panel())
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		frame.add_child(row)
+		var value := _label(card["label"] + "\n" + card_value_for(selected, card, 0), 16)
+		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(value)
+		frame.custom_minimum_size.y = maxf(76, 24 + ceili(float(value.text.length()) / 23) * 20)
+		var lock := RevealLock.new()
+		lock.parameter_id = card["id"]
+		lock.is_public = card["revealed"]
+		lock.disabled = selected != 0 or card["revealed"] or not can_reveal_parameter()
+		lock.tooltip_text = "Открыто всем" if card["revealed"] else "Раскрыть в свой ход • таймер не меняется"
+		lock.pressed.connect(func(): reveal_parameter(card["id"]))
+		row.add_child(lock)
+		detail.add_card(frame)
+		if card["id"] == "health" and (selected == 0 or card["revealed"]):
+			detail.add_info("Нагрузка на группу: " + Supplies.cost_text(card.get("cost", {})), 16)
+	detail.page_index = dossier_page
 	if phase == "vote" and active.has(0) and selected != 0 and active.has(selected):
 		_button("Голосовать (тестовые участники)", _demo_vote, detail)
 	if phase == "vote" and not active.has(0):
 		_button("Тестовое голосование оставшихся", _spectator_vote, detail)
 	if not active.has(selected):
-		detail.add_child(_label("Наблюдатель — больше не участвует в голосовании."))
+		detail.add_info("Наблюдатель — больше не участвует в голосовании.")
+
+
+func can_reveal_parameter() -> bool:
+	return phase == "reveal" and active.has(0) and speech.speaker() == 0 and not speech.revealed and not finished
+
+
+func card_value_for(owner: int, card: Dictionary, viewer: int) -> String:
+	return card["value"] if owner == viewer or card["revealed"] else "скрыто"
+
+
+func reveal_parameter(id: String) -> bool:
+	if not can_reveal_parameter():
+		return false
+	for card in players[0]["cards"]:
+		if card["id"] == id and not card["revealed"]:
+			# Deliberately do not call speech.start/pass_turn or modify remaining.
+			_reveal_card(0, card)
+			speech.revealed = true
+			actors[0].get_child(0).gesture = 1.5
+			log_label.text = "Характеристика открыта всем. Продолжайте речь: таймер не сброшен."
+			_refresh()
+			return true
+	return false
 
 
 func _demo_reveals() -> void:

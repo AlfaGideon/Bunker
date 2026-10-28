@@ -1,4 +1,5 @@
 extends Node3D
+const Cards = preload("res://game/scripts/card_style.gd")
 const Profile = preload("res://game/scripts/local_profile.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const Style = preload("res://game/scripts/avatar_style.gd")
@@ -106,6 +107,7 @@ func build_ui() -> void:
  progress.show_percentage = false
  var cancel := Button.new()
  cancel.text = "Вернуться к костру"
+ Cards.button(cancel, true)
  cancel.custom_minimum_size = Vector2(240, 48)
  root.add_child(cancel)
  cancel.anchor_left = 0.28
@@ -115,6 +117,7 @@ func build_ui() -> void:
  cancel.pressed.connect(cancel_loading)
  enter = Button.new()
  enter.text = "Войти сейчас"
+ Cards.button(enter, true)
  enter.disabled = true
  root.add_child(enter)
  enter.anchor_left = 0.51
