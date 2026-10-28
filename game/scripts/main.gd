@@ -1,5 +1,9 @@
 extends Node3D
 
+const Profile = preload("res://game/scripts/local_profile.gd")
+const Content = preload("res://game/scripts/game_content.gd")
+const Menu = preload("res://game/scripts/game_menu.gd")
+const Surroundings = preload("res://game/scripts/bunker_surroundings.gd")
 const Navigation = preload("res://game/scripts/room_navigation.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
@@ -9,7 +13,12 @@ const VoteRules = preload("res://game/scripts/vote_rules.gd")
 const DATA_PATH = "res://data/prototype.json"
 var players: Array = []
 var actors: Array[Node3D] = []
-var active: Array[int] = [0, 1, 2, 3]
+var active: Array[int] = []
+var capacity := 4
+var profile := Profile.new()
+var menu: Control
+var sun: DirectionalLight3D
+var departures: Dictionary = {}
 var selected := 0
 var round_number := 1
 var phase := "reveal"
@@ -30,15 +39,22 @@ var pending_inspection := ""
 
 
 func _ready() -> void:
-	var file := FileAccess.open(DATA_PATH, FileAccess.READ)
-	if file == null:
-		push_error("Не удалось прочитать " + DATA_PATH)
-		return
-	var data: Dictionary = JSON.parse_string(file.get_as_text())
-	players = data["players"]
+	players = Content.create_players(profile.player_count, profile.nickname)
+	active.assign(range(players.size()))
+	capacity = players.size() / 2
 	_build_world()
 	_build_ui()
+	apply_settings()
 	_refresh()
+	if get_tree().has_meta("start_game"):
+		menu.visible = false
+		get_tree().remove_meta("start_game")
+
+
+func apply_settings() -> void:
+	camera.size = profile.camera_size
+	sun.shadow_enabled = profile.shadows
+
 
 
 func _material(color: Color) -> StandardMaterial3D:
@@ -84,16 +100,18 @@ func _build_world() -> void:
 	light.rotation_degrees = Vector3(-55, -25, 0)
 	light.light_color = Color("ffe0af")
 	light.light_energy = 1.0
-	light.shadow_enabled = true
+	sun = light
+	light.shadow_enabled = profile.shadows
 	light.directional_shadow_max_distance = 30.0
 	add_child(light)
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 13
+	camera.size = profile.camera_size
 	camera.position = Vector3(9, 13, 13)
 	add_child(camera)
 	camera.look_at(Vector3(1.8, 0, 0))
 	camera.current = true
+	Surroundings.build(self)
 	_box(Vector3(0, -0.2, 0), Vector3(10, 0.4, 8), Color("34444a"))
 	# Modular imported walls: front/right walls are cut away for visibility.
 	for x in [-4.0, -2.0, 2.0, 4.0]:
@@ -112,7 +130,7 @@ func _build_world() -> void:
 		glow.emission_enabled = true
 		glow.emission = Color("68d9c3")
 	_box(Vector3(0, 2.1, -3.65), Vector3(2.4, 0.12, 0.12), Color("caa261"))
-	_world_label("ШЛЮЗ  /  02 МЕСТА", Vector3(0, 2.5, -3.7))
+	_world_label("УБЕЖИЩЕ  /  %02d МЕСТА" % capacity, Vector3(0, 2.5, -3.7))
 	Art.spawn(self, "house_interior_pack_Table_RoundLarge", Vector3.ZERO, Vector3(3.1, 0.9, 1.7))
 	Art.spawn(self, "survival_pack_Radio", Vector3(-0.8, 0.91, 0), Vector3(0.45, 0.3, 0.25))
 	Art.spawn(self, "survival_pack_FirstAidKit", Vector3(0.65, 0.91, 0), Vector3(0.45, 0.22, 0.3))
@@ -139,12 +157,14 @@ func _build_world() -> void:
 	marker.visible = false
 	add_child(marker)
 	var positions := [Vector3(-2.5, 0, 1.8), Vector3(2.5, 0, 1.8),
-		Vector3(-2.5, 0, -1.5), Vector3(2.5, 0, -1.5)]
+		Vector3(-2.5, 0, -1.5), Vector3(2.5, 0, -1.5),
+		Vector3(-3.8, 0, 0), Vector3(3.8, 0, 0), Vector3(0, 0, 2.7),
+		Vector3(0, 0, -2.7), Vector3(-3.8, 0, 2.6), Vector3(3.8, 0, 2.6)]
 	var model_names := ["modular_men_Worker", "modular_women_Casual", "modular_men_Adventurer", "modular_women_SciFi"]
 	for i in players.size():
 		var actor := Node3D.new()
 		add_child(actor)
-		var visual := Art.spawn(actor, model_names[i], Vector3.ZERO, Vector3(1, 1.45, 1), true)
+		var visual := Art.spawn(actor, model_names[i % model_names.size()], Vector3.ZERO, Vector3(1, 1.45, 1), true)
 		visual.set_script(SurvivorVisual)
 		visual._collect(visual)
 		actor.position = positions[i]
@@ -210,6 +230,7 @@ func _build_ui() -> void:
 	header.add_child(_label("ЛОКАЛЬНЫЙ ПРОТОТИП • НЕ СЕТЕВАЯ ИГРА", 15))
 	phase_label = _label("", 20)
 	header.add_child(phase_label)
+	_button("☰ Меню / пауза", func(): menu.home(), header)
 	var panel := PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	panel.offset_left = -370
@@ -229,24 +250,23 @@ func _build_ui() -> void:
 	column.add_theme_constant_override("separation", 10)
 	scroll.add_child(column)
 	column.add_child(_label("ДОЛГАЯ ЗИМА", 25))
-	column.add_child(_label("Четверо у шлюза. В убежище хватит места только двоим."))
-	var tabs := GridContainer.new()
-	tabs.columns = 2
-	column.add_child(tabs)
+	column.add_child(_label("Все уже внутри. Из %d выживших останутся %d. Партия: %d исключений." % [players.size(), capacity, players.size() - capacity]))
+	var roster := OptionButton.new()
+	roster.custom_minimum_size.y = 48
 	for i in players.size():
-		var index: int = i
-		var button := _button(players[i]["name"], func():
-			selected = index
-			_refresh(), tabs)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		roster.add_item(players[i]["name"] + (" — вы" if i == 0 else ""), i)
+	roster.item_selected.connect(func(index: int):
+		selected = index
+		_refresh())
+	column.add_child(roster)
 	detail = VBoxContainer.new()
 	detail.add_theme_constant_override("separation", 8)
 	column.add_child(detail)
 	status_label = _label("")
 	column.add_child(status_label)
 	_button("Следующий этап →", _advance, column)
-	_button("Начать заново", func(): get_tree().reload_current_scene(), column)
-	log_label = _label("Вы — Алекс. Выберите свою карту для раскрытия. Остальные участники — тестовые персонажи.", 16)
+	_button("Новая партия…", func(): menu.new_game(); menu.visible = true, column)
+	log_label = _label("Выберите свою карту для раскрытия. Остальные участники — тестовые персонажи. Новая партия: 40 профессий, 7 характеристик, случайная раздача.", 16)
 	column.add_child(log_label)
 	var hint := _label("Коснитесь пола: персонаж обойдёт стол и мебель.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
@@ -254,15 +274,18 @@ func _build_ui() -> void:
 	hint.size = Vector2(560, 60)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint)
+	menu = Menu.new()
+	root.add_child(menu)
+	menu.setup(self, profile)
 
 
 func _refresh() -> void:
 	for child in detail.get_children():
 		detail.remove_child(child)
 		child.queue_free()
-	var names := {"reveal": "Раскрытие", "discussion": "Обсуждение", "vote": "Голосование", "end": "Итог"}
+	var names := {"reveal": "Раскрытие", "discussion": "Обсуждение", "vote": "Голосование", "result": "Результат", "end": "Итог"}
 	phase_label.text = "РАУНД %d  /  %s" % [round_number, names[phase]]
-	status_label.text = "У шлюза: %d  •  Мест: 2" % active.size()
+	status_label.text = "В бункере: %d  •  Мест: %d  •  Раунд: %d/%d" % [active.size(), capacity, round_number, players.size() - capacity]
 	detail.add_child(_label(players[selected]["name"] + (" — ваше досье" if selected == 0 else " — публичное досье"), 21))
 	for c in players[selected]["cards"]:
 		var card: Dictionary = c
@@ -301,6 +324,13 @@ func _advance() -> void:
 			log_label.text = "Демонстрация результата: выберите другого участника и нажмите «Голосовать». Остальные голоса задаёт явно тестовый сценарий."
 		"vote":
 			log_label.text = "Выберите другого активного персонажа."
+		"result":
+			if not departures.is_empty():
+				log_label.text = "Подождите: исключённый участник идёт к выходу."
+			else:
+				round_number += 1
+				phase = "reveal"
+				log_label.text = "Новый раунд. Откройте следующую характеристику."
 		"end":
 			log_label.text = "Демонстрация завершена. Можно начать заново."
 	_refresh()
@@ -322,22 +352,34 @@ func _demo_vote() -> void:
 	var eliminated: int = result["player"]
 	active.erase(eliminated)
 	actors[eliminated].get_child(1).modulate = Color("71828c")
-	if active.size() == 2:
+	var departure := navigation.path_between(actors[eliminated].position, Vector3(3.8, 0, 3.2))
+	departure.append_array(PackedVector3Array([Vector3(3.8, 0, 4.5), Vector3(3.8, 0, 6.7), Vector3(8, 0, 6.7)]))
+	departures[eliminated] = {"path": departure, "index": 0}
+	if active.size() == capacity:
 		phase = "end"
 		finished = true
+		profile.completed_games += 1
+		profile.save()
 		var survivors: Array[String] = []
 		for i in active:
 			survivors.append(players[i]["name"])
-		log_label.text = "В убежище проходят: " + ", ".join(survivors) + ". Это локальный тест, не полноценная партия."
-		create_tween().tween_property(door, "position:x", 2.5, 1.2)
+		log_label.text = "В бункере остаются: " + ", ".join(survivors) + ". Остальные покинули убежище."
 	else:
-		round_number += 1
-		phase = "reveal"
-		log_label.text = "Начался новый раунд. Раскройте следующую карту."
+		phase = "result"
+		log_label.text = players[eliminated]["name"] + " покидает бункер по наружному проходу. Затем нажмите «Следующий этап»."
+
 	_refresh()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if menu.visible:
+			menu.visible = false
+		else:
+			menu.home()
+		return
+	if menu.visible:
+		return
 	var point := Vector2.ZERO
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		point = event.position
@@ -371,7 +413,7 @@ func _set_route(destination: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if actors.is_empty():
+	if actors.is_empty() or menu.visible:
 		return
 	var budget := delta * 2.4
 	var previous := actors[0].position
@@ -397,5 +439,26 @@ func _physics_process(delta: float) -> void:
 			else:
 				log_label.text = "АПТЕЧКА: обнаружены перевязочные материалы. Медицинский специалист поможет оценить их применение."
 			pending_inspection = ""
+	var departing_ids := departures.keys()
+	for id in departing_ids:
+		var entry: Dictionary = departures[id]
+		var points: PackedVector3Array = entry["path"]
+		var index: int = entry["index"]
+		var actor: Node3D = actors[id]
+		if index >= points.size():
+			actor.visible = false
+			departures.erase(id)
+			continue
+		var travel := points[index] - actor.position
+		actor.position = actor.position.move_toward(points[index], delta * 2.2)
+		if travel.length_squared() > 0.0001:
+			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(travel.x, travel.z), delta * 12)
+		if actor.position.distance_to(points[index]) < 0.03:
+			entry["index"] = index + 1
 	for i in actors.size():
-		actors[i].get_child(0).animate(delta, i == 0 and direction.length_squared() > 0.000001, float(i))
+		actors[i].get_child(0).animate(delta, (i == 0 and direction.length_squared() > 0.000001) or departures.has(i), float(i), profile.reduced_motion)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(menu):
+		menu.home()

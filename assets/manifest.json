@@ -1,10 +1,38 @@
 [
   {
+    "file": "assets/quaternius/house_interior_pack_Bed_Bunk.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/house_interior_pack/Bed_Bunk.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "0e56d90f5816b86bca986a72bc7e4f433fc4258a467377fd598a2782be5e317a"
+  },
+  {
+    "file": "assets/quaternius/house_interior_pack_Bed_Single.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/house_interior_pack/Bed_Single.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "7ffe6eaa695b1f3517c734eda4dc1bdb53dc38ab27a97be508ac8ee8b06e3952"
+  },
+  {
     "file": "assets/quaternius/house_interior_pack_Chair_1.glb",
     "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/house_interior_pack/Chair_1.glb",
     "author": "Quaternius",
     "license": "CC0-1.0",
     "sha256": "bdc6aeeb64524bbdccba2f079e6485e2a372aed1c428d976d5da67aadcf18b7a"
+  },
+  {
+    "file": "assets/quaternius/house_interior_pack_Kitchen_Fridge.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/house_interior_pack/Kitchen_Fridge.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "65437d539065381839fdfdff5ea10b7133d28e762e38ff1b6d7e3723f798e408"
+  },
+  {
+    "file": "assets/quaternius/house_interior_pack_Light_Desk.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/house_interior_pack/Light_Desk.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "5ea86e46a2fc36f86500fa6a97dc529dc3464189dc34e586375bae3ee5f68075"
   },
   {
     "file": "assets/quaternius/house_interior_pack_Table_RoundLarge.glb",

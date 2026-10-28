@@ -9,6 +9,7 @@ func capture() -> void:
 	var scene := load("res://game/main.tscn") as PackedScene
 	var room := scene.instantiate()
 	root.add_child(room)
+	room.menu.visible = false
 	for i in 15:
 		await process_frame
 	await RenderingServer.frame_post_draw

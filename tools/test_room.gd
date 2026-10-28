@@ -18,6 +18,7 @@ func run_test() -> void:
 	var room := scene.instantiate()
 	root.add_child(room)
 	room.set_physics_process(false)
+	room.menu.visible = false
 	for actor in room.actors:
 		check(not actor.get_child(0).skeletons.is_empty(), "Imported character has skeleton")
 	for target in [Vector3(0, 0, -2.6), Vector3(3.8, 0, 1.8), Vector3(-3.8, 0, 0)]:
