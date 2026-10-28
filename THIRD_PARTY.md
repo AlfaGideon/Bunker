@@ -10,3 +10,13 @@ The models under `assets/quaternius/` are authored by **Quaternius** and redistr
 - Models contain rigs but no animation clips. Walking, idle and inspection gestures are original procedural skeletal animation in `survivor_visual.gd`, not Quaternius animation clips.
 
 Godot is MIT-licensed. GitHub Actions downloads the official editor/export templates; no engine source is copied into this repository. No external Godot demo source code has been copied.
+
+## Original procedural sound (0.5)
+
+`assets/audio/*.wav` are original synthesized project sounds, not third-party
+recordings. They are offered under CC0-1.0 (legal text above). Provenance and
+reproduction instructions: `assets/audio/README.md`, `tools/generate_audio.py`.
+The radio is a fictional local instrumental loop, not an external broadcast.
+Narration uses the installed system TTS engine; no voice recordings are
+redistributed. The engine and installed voice may have separate terms and
+network requirements.

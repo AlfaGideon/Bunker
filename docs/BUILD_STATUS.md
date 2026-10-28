@@ -1,8 +1,10 @@
 # Проверки и APK
 
-**Текущая версия 0.4:** [APK](https://github.com/AlfaGideon/Bunker/actions/runs/40615714424/artifacts/12783794729), [изменения и подтверждённые проверки](ITERATION_04.md). Далее — история предыдущих сборок.
+**Текущая версия 0.5:** [APK](https://github.com/AlfaGideon/Bunker/actions/runs/40618646261/artifacts/12785504893), [проверки Godot](https://github.com/AlfaGideon/Bunker/actions/runs/40618646278), [изменения и инструкция](ITERATION_05.md). Обе сборки успешны, исходники `ba9b3ac`, ZIP-артефакт 57 008 518 байт. Проверены 60 seed-планировок, все четыре катастрофы, цепочка ремонта и доступа в медблок, сон/поза/лимиты, радио, регрессии правил и анимации; сохранены реальные рендеры. Физическое устройство и системный голос ещё требуют проверки. Далее — история предыдущих сборок.
 
-**Текущая версия 0.3:** [APK](https://github.com/AlfaGideon/Bunker/actions/runs/40613265719/artifacts/12783806544), [изменения и проверки](ITERATION_03.md). Ниже — история предыдущих сборок.
+**Историческая версия 0.4:** [APK](https://github.com/AlfaGideon/Bunker/actions/runs/40615714424/artifacts/12783794729), [изменения и подтверждённые проверки](ITERATION_04.md). Далее — история предыдущих сборок.
+
+**Историческая версия 0.3:** [APK](https://github.com/AlfaGideon/Bunker/actions/runs/40613265719/artifacts/12783806544), [изменения и проверки](ITERATION_03.md). Ниже — история предыдущих сборок.
 
 **Обновление 0.2:** [текущая сборка](https://github.com/AlfaGideon/Bunker/actions/runs/40611927187), [APK](https://github.com/AlfaGideon/Bunker/actions/runs/40611927187/artifacts/12782708530). Модели, анимация и обход мебели добавлены; подробности в [ITERATION_02.md](ITERATION_02.md). Ниже сохранена история первой версии.
 

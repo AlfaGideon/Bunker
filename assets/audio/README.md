@@ -11,5 +11,6 @@ This does not change the license of any other repository content. Recreate with 
 
 Catastrophe narration is separate: Godot's native text-to-speech API uses an
 installed Russian system voice, if present. No voice recording is bundled and
-no cloud TTS or microphone is used. The UI explicitly explains unavailable
+the game does not integrate a cloud TTS service or microphone. The installed
+Android speech engine may have its own network requirements. The UI explicitly explains unavailable
 Russian voices and keeps the entire briefing readable.
