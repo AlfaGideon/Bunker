@@ -37,10 +37,4 @@ CI запускает Godot 4.5.1: импорт/компиляцию, профи
 
 ## Реальные кадры Godot
 
-![Медблок после снятия блокировки во втором раунде](previews/medical-v0.5.jpg)
-
-![Метеорная катастрофа](previews/meteor-v0.5.jpg)
-
-![Заражённые за периметром](previews/infection-v0.5.jpg)
-
 Полный набор: `bunker`, `wide`, `menu`, `survival`, `flood`, `meteor`, `infection`, `medical`, `sleep` с суффиксом `-v0.5.jpg` в `docs/previews/`.

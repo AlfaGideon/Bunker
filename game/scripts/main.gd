@@ -26,6 +26,7 @@ var warehouse_open := false
 var warehouse_door: Node3D
 var exit_hatch: Node3D
 var camera_tween: Tween
+var camera_gestures := preload("res://game/scripts/camera_gestures.gd").new()
 var warehouse_votes := {}
 var jobs := {}
 var npc_rests := {}
@@ -85,6 +86,7 @@ var reveal_log: Array = []
 
 
 func _ready() -> void:
+	camera_gestures.setup(self)
 	if OS.has_feature("android"):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	scenario = Content.pick_scenario(profile.scenario_choice)
@@ -560,16 +562,34 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			menu.home()
 		return
-	if menu.visible or survival_panel.visible or not active.has(0):
+	if menu.visible or survival_panel.visible:
+		camera_gestures.reset()
 		return
-	var point := Vector2.ZERO
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		point = event.position
-	elif event is InputEventScreenTouch and event.pressed:
-		point = event.position
-	else:
+	_apply_camera_event(event)
+
+
+func _input(event: InputEvent) -> void:
+	if not is_instance_valid(menu) or not is_instance_valid(survival_panel):
 		return
-	if rest_remaining > 0:
+	if menu.visible or survival_panel.visible:
+		camera_gestures.reset()
+		return
+	# Starts reach us only after GUI handling; continuations remain captured
+	# even when a dragging finger moves over a panel.
+	if camera_gestures.ongoing(event):
+		_apply_camera_event(event)
+
+
+func _apply_camera_event(event: InputEvent) -> void:
+	var result: Dictionary = camera_gestures.handle(event)
+	if result["handled"]:
+		get_viewport().set_input_as_handled()
+	if result.has("tap"):
+		_tap_world(result["tap"])
+
+
+func _tap_world(point: Vector2) -> void:
+	if not active.has(0) or rest_remaining > 0:
 		return
 	var nearest_item := ""
 	var nearest_distance := 34.0
@@ -1038,3 +1058,9 @@ func _start_extra_bed(key: String, operator: int) -> void:
 	actors[operator].rotation.y = 0
 	actors[operator].get_child(0).rotation.z = PI / 2
 	actors[operator].get_child(0).position = Vector3(0.7, 0.7, 0)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		if camera_gestures != null:
+			camera_gestures.reset()

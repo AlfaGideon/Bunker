@@ -61,11 +61,3 @@ Godot 4.5.1: импорт/компиляция, профиль, правила, 
 
 
 ## Реальные кадры
-
-![Бункер](previews/wide-v0.6.jpg)
-
-![Персонажи](previews/characters-v0.6.jpg)
-
-![Метеориты](previews/meteor-detail-v0.6.jpg)
-
-![Полярное сияние](previews/aurora-v0.6.jpg)
