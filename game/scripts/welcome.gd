@@ -11,6 +11,9 @@ var fire_light: OmniLight3D
 var camp_assets: Node3D
 var camera: Camera3D
 var ui: Control
+var panel: PanelContainer
+var panel_style: StyleBoxFlat
+var cards: Array[Button] = []
 var column: VBoxContainer
 var page := ""
 var clock := 0.0
@@ -148,9 +151,9 @@ func build_ui() -> void:
  logo.position = Vector2(30, 10)
  logo.size = Vector2(380, 175)
  ui.add_child(logo)
- var panel := PanelContainer.new()
+ panel = PanelContainer.new()
  panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
- panel.offset_left = -480
+ panel.offset_left = -660
  panel.offset_right = -30
  panel.offset_top = 25
  panel.offset_bottom = -25
@@ -158,6 +161,7 @@ func build_ui() -> void:
  var theme := Theme.new()
  theme.default_font_size = 18
  var style := StyleBoxFlat.new()
+ panel_style = style
  style.bg_color = Color(0.055, 0.115, 0.13, 0.96)
  style.set_corner_radius_all(12)
  for edge in ["left", "right", "top", "bottom"]:
@@ -174,24 +178,95 @@ func build_ui() -> void:
   theme.set_stylebox(state, "Button", button_style)
   theme.set_stylebox(state, "OptionButton", button_style)
  panel.theme = theme
- var scroll := ScrollContainer.new()
- scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
- panel.add_child(scroll)
  column = VBoxContainer.new()
  column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
- column.add_theme_constant_override("separation", 10)
- scroll.add_child(column)
+ column.add_theme_constant_override("separation", 12)
+ panel.add_child(column)
 
 func clear() -> void:
+ cards.clear()
+ panel_style.bg_color = Color(0.035, 0.075, 0.09, 0.97)
  for child in column.get_children():
   column.remove_child(child)
   child.queue_free()
 
+func card(title: String, description: String, action: Callable, target: Container, primary: bool = false) -> Button:
+ var node := Button.new()
+ node.custom_minimum_size = Vector2(0, 108 if primary else 100)
+ node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ node.clip_contents = true
+ node.pressed.connect(action)
+ for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+  var style := StyleBoxFlat.new()
+  style.bg_color = Color("b98d53") if primary else Color("142e39")
+  if state in ["hover", "focus"]:
+   style.bg_color = Color("d2aa70") if primary else Color("244958")
+  if state == "pressed":
+   style.bg_color = Color("9c733e") if primary else Color("102631")
+  style.border_color = Color("dfbd87") if primary else Color("44616a")
+  style.set_border_width_all(1)
+  style.set_corner_radius_all(14)
+  style.shadow_color = Color(0, 0, 0, 0.22)
+  style.shadow_size = 5
+  node.add_theme_stylebox_override(state, style)
+ var margin := MarginContainer.new()
+ margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ for edge in ["left", "right", "top", "bottom"]:
+  margin.add_theme_constant_override("margin_" + edge, 16)
+ node.add_child(margin)
+ var content := VBoxContainer.new()
+ content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ margin.add_child(content)
+ var heading := Label.new()
+ heading.text = title
+ heading.add_theme_font_size_override("font_size", 25 if primary else 20)
+ heading.add_theme_color_override("font_color", Color("172b31") if primary else Color("edf0e7"))
+ heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ content.add_child(heading)
+ var caption := Label.new()
+ caption.text = description
+ caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ caption.add_theme_font_size_override("font_size", 16)
+ caption.add_theme_color_override("font_color", Color("294047") if primary else Color("9cb8bc"))
+ caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ content.add_child(caption)
+ target.add_child(node)
+ cards.append(node)
+ node.resized.connect(func(): node.pivot_offset = node.size * 0.5)
+ if not profile.reduced_motion:
+  node.modulate.a = 0
+  node.scale = Vector2(0.97, 0.97)
+  var tween := node.create_tween().set_parallel(true)
+  tween.tween_property(node, "modulate:a", 1.0, 0.3).set_delay(cards.size() * 0.045)
+  tween.tween_property(node, "scale", Vector2.ONE, 0.4).set_delay(cards.size() * 0.045).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+ return node
+
 func home() -> void:
  page = "home"
  clear()
- label("ДОБРО ПОЖАЛОВАТЬ", 26)
- label("У костра перед последним шлюзом", 17)
+ panel_style.bg_color = Color(0, 0, 0, 0)
+ label("ПОСЛЕДНИЙ ШЛЮЗ", 28)
+ label("У костра перед новым испытанием", 17)
+ start_button = card("НАЧАТЬ ИГРУ  →", "Подготовить убежище и новую историю", launch, column, true)
+ var grid := GridContainer.new()
+ grid.columns = 2
+ grid.add_theme_constant_override("h_separation", 12)
+ grid.add_theme_constant_override("v_separation", 12)
+ column.add_child(grid)
+ card("ПЕРСОНАЖ", draft_name + " • внешность и профиль", edit_profile, grid)
+ card("ПАРАМЕТРЫ ПАРТИИ", "Катастрофа и состав группы", game_options, grid)
+ card("НАСТРОЙКИ", "Звук, озвучка и эффекты", settings, grid)
+ card("ОБНОВЛЕНИЯ", "Проверить новую версию", func(): preload("res://game/scripts/app_updates.gd").show_updates(self), grid)
+ card("КАК ИГРАТЬ", "Правила и управление", instructions, grid)
+ card("ВЫХОД", "Завершить приложение", func(): get_tree().quit(), grid)
+ error_label = label("Локальная партия • 0.14 • без сетевого поиска", 15)
+
+func edit_profile() -> void:
+ page = "profile"
+ clear()
+ label("ВАШ ПЕРСОНАЖ", 27)
+ label("Внешность меняется прямо у костра", 17)
  label("Никнейм")
  name_input = LineEdit.new()
  name_input.text = draft_name
@@ -199,7 +274,6 @@ func home() -> void:
  name_input.custom_minimum_size.y = 48
  name_input.text_changed.connect(func(value): draft_name = value)
  column.add_child(name_input)
- label("Ваш персонаж")
  appearance_picker = OptionButton.new()
  appearance_picker.add_item("Мужской персонаж")
  appearance_picker.add_item("Женский персонаж")
@@ -218,19 +292,9 @@ func home() -> void:
   profile.outfit = index
   update_avatar())
  column.add_child(palette_picker)
- start_button = button("НАЧАТЬ ПАРТИЮ", launch)
- var primary := StyleBoxFlat.new()
- primary.bg_color = Color("c29a61")
- primary.set_corner_radius_all(6)
- start_button.add_theme_stylebox_override("normal", primary)
- start_button.add_theme_color_override("font_color", Color("14272e"))
- button("Параметры партии", game_options)
- button("Настройки", settings)
- button("Проверить обновления", func(): preload("res://game/scripts/app_updates.gd").show_updates(self))
  button("Сохранить профиль", save_draft)
- button("Как играть", instructions)
- button("Выйти", func(): get_tree().quit())
- error_label = label("Локальный прототип • 0.13\nПартия начнётся только после нажатия «Начать».", 15)
+ button("Назад к карточкам", home)
+ error_label = label("Изменения будут сохранены также при старте партии.", 16)
 
 func save_draft() -> bool:
  var value := draft_name.strip_edges()
@@ -245,15 +309,13 @@ func save_draft() -> bool:
  return true
 
 func launch() -> void:
- if not save_draft():
+ if not save_draft() or start_button.disabled:
   return
  start_button.disabled = true
- get_tree().set_meta("start_game", true)
- var result := get_tree().change_scene_to_file("res://game/main.tscn")
+ var result := get_tree().change_scene_to_file("res://game/loading.tscn")
  if result != OK:
-  get_tree().remove_meta("start_game")
   start_button.disabled = false
-  error_label.text = "Не удалось открыть партию."
+  error_label.text = "Не удалось открыть экран подготовки."
 
 func game_options() -> void:
  page = "options"

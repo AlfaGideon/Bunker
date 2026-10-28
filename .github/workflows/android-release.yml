@@ -18,17 +18,20 @@ jobs:
     outputs:
       configured: ${{ steps.ready.outputs.configured }}
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: ready
         env:
           KEY: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
           PASS: ${{ secrets.BUNKER_KEYSTORE_PASSWORD }}
           ALIAS: ${{ secrets.BUNKER_KEY_ALIAS }}
         run: |
-          if [ -n "$KEY" ] && [ -n "$PASS" ] && [ -n "$ALIAS" ]; then
+          requested=$(python3 -c 'import json; print(json.load(open("data/release-request.json"))["version_code"])')
+          code=$(python3 -c 'import configparser; c=configparser.ConfigParser(interpolation=None); c.read("export_presets.cfg"); print(c.getint("preset.0.options", "version/code"))')
+          if [ -n "$KEY" ] && [ -n "$PASS" ] && [ -n "$ALIAS" ] && [ "$requested" = "$code" ]; then
             echo 'configured=true' >> "$GITHUB_OUTPUT"
           else
             echo 'configured=false' >> "$GITHUB_OUTPUT"
-            echo 'Signing secrets are not configured; no public update will be published.'
+            echo 'Signing secrets or version publication request are not ready; no public update will be published.'
           fi
   release:
     needs: signing-ready
@@ -82,13 +85,14 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "builds/bunker-$VERSION_CODE.apk" > /tmp/apk-badging.txt
           grep "^package: name='org.bunker.prototype' versionCode='$VERSION_CODE'" /tmp/apk-badging.txt
           cd builds
-          sha256sum "bunker-$VERSION_CODE.apk" > SHA256SUMS
+          cp "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk"
+          sha256sum "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk" > SHA256SUMS
       - name: Publish complete public update (no private key artifacts)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "android-$VERSION_CODE" "builds/bunker-$VERSION_CODE.apk" builds/SHA256SUMS --draft --target "$GITHUB_SHA" --title "Бункер — Android $VERSION_CODE" --notes "Подписанное обновление Android. Откройте APK и подтвердите установку. Для обновления поверх старой версии нужны одинаковые подпись и package ID."
+          gh release create "android-$VERSION_CODE" "builds/bunker-$VERSION_CODE.apk" "builds/Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk" builds/SHA256SUMS --draft --target "$GITHUB_SHA" --title "Бункер — Последний шлюз • Android $VERSION_CODE" --notes "Подписанное обновление Android. Откройте APK и подтвердите установку. Для обновления поверх старой версии нужны одинаковые подпись и package ID."
           gh release edit "android-$VERSION_CODE" --draft=false --latest
       - name: Remove private runner files
         if: always()

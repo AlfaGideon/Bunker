@@ -1,7 +1,7 @@
 extends RefCounted
 
-const VERSION_CODE := 13
-const VERSION_NAME := "0.13.0"
+const VERSION_CODE := 14
+const VERSION_NAME := "0.14.0"
 const REPOSITORY := "https://github.com/AlfaGideon/Bunker"
 const API := "https://api.github.com/repos/AlfaGideon/Bunker/releases/latest"
 
@@ -21,18 +21,20 @@ static func inspect_release(release: Dictionary, installed: int = VERSION_CODE) 
   return {}
  if code <= installed:
   return {"current": true}
- var expected := REPOSITORY + "/releases/download/" + tag + "/bunker-%d.apk" % code
  var assets: Variant = release.get("assets", [])
  if not assets is Array:
   return {}
- for asset in assets:
-  if not asset is Dictionary:
-   continue
-  var asset_size: Variant = asset.get("size", 0)
-  if not (asset_size is int or asset_size is float):
-   continue
-  if asset.get("name", "") == "bunker-%d.apk" % code and asset.get("browser_download_url", "") == expected and asset_size > 0:
-   return {"code": code, "url": expected}
+ # Keep the legacy asset for installed 0.13 clients; new clients prefer title.
+ for filename in ["Bunker-Posledniy-Shlyuz-%d.apk" % code, "bunker-%d.apk" % code]:
+  var expected: String = REPOSITORY + "/releases/download/" + tag + "/" + filename
+  for asset in assets:
+   if not asset is Dictionary:
+    continue
+   var asset_size: Variant = asset.get("size", 0)
+   if not (asset_size is int or asset_size is float):
+    continue
+   if asset.get("name", "") == filename and asset.get("browser_download_url", "") == expected and asset_size > 0:
+    return {"code": code, "url": expected}
  return {}
 
 static func show_updates(parent: Node, check_network: bool = true) -> ConfirmationDialog:

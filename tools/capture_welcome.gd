@@ -12,6 +12,7 @@ func capture() -> void:
   welcome.home()
  for frame in 25:
   await process_frame
+ await create_timer(0.9).timeout
  await RenderingServer.frame_post_draw
  var image := root.get_texture().get_image()
  image.resize(800, roundi(image.get_height() * 800.0 / image.get_width()))

@@ -14,6 +14,13 @@ func run() -> void:
   await process_frame
  check(ProjectSettings.get_setting("application/run/main_scene") == "res://game/welcome.tscn", "App launches welcome, not bunker")
  check(welcome.page == "home", "Welcome home visible")
+ check(welcome.find_children("*", "ScrollContainer", true, false).is_empty(), "Welcome has no scrolling menu")
+ check(welcome.cards.size() == 7, "Hero and six animated cards")
+ for card in welcome.cards:
+  check(card.get_global_rect().end.y <= root.get_visible_rect().size.y, "All cards fit vertically")
+ welcome.edit_profile()
+ check(is_instance_valid(welcome.name_input) and welcome.page == "profile", "Profile editable on separate page")
+ welcome.home()
  check(not welcome.has_node("BunkerPrototype"), "No game generated behind welcome")
  check(welcome.profile.world_count == original.world_count, "Welcome does not generate a world")
  check(welcome.animator.current_animation == "Sit_Chair_Idle", "Real seated animation")
@@ -60,6 +67,21 @@ func run() -> void:
  welcome.home()
  current_scene = welcome
  welcome.launch()
+ await scene_changed
+ var loading: Node3D = current_scene
+ check(loading.scene_file_path == "res://game/loading.tscn", "Start opens real preparation screen")
+ check(loading.animator.current_animation == "Running_A", "Authored run animation on preparation")
+ var before_x: float = loading.runner.position.x
+ loading._process(0.2)
+ check(loading.runner.position.x > before_x, "Runner advances left to right")
+ check(loading.profile.nickname == "У костра", "Loading preserves nickname")
+ loading.cancel_loading()
+ await scene_changed
+ welcome = current_scene
+ check(welcome.profile.world_count == saved.world_count, "Cancel does not generate a bunker")
+ welcome.launch()
+ await scene_changed
+ check(current_scene.scene_file_path == "res://game/loading.tscn", "Can start after cancellation")
  await scene_changed
  var room: Node3D = current_scene
  check(room.scene_file_path == "res://game/main.tscn", "Start opens bunker scene")
