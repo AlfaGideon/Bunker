@@ -1,4 +1,6 @@
-# Проверки и первый APK
+# Проверки и APK
+
+**Обновление 0.2:** [текущая сборка](https://github.com/AlfaGideon/Bunker/actions/runs/40611927187), [APK](https://github.com/AlfaGideon/Bunker/actions/runs/40611927187/artifacts/12782708530). Модели, анимация и обход мебели добавлены; подробности в [ITERATION_02.md](ITERATION_02.md). Ниже сохранена история первой версии.
 
 ## Подтверждённый результат
 
