@@ -21,6 +21,7 @@ jobs:
           bash tools/check_godot.sh --headless --editor --path . --quit
       - name: Check vote rules
         run: |
+          bash tools/check_godot.sh --headless --path . --script tools/test_profile.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rules.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_navigation.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
@@ -32,3 +33,5 @@ jobs:
           ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/scene.log
       - name: Render visual preview
         run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd
+      - name: Render menu preview
+        run: timeout 90 xvfb-run -a godot --path . --script tools/capture_scene.gd -- --menu

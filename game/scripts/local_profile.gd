@@ -18,6 +18,8 @@ func _init() -> void:
 	if nickname.is_empty():
 		nickname = "Алекс"
 	player_count = clampi(int(config.get_value("game", "players", 8)), 6, 10)
+	if not [6, 8, 10].has(player_count):
+		player_count = 8
 	camera_size = clampf(float(config.get_value("settings", "camera", 11.0)), 9.0, 14.0)
 	shadows = bool(config.get_value("settings", "shadows", true))
 	reduced_motion = bool(config.get_value("settings", "reduced_motion", false))

@@ -244,7 +244,11 @@ func _build_ui() -> void:
 	panel.add_child(margin)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	margin.add_child(scroll)
+	var shell := VBoxContainer.new()
+	shell.add_theme_constant_override("separation", 10)
+	margin.add_child(shell)
+	shell.add_child(scroll)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 10)
@@ -264,10 +268,13 @@ func _build_ui() -> void:
 	column.add_child(detail)
 	status_label = _label("")
 	column.add_child(status_label)
-	_button("Следующий этап →", _advance, column)
-	_button("Новая партия…", func(): menu.new_game(); menu.visible = true, column)
+	var advance_button := _button("Следующий этап →", _advance, column)
 	log_label = _label("Выберите свою карту для раскрытия. Остальные участники — тестовые персонажи. Новая партия: 40 профессий, 7 характеристик, случайная раздача.", 16)
 	column.add_child(log_label)
+	# Keep phase controls reachable without scrolling through seven cards.
+	for control in [status_label, advance_button, log_label]:
+		column.remove_child(control)
+		shell.add_child(control)
 	var hint := _label("Коснитесь пола: персонаж обойдёт стол и мебель.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.position = Vector2(24, -75)

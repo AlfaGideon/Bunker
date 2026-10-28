@@ -9,7 +9,8 @@ func capture() -> void:
 	var scene := load("res://game/main.tscn") as PackedScene
 	var room := scene.instantiate()
 	root.add_child(room)
-	room.menu.visible = false
+	var show_menu := OS.get_cmdline_user_args().has("--menu")
+	room.menu.visible = show_menu
 	for i in 15:
 		await process_frame
 	await RenderingServer.frame_post_draw
@@ -24,5 +25,6 @@ func capture() -> void:
 	var encoded := Marshalls.raw_to_base64(bytes)
 	var chunks := ceili(encoded.length() / 3500.0)
 	for index in chunks:
-		print("::notice::SCREENSHOT_%02d:" % index + encoded.substr(index * 3500, 3500))
+		var prefix := "MENUSHOT" if show_menu else "SCREENSHOT"
+		print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))
 	quit()
