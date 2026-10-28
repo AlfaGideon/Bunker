@@ -1,7 +1,7 @@
 name: Android debug APK
 on:
   push:
-    branches: [arena/d3ec098c-bunker]
+    branches: [arena/6df6407d-bunker]
   workflow_dispatch:
 permissions:
   contents: read

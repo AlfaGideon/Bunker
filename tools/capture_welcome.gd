@@ -6,7 +6,7 @@ func capture() -> void:
  root.add_child(welcome)
  if OS.get_cmdline_user_args().has("--update"):
   var update = preload("res://game/scripts/app_updates.gd").show_updates(welcome, false)
-  update.show_result({"code": 16, "url": "https://github.com/AlfaGideon/Bunker/releases/tag/android-16"})
+  update.show_result({"code": 17, "url": "https://github.com/AlfaGideon/Bunker/releases/tag/android-17"})
  if OS.get_cmdline_user_args().has("--female"):
   welcome.profile.appearance = "female"
   welcome.profile.outfit = 1
