@@ -1,0 +1,58 @@
+name: Android debug APK
+on:
+  push:
+    branches: [arena/d3ec098c-bunker]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: true
+      - name: Configure Android tools and debug signing
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;35.0.1" "platforms;android-35"
+          mkdir -p "$HOME/.android" "$HOME/.config/godot" builds
+          rm -f "$HOME/.android/debug.keystore"
+          keytool -genkeypair -noprompt -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          home = Path.home()
+          settings = home / '.config/godot/editor_settings-4.5.tres'
+          settings.write_text('[gd_resource type="EditorSettings" format=3]\n\n[resource]\n' +
+              f'export/android/android_sdk_path = "{os.environ["ANDROID_HOME"]}"\n' +
+              f'export/android/java_sdk_path = "{os.environ["JAVA_HOME"]}"\n' +
+              f'export/android/debug_keystore = "{home}/.android/debug.keystore"\n')
+          PY
+      - name: Import project
+        run: |
+          set -o pipefail
+          godot --headless --editor --path . --quit 2>&1 | tee /tmp/import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/import.log
+      - name: Test rules
+        run: godot --headless --path . --script tools/test_rules.gd
+      - name: Export debug APK
+        run: |
+          godot --headless --path . --export-debug Android builds/bunker-debug.apk
+          test -s builds/bunker-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bunker-debug-apk
+          path: builds/bunker-debug.apk
+          if-no-files-found: error
+          retention-days: 14
