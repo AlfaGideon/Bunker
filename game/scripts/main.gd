@@ -24,6 +24,13 @@ const VoteRules = preload("res://game/scripts/vote_rules.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
 var speech := Speech.new()
+var discussion_remaining := 0.0
+var vote_remaining := 0.0
+var vote_second := false
+var vote_candidates: Array = []
+var ballots := {}
+var vote_panel: Control
+var last_vote_result := {}
 var abilities := Abilities.new()
 var speech_label: Label
 var ability_buttons: Array[Button] = []
@@ -372,6 +379,9 @@ func _build_ui() -> void:
 	survival_panel = SurvivalPanel.new()
 	root.add_child(survival_panel)
 	survival_panel.setup(self)
+	vote_panel = preload("res://game/scripts/vote_panel.gd").new()
+	root.add_child(vote_panel)
+	vote_panel.setup(self)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 
@@ -405,10 +415,6 @@ func _refresh() -> void:
 		if card["id"] == "health" and (selected == 0 or card["revealed"]):
 			detail.add_info("Нагрузка на группу: " + Supplies.cost_text(card.get("cost", {})), 16)
 	detail.page_index = dossier_page
-	if phase == "vote" and active.has(0) and selected != 0 and active.has(selected):
-		_button("Голосовать (тестовые участники)", _demo_vote, detail)
-	if phase == "vote" and not active.has(0):
-		_button("Тестовое голосование оставшихся", _spectator_vote, detail)
 	if not active.has(selected):
 		detail.add_info("Наблюдатель — больше не участвует в голосовании.")
 
@@ -493,10 +499,9 @@ func _advance() -> void:
 		"reveal":
 			pass_speech()
 		"discussion":
-			phase = "vote"
-			log_label.text = "Демонстрация результата: выберите другого участника и нажмите «Голосовать». Остальные голоса задаёт явно тестовый сценарий."
+			log_label.text = "Общее обсуждение продолжается: %d сек." % ceili(discussion_remaining)
 		"vote":
-			log_label.text = "Выберите другого активного персонажа."
+			log_label.text = "Голосование уже открыто в центре экрана."
 		"result":
 			if not departures.is_empty():
 				log_label.text = "Подождите: исключённый участник идёт к выходу."
@@ -514,34 +519,59 @@ func _advance() -> void:
 	_refresh()
 
 
-func _demo_vote() -> void:
-	if phase != "vote" or not active.has(0) or selected == 0 or not active.has(selected):
-		return
-	# Explicit deterministic fixture, not intelligent bots or real online votes.
-	var votes := {0: selected}
+func start_vote(candidates: Array = [], second: bool = false) -> void:
+	phase = "vote"
+	vote_second = second
+	vote_candidates = candidates.duplicate()
+	vote_remaining = 20.0
+	ballots.clear()
+	# Other participants are explicitly local test fixtures, not network players.
+	var pool: Array = active if candidates.is_empty() else candidates
 	for voter in active:
-		if voter == 0:
-			continue
-		votes[voter] = 0 if voter == selected else selected
-	var result := VoteRules.resolve(active, votes)
-	if result["status"] != "eliminated":
-		log_label.text = "Тестовый бюллетень не дал результата: " + result["status"]
-		return
-	var eliminated: int = result["player"]
-	_eliminate(eliminated)
+		if voter != 0 and not pool.is_empty():
+			ballots[voter] = pool.pick_random()
+	vote_panel.open_ballot()
+	log_label.text = "Голосование 20 секунд. Тестовые участники голосуют локально."
+	_refresh()
 
 
-func _spectator_vote() -> void:
-	if phase != "vote" or active.has(0):
+func cast_vote(target: int) -> bool:
+	if phase != "vote" or not active.has(0) or not active.has(target):
+		return false
+	if target != 0 and not vote_candidates.is_empty() and not vote_candidates.has(target):
+		return false
+	ballots[0] = target
+	vote_panel.update_state()
+	return true
+
+
+func finish_vote() -> void:
+	if phase != "vote":
 		return
-	var candidate: int = active.pick_random()
-	var votes := {}
-	for voter in active:
-		if voter != candidate:
-			votes[voter] = candidate
-	var result := VoteRules.resolve(active, votes)
-	if result["status"] == "eliminated":
-		_eliminate(result["player"])
+	last_vote_result = VoteRules.resolve(active, ballots, vote_candidates, vote_second)
+	if last_vote_result["status"] == "runoff":
+		var leaders: Array = last_vote_result["leaders"]
+		start_vote(leaders, true)
+		return
+	vote_panel.visible = false
+	if last_vote_result["status"] == "eliminated":
+		_eliminate(int(last_vote_result["player"]))
+
+
+func tick_round_timer(delta: float) -> void:
+	if not started:
+		return
+	if phase == "discussion":
+		discussion_remaining = maxf(0.0, discussion_remaining - maxf(0.0, delta))
+		if discussion_remaining <= 0.0:
+			start_vote()
+		else:
+			_refresh_left()
+	elif phase == "vote":
+		vote_remaining = maxf(0.0, vote_remaining - maxf(0.0, delta))
+		vote_panel.update_state()
+		if vote_remaining <= 0.0:
+			finish_vote()
 
 
 func test_own_expulsion() -> void:
@@ -554,6 +584,8 @@ func test_own_expulsion() -> void:
 func _eliminate(eliminated: int) -> void:
 	if not active.has(eliminated):
 		return
+	if is_instance_valid(vote_panel):
+		vote_panel.visible = false
 	if eliminated == 0:
 		if rest_remaining > 0:
 			rest_remaining = 0
@@ -601,7 +633,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			menu.home()
 		return
-	if menu.visible or survival_panel.visible:
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
 		camera_gestures.reset()
 		return
 	# Native ScreenTouch may reach unhandled input before its emulated mouse
@@ -616,7 +648,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(menu) or not is_instance_valid(survival_panel):
 		return
-	if menu.visible or survival_panel.visible:
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
 		camera_gestures.reset()
 		return
 	# Starts reach us only after GUI handling; continuations remain captured
@@ -670,6 +702,7 @@ func _set_route(destination: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	if actors.is_empty() or menu.visible or survival_panel.visible:
 		return
+	tick_round_timer(delta)
 	if started and phase == "reveal":
 		if speech.tick(delta):
 			_begin_speaker()
@@ -1011,6 +1044,12 @@ func _refresh_left() -> void:
 	for slot in 2:
 		ability_buttons[slot].text = "%d. %s%s" % [slot + 1, Abilities.NAMES[abilities.cards[slot]], " • использована" if abilities.used[slot] else ""]
 		ability_buttons[slot].disabled = abilities.used[slot] or not active.has(0) or phase in ["vote", "end"]
+	if phase == "discussion":
+		speech_label.text = "Общее обсуждение\nОсталось %d сек.\nЗатем голосование." % ceili(discussion_remaining)
+		return
+	if phase == "vote":
+		speech_label.text = "Голосование\nОсталось %d сек." % ceili(vote_remaining)
+		return
 	speech_label.text = ("Речь: %s\nОсталось %d сек.\nРаскройте карту, объясните выбор и передайте ход. Меню = пауза." % [players[speech.speaker()]["name"], ceili(speech.remaining)]) if phase == "reveal" and not speech.finished else "Выступления завершены."
 
 
@@ -1034,7 +1073,8 @@ func pass_speech() -> void:
 func _begin_speaker() -> void:
 	if speech.finished:
 		phase = "discussion"
-		log_label.text = "Круг выступлений завершён. Обсудите решение, затем перейдите к голосованию."
+		discussion_remaining = 60.0
+		log_label.text = "Общее обсуждение: 60 секунд, затем голосование начнётся автоматически."
 	else:
 		selected = speech.speaker()
 		if selected != 0:

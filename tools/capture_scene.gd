@@ -67,6 +67,9 @@ func capture() -> void:
 			quit(1)
 			return
 		shot_prefix = "SLEEPSHOT"
+	if args.has("--vote"):
+		room.start_vote()
+		shot_prefix = "VOTESHOT"
 	if args.has("--council"):
 		room.menu.show_council()
 		shot_prefix = "COUNCILSHOT"

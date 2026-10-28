@@ -45,12 +45,24 @@ func run_test() -> void:
 				room._reveal_card(0, card)
 				break
 		room._demo_reveals()
+		room.started = true
 		room.phase = "discussion"
+		room.discussion_remaining = 60.0
+		room.tick_round_timer(59.0)
+		check(room.phase == "discussion" and is_equal_approx(room.discussion_remaining, 1.0), "Full minute of discussion")
 		room._advance()
-		check(room.phase == "vote", "Discussion to vote")
+		check(room.phase == "discussion", "Cannot skip discussion with next stage")
+		room.tick_round_timer(1.0)
+		check(room.phase == "vote" and room.vote_panel.visible and room.vote_remaining == 20.0, "Vote automatically opens for 20 seconds")
 		room.selected = room.active[1]
 		var expelled: int = room.selected
-		room._demo_vote()
+		room.ballots.clear()
+		for voter in room.active:
+			room.ballots[voter] = expelled
+		check(room.cast_vote(expelled), "Local player can choose active candidate")
+		room.tick_round_timer(19.0)
+		check(room.active.has(expelled) and room.vote_remaining == 1.0, "Vote remains open before deadline")
+		room.tick_round_timer(1.0)
 		check(not room.active.has(expelled), "Vote excludes a player")
 		check(room.departures.has(expelled), "Expelled player gets departure path")
 		for tick in 600:

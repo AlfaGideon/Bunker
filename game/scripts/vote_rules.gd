@@ -1,17 +1,19 @@
 class_name BunkerVoteRules
 extends RefCounted
-## Pure round rules; the eventual server must own this state.
-
+## Local ballot: missing/invalid ballots automatically count for the voter.
 static func resolve(active: Array, votes: Dictionary, candidates: Array = [],
 		second_ballot: bool = false, rng: RandomNumberGenerator = null) -> Dictionary:
 	var allowed: Array = active if candidates.is_empty() else candidates
 	var totals := {}
-	for voter in votes:
-		var target = votes[voter]
-		if active.has(voter) and active.has(target) and allowed.has(target) and voter != target:
-			totals[target] = int(totals.get(target, 0)) + 1
+	var counted := {}
+	for voter in active:
+		var target: Variant = votes.get(voter, voter)
+		if not active.has(target) or (target != voter and not allowed.has(target)):
+			target = voter
+		counted[voter] = target
+		totals[target] = int(totals.get(target, 0)) + 1
 	if totals.is_empty():
-		return {"status": "no_votes", "totals": totals, "leaders": []}
+		return {"status": "no_votes", "totals": totals, "leaders": [], "votes": counted}
 	var maximum := 0
 	var leaders: Array = []
 	for candidate in totals:
@@ -22,11 +24,11 @@ static func resolve(active: Array, votes: Dictionary, candidates: Array = [],
 			leaders.append(candidate)
 	leaders.sort()
 	if leaders.size() == 1:
-		return {"status": "eliminated", "player": leaders[0], "totals": totals, "random": false}
+		return {"status": "eliminated", "player": leaders[0], "totals": totals, "votes": counted, "random": false}
 	if not second_ballot:
-		return {"status": "runoff", "leaders": leaders, "totals": totals}
+		return {"status": "runoff", "leaders": leaders, "totals": totals, "votes": counted}
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
 	return {"status": "eliminated", "player": leaders[rng.randi_range(0, leaders.size() - 1)],
-		"totals": totals, "random": true}
+		"totals": totals, "votes": counted, "random": true}

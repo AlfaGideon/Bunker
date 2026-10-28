@@ -25,6 +25,7 @@ jobs:
         run: |
           bash tools/check_godot.sh --headless --path . --script tools/test_profile.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rules.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_timed_voting.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_navigation.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rig.gd
@@ -95,6 +96,8 @@ jobs:
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --meteor-detail
       - name: Render solar storm
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --solar
+      - name: Render timed vote
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --vote
       - name: Render council decision
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
       - name: Render kitchen and shared food
