@@ -14,7 +14,7 @@ func setup(game: Node3D, player_profile: BunkerProfile) -> void:
 	profile = player_profile
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var shade := ColorRect.new()
-	shade.color = Color(0.025, 0.055, 0.07, 0.104)
+	shade.color = Color(0.025, 0.055, 0.07, 0.114)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	var center := CenterContainer.new()
@@ -56,7 +56,7 @@ func home() -> void:
 	visible = true
 	clear()
 	text("Б У Н К Е Р", 38)
-	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.10", 18)
+	text("ПОСЛЕДНИЙ ШЛЮЗ  /  0.11", 18)
 	text("Добро пожаловать, " + profile.nickname)
 	text("Вы уже внутри убежища. Места ограничены — после каждого решения один участник покидает комплекс.", 18)
 	button("Продолжить партию", room.begin_game)

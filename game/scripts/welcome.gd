@@ -8,7 +8,7 @@ var draft_name := ""
 var avatar: Node3D
 var animator: AnimationPlayer
 var fire_light: OmniLight3D
-var flames: Array[MeshInstance3D] = []
+var camp_assets: Node3D
 var camera: Camera3D
 var ui: Control
 var column: VBoxContainer
@@ -78,44 +78,14 @@ func build_camp() -> void:
   rock.position = Vector3(cos(angle) * 0.6, 0.08, 1.0 + sin(angle) * 0.6)
   rock.material_override = mat(Color("71807b"))
   add_child(rock)
- for angle in [-0.7, 0.7]:
-  var log_piece := box(Vector3(0, 0.12, 1), Vector3(0.9, 0.15, 0.17), Color("664c32"))
-  log_piece.rotation.y = angle
- for i in 3:
-  var flame := MeshInstance3D.new()
-  var mesh := CylinderMesh.new()
-  mesh.top_radius = 0
-  mesh.bottom_radius = 0.25 - i * 0.05
-  mesh.radial_segments = 7
-  mesh.height = 0.85 - i * 0.15
-  flame.mesh = mesh
-  flame.position = Vector3((i - 1) * 0.15, 0.45, 1)
-  var flame_material := mat(Color("dc7138") if i != 1 else Color("e9b856"))
-  flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-  flame.material_override = flame_material
-  add_child(flame)
-  flames.append(flame)
+ camp_assets = preload("res://game/scripts/camp_assets.gd").new()
+ add_child(camp_assets)
  fire_light = OmniLight3D.new()
  fire_light.position = Vector3(0, 1.0, 1)
  fire_light.light_color = Color("ffb16c")
  fire_light.light_energy = 2.2
  fire_light.omni_range = 6
  add_child(fire_light)
- for i in 13:
-  var x := float(i % 7) * 2 - 8
-  var z := -4.5 - float(i / 7) * 2.5
-  box(Vector3(x, 0.7, z), Vector3(0.18, 1.4, 0.18), Color("483f37"))
-  for level in 3:
-   var tree := MeshInstance3D.new()
-   var cone := CylinderMesh.new()
-   cone.top_radius = 0
-   cone.bottom_radius = 0.9 - level * 0.18
-   cone.height = 1.7
-   cone.radial_segments = 8
-   tree.mesh = cone
-   tree.position = Vector3(x, 1.3 + level * 0.55, z)
-   tree.material_override = mat(Color("263e3b"))
-   add_child(tree)
  box(Vector3(4, 0.6, -3), Vector3(3.8, 1.2, 2), Color("445354"))
  Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.15))
  camera = Camera3D.new()
@@ -145,9 +115,8 @@ func _process(delta: float) -> void:
   animator.advance(delta)
  if is_instance_valid(fire_light):
   fire_light.light_energy = 2.1 + sin(clock * 9) * 0.15 + sin(clock * 17) * 0.1
- for i in flames.size():
-  flames[i].scale = Vector3(1, 0.85 + sin(clock * 6 + i * 2) * 0.15, 1)
-  flames[i].rotation.z = sin(clock * 4 + i) * 0.13
+ if is_instance_valid(camp_assets):
+  camp_assets.reduced_motion = profile.reduced_motion
 
 func label(text: String, size: int = 18) -> Label:
  var node := Label.new()
@@ -177,7 +146,7 @@ func build_ui() -> void:
  logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
  logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  logo.position = Vector2(30, 10)
- logo.size = Vector2(340, 180)
+ logo.size = Vector2(380, 175)
  ui.add_child(logo)
  var panel := PanelContainer.new()
  panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
@@ -189,7 +158,7 @@ func build_ui() -> void:
  var theme := Theme.new()
  theme.default_font_size = 18
  var style := StyleBoxFlat.new()
- style.bg_color = Color(0.055, 0.105, 0.13, 0.96)
+ style.bg_color = Color(0.055, 0.115, 0.13, 0.96)
  style.set_corner_radius_all(12)
  for edge in ["left", "right", "top", "bottom"]:
   style.set("content_margin_" + edge, 22)
@@ -260,7 +229,7 @@ func home() -> void:
  button("Сохранить профиль", save_draft)
  button("Как играть", instructions)
  button("Выйти", func(): get_tree().quit())
- error_label = label("Локальный прототип • 0.10\nПартия начнётся только после нажатия «Начать».", 15)
+ error_label = label("Локальный прототип • 0.11\nПартия начнётся только после нажатия «Начать».", 15)
 
 func save_draft() -> bool:
  var value := draft_name.strip_edges()

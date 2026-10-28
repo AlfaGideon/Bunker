@@ -201,5 +201,33 @@
     "author": "Kay Lousberg / KayKit",
     "license": "CC0-1.0",
     "sha256": "93e6e25213009952276d9cf34f5d96a243767334c66f280db0433ddfabb91545"
+  },
+  {
+    "file": "assets/quaternius/nature_pack_PineTree_1.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/nature_pack/PineTree_1.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "82c2e4f9737c7b97358974b684b64b791efd4f342653c37aeee725158b7aad44"
+  },
+  {
+    "file": "assets/quaternius/nature_pack_PineTree_3.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/nature_pack/PineTree_3.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "996806cadf03c7ae8ea08602e140e00c5588a46d25ae2e082c8ccf67768a07cf"
+  },
+  {
+    "file": "assets/quaternius/survival_pack_Bonfire.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/survival_pack/Bonfire.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "e8fe4435fa69adf252512b824569867721a186208cdfe82c3dc3df7f9e2487a0"
+  },
+  {
+    "file": "assets/quaternius/survival_pack_Bonfire_Fire.glb",
+    "source": "https://github.com/trebeljahr/quaternius-showcase/blob/722c39e964360beff2728a8ee4d103e2d11d457c/public/glb/survival_pack/Bonfire_Fire.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "sha256": "2d14eb6c59776a0f43fb3e3158793e2fad59b1360c150fc138e6f8216947462c"
   }
 ]

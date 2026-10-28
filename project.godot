@@ -9,7 +9,7 @@ config/icon="res://assets/branding/icon.svg"
 boot_splash/image="res://assets/branding/splash.png"
 boot_splash/show_image=true
 boot_splash/fullsize=true
-boot_splash/bg_color=Color(0.063, 0.114, 0.145, 1)
+boot_splash/bg_color=Color(0.024, 0.031, 0.031, 1)
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [display]
