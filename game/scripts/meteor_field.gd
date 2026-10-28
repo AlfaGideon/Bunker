@@ -37,7 +37,13 @@ func setup(room: Node3D) -> void:
 	fire.emission_energy_multiplier = 1.2
 	var tail_shader := Shader.new()
 	tail_shader.code = """shader_type spatial; render_mode unshaded, blend_add, cull_disabled, depth_draw_never;
-	void fragment(){float fade = UV.y; ALBEDO = mix(vec3(1.0,0.1,0.01),vec3(1.0,0.8,0.25),UV.y); ALPHA = fade*0.7;}"""
+	void vertex(){float bend=(1.0-UV.y)*0.065;
+	VERTEX.x += sin(UV.y*17.0+TIME*11.0)*bend;
+	VERTEX.z += cos(UV.y*23.0+TIME*13.0)*bend;}
+	void fragment(){float fade=pow(UV.y,0.8);
+	float turbulence=0.48+0.22*sin(UV.y*43.0-TIME*16.0+sin(UV.x*31.0)*2.0)+0.16*cos(UV.y*71.0+TIME*21.0);
+	ALBEDO=mix(vec3(0.9,0.08,0.005),vec3(1.0,0.65,0.18),UV.y);
+	ALPHA=fade*clamp(turbulence,0.08,0.9)*0.6;}"""
 	var tail_material := ShaderMaterial.new()
 	tail_material.shader = tail_shader
 	var locations := [Vector3(-11, -0.35, -3), Vector3(11, -0.35, 0), Vector3(0, -0.35, 10), Vector3(-6, -0.35, 9), Vector3(8, -0.35, 9), Vector3(-11, -0.35, 5)]
