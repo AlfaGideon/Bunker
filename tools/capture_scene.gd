@@ -106,11 +106,19 @@ func capture() -> void:
 	var bytes := image.save_jpg_to_buffer(0.6)
 	var file := FileAccess.open("res://builds/scene.jpg", FileAccess.WRITE)
 	file.store_buffer(bytes)
-	if bytes.size() > (35000 if width == 800 else 22000):
-		bytes = image.save_jpg_to_buffer(0.3)
-	if bytes.size() > (35000 if width == 800 else 22000):
+	# Actions retains at most ten notices per step. Stay under 24 KB even for
+	# close-ups, otherwise the final JPEG chunks silently disappear.
+	var cap := 24000 if width == 800 else 22000
+	for quality in [0.3, 0.2, 0.12]:
+		if bytes.size() > cap:
+			bytes = image.save_jpg_to_buffer(quality)
+	if bytes.size() > cap:
 		image.resize(512, roundi(image.get_height() * 512.0 / image.get_width()))
 		bytes = image.save_jpg_to_buffer(0.25)
+	if bytes.size() > cap:
+		print("::error::Preview exceeds annotation transport budget")
+		quit(1)
+		return
 	var encoded := Marshalls.raw_to_base64(bytes)
 	var chunks := ceili(encoded.length() / 3500.0)
 	for index in chunks:
