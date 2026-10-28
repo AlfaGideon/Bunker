@@ -82,8 +82,8 @@ func add_info_piece(value: String, font_size: int) -> void:
 
 func add_card(control: Control) -> void:
  if control is Label and control.text.length() > 320:
-  var remaining := control.text
-  var split := remaining.rfind(" ", 320)
+  var remaining: String = control.text
+  var split: int = remaining.rfind(" ", 320)
   if split < 100:
    split = 320
   control.text = remaining.substr(0, split)
@@ -143,10 +143,10 @@ func rebuild() -> void:
    if node.has_meta("card_label"):
     var label: Label = node.get_meta("card_label")
     var font: int = label.get_theme_font_size("font_size")
-    var lines := ceili(float(label.text.length()) / maxf(14, width / (font * 0.57))) + label.text.count("\n")
+    var lines: int = ceili(float(label.text.length()) / maxf(14, width / (font * 0.57))) + label.text.count("\n")
     estimate = maxf(50, 28 + maxf(1, lines) * (font + 4))
    elif node is Button:
-    var lines := ceili(float(node.text.length()) / maxf(14, width / 10)) + node.text.count("\n")
+    var lines: int = ceili(float(node.text.length()) / maxf(14, width / 10)) + node.text.count("\n")
     estimate = maxf(72, 24 + maxf(1, lines) * 22)
    node.custom_minimum_size.y = estimate
    row_height = maxf(row_height, estimate)
