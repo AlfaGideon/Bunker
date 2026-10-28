@@ -21,10 +21,12 @@ func run() -> void:
  check(room.phase == "discussion", "Advance cannot bypass discussion")
  room.tick_round_timer(0.5)
  check(room.vote_panel.visible and room.vote_remaining == 20.0, "Vote appears automatically in center")
- for i in 4:
+ for i in 10:
   await process_frame
  var panel: Control = room.vote_panel.find_child("VoteCard", true, false)
- check(panel.get_global_rect().end.y <= root.get_visible_rect().size.y, "Vote card fits the viewport")
+ check(panel.get_global_rect().position.y >= 0 and panel.get_global_rect().end.y <= root.get_visible_rect().size.y, "Vote card fits the viewport")
+ check(room.vote_panel.timer.size.x >= 120 and room.vote_panel.timer.size.y < 60, "Timer is horizontal, not wrapped vertically")
+ check(room.vote_panel.skip.get_global_rect().end.y <= panel.get_global_rect().end.y, "Skip action fits inside vote card")
  check(room.vote_panel.find_children("*", "ScrollContainer", true, false).is_empty(), "No vertical scrolling")
  check(room.vote_panel.deck.card_nodes.size() == room.active.size(), "All active candidates represented")
  check(room.cast_vote(1) and room.ballots[0] == 1, "Player selects candidate")

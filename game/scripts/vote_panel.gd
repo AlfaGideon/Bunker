@@ -36,6 +36,9 @@ func setup(game: Node3D) -> void:
  title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  header.add_child(title)
  timer = room._label("20 сек.", 25)
+ timer.autowrap_mode = TextServer.AUTOWRAP_OFF
+ timer.custom_minimum_size.x = 120
+ timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
  header.add_child(timer)
  var hint: Label = room._label("Выберите участника. Если пропустить или не успеть — голос за себя.", 17)
  column.add_child(hint)

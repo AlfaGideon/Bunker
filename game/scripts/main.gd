@@ -625,6 +625,8 @@ func _eliminate(eliminated: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(vote_panel) and vote_panel.visible:
+		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if survival_panel.visible:
 			return
