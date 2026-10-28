@@ -47,7 +47,7 @@ func _ready() -> void:
  else:
   animator.get_animation("Sit_Chair_StandUp").loop_mode = Animation.LOOP_NONE
   animator.play("Sit_Chair_StandUp", 0.18)
-  var slide := camp.panel.create_tween().set_parallel(true)
+  var slide: Tween = camp.panel.create_tween().set_parallel(true)
   slide.tween_property(camp.panel, "offset_left", camp.panel.offset_left + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
   slide.tween_property(camp.panel, "offset_right", camp.panel.offset_right + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
   slide.tween_property(camp.ui.get_child(0), "modulate:a", 0.0, 0.65)
