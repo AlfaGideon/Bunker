@@ -26,7 +26,7 @@ func run() -> void:
   check(welcome.avatar.get_meta("source").ends_with(Catalog.model(id).trim_prefix("kaykit_") + ".glb"), "Expected model: " + id)
   check(welcome.animator.has_animation("Sit_Chair_Idle") and welcome.animator.has_animation("Sit_Chair_StandUp") and welcome.animator.has_animation("Running_A"), "Seated and running clips: " + id)
   if id == "female_senior":
-   var heads := welcome.avatar.find_children("*Rogue_Head*", "MeshInstance3D", true, false)
+   var heads: Array[Node] = welcome.avatar.find_children("*Rogue_Head*", "MeshInstance3D", true, false)
    check(not heads.is_empty() and heads[0].material_override != null, "Silver-haired head material applied")
  check(Catalog.biology("male", 63) == "male_senior", "Senior male biology")
  check(Catalog.biology("female", 63) == "female_senior", "Senior female biology")
