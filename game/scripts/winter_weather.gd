@@ -184,7 +184,12 @@ func _build_walkers(room: Node3D) -> void:
 			animation.seek(float(i) * 0.21, true)
 		actor.set_meta("animation", animation)
 		actor.set_meta("crawl", crawl)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = room.layout_seed * 103 + i * 971 + 8183
+		actor.set_meta("rng", rng)
 		actor.set_meta("reverse", i % 3 == 0)
+		actor.set_meta("next_decision", rng.randf_range(2.0, 6.0))
+		actor.set_meta("pause_until", 0.0)
 		actor.set_meta("distance", perimeter * float(i) / 8.0)
 		actor.set_meta("speed", 0.27 if crawl else 0.35 + float(i % 3) * 0.08)
 		actor.position = _perimeter_point(actor.get_meta("distance"))
@@ -204,9 +209,15 @@ func _process(delta: float) -> void:
 		water.position.y = -0.55
 	for i in walkers.size():
 		var actor := walkers[i]
+		var rng: RandomNumberGenerator = actor.get_meta("rng")
+		if clock >= float(actor.get_meta("next_decision")):
+			if rng.randf() < 0.48:
+				actor.set_meta("reverse", not actor.get_meta("reverse"))
+			if rng.randf() < 0.40:
+				actor.set_meta("pause_until", clock + rng.randf_range(0.8, 2.5))
+			actor.set_meta("next_decision", clock + rng.randf_range(3.0, 9.0))
 		var direction_sign := -1.0 if actor.get_meta("reverse") else 1.0
-		# Individual stagger and pauses avoid a single clockwork procession.
-		var pace := 0.15 if sin(clock * 0.31 + float(i) * 2.4) < -0.76 else 1.0
+		var pace := 0.0 if clock < float(actor.get_meta("pause_until")) else 1.0
 		var distance: float = actor.get_meta("distance") + delta * float(actor.get_meta("speed")) * pace * direction_sign
 		actor.set_meta("distance", distance)
 		actor.position = _perimeter_point(distance)
