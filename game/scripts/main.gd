@@ -604,6 +604,7 @@ func _eliminate(eliminated: int) -> void:
 		npc_rests.erase(eliminated)
 	create_tween().tween_property(exit_hatch, "position:y", -2.0, 0.5)
 	active.erase(eliminated)
+	_update_medical_access()
 	actors[eliminated].get_child(1).modulate = Color("71828c")
 	var departure := navigation.path_between(actors[eliminated].position, Vector3(3.8, 0, 3.2))
 	departure.append_array(PackedVector3Array([Vector3(3.8, 0, 4.5), Vector3(3.8, 0, 6.7), Vector3(8.9, 0, 6.7), Vector3(10.3, -0.3, 6.7)]))
@@ -817,10 +818,21 @@ func _narrate_intro() -> void:
 			menu.briefing(false)
 
 
+func _active_doctor() -> bool:
+	for id in active:
+		if Professions.profession(players[id]) == "Врач":
+			return true
+	return false
+
+
 func medical_status() -> String:
 	if medical_open:
 		return "Медблок открыт. Осталось наборов: %d." % medicines
-	return "Медблок закрыт: техник восстанавливает систему аварийным набором у терминала; доступ со второго раунда. Система: %s; раунд: %d." % ["готова" if systems_ready else "не восстановлена", round_number]
+	if round_number < 2:
+		return "Медблок закрыт до конца первого раунда. Затем врач может открыть дверь."
+	if not _active_doctor():
+		return "Медблок закрыт: в команде нет врача."
+	return "Медблок закрыт. Поручите врачу открыть дверь медблока."
 
 
 func request_interaction(key: String, operator: int = 0) -> bool:
@@ -836,10 +848,10 @@ func request_interaction(key: String, operator: int = 0) -> bool:
 	if key == "supply" and not warehouse_open:
 		log_label.text = "Склад опечатан решением совета. Он может остаться закрытым до конца партии."
 		return false
-	if not Professions.allowed(players[operator], key) and key != "gate":
+	if not Professions.allowed(players[operator], key):
 		log_label.text = "Профессия не подходит. " + Professions.requirement(key)
 		return false
-	if key == "gate" or (key == "medical" and not medical_open):
+	if (key == "gate" and (round_number < 2 or medical_open)) or (key == "medical" and not medical_open):
 		log_label.text = medical_status()
 		return false
 	if not layout["items"].has(key):
@@ -885,6 +897,8 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 		_start_extra_bed(key, operator)
 		return
 	match key:
+		"gate":
+			_open_medical(operator)
 		"supply":
 			if supply_taken:
 				log_label.text = "Склад проверен: снабжение уже получено."
@@ -980,8 +994,9 @@ func _tick_rest(delta: float) -> void:
 		log_label.text = "Вы отдохнули. Бодрость: %d/100. Снова можно отдохнуть в следующем раунде." % stamina
 
 
-func _update_medical_access() -> void:
-	if medical_open or not systems_ready or round_number < 2:
+func _open_medical(operator: int) -> void:
+	if medical_open or round_number < 2 or operator not in active or Professions.profession(players[operator]) != "Врач":
+		log_label.text = medical_status()
 		return
 	medical_open = true
 	navigation.unlock_medical()
@@ -989,6 +1004,34 @@ func _update_medical_access() -> void:
 	med_label.text = "МЕДБЛОК • ОТКРЫТ"
 	med_light.light_energy = 1.2
 	create_tween().tween_property(med_gate, "position:y", -1.2, 0.6)
+	log_label.text = "Врач открыл медблок."
+	audio.blip("door")
+
+
+func _update_medical_access() -> void:
+	if not medical_open or _active_doctor():
+		return
+	# Return occupants to the hall before sealing the navigation cells.
+	var med_bounds: Rect2 = layout["med_bounds"]
+	var corridor: Rect2 = layout["gate_blocker"]
+	var approach: Vector3 = layout["items"]["gate"]["goal"]
+	for i in actors.size():
+		var p := Vector2(actors[i].position.x, actors[i].position.z)
+		if med_bounds.has_point(p) or corridor.has_point(p):
+			actors[i].position = navigation.nearest_walkable(approach)
+			jobs.erase(i)
+		elif jobs.has(i) and jobs[i].get("key", "") in ["medical", "gate"]:
+			jobs.erase(i)
+	if pending_inspection in ["medical", "gate"]:
+		route.clear()
+		pending_inspection = ""
+		marker.visible = false
+	medical_open = false
+	navigation.lock_medical()
+	med_label.text = "МЕДБЛОК • ЗАКРЫТ"
+	med_light.light_energy = 0.0
+	create_tween().tween_property(med_gate, "position:y", layout["modules"]["medical"]["gate"].y, 0.6)
+	log_label.text = "Врач выбыл: медблок закрыт."
 	audio.blip("door")
 
 

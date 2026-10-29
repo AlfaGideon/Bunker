@@ -48,9 +48,9 @@ func capture() -> void:
 		room.survival_panel.configure()
 		room.survival_panel.visible = true
 	if args.has("--open-med"):
-		room.systems_ready = true
+		room.players[0]["cards"][0]["value"] = "Врач"
 		room.round_number = 2
-		room._update_medical_access()
+		room._open_medical(0)
 		room._refresh()
 		await create_timer(0.7).timeout
 		room.ui_root.visible = false

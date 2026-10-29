@@ -76,7 +76,7 @@ static func generate(seed_value: int, capacity: int = 4) -> Dictionary:
 
  var med: Dictionary = modules["medical"]
  var store: Dictionary = modules["supply"]
- items["gate"] = {"title": "Дверь медотсека — условия", "at": med["gate"], "goal": med["approach"]}
+ items["gate"] = {"title": "Дверь медотсека — открыть врачом", "at": med["gate"], "goal": med["approach"]}
  items["warehouse_gate"] = {"title": "Дверь склада — совет", "at": store["gate"], "goal": store["approach"]}
  var all_bounds := hall
  for floor_rect in floors:
