@@ -26,6 +26,7 @@ static func build(room: Node3D) -> void:
  var ground := MeshInstance3D.new()
  ground.mesh = surface.commit()
  ground.material_override = material
+ ground.visible = weather != "flood"
  room.add_child(ground)
  ground.name = "TerrainSurface"
  var rng := RandomNumberGenerator.new()

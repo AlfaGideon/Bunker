@@ -21,7 +21,10 @@ func run() -> void:
    for actor in room.weather.walkers:
     check(not Ground.covered(room.layout, Vector2(actor.position.x, actor.position.z)), "Patrol never enters bunker")
   check(before.distance_to(room.weather.walkers[0].position) > 1.0, "Infected traverse perimeter")
-  check(room.weather.walkers[2].get_child(0).rotation.x < 0.0, "Infected have a hunched stance")
+  check(room.weather.walkers[2].get_meta("crawl"), "Crawling zombie exists")
+  for actor in room.weather.walkers:
+   var anim: AnimationPlayer = actor.get_meta("animation")
+   check(anim.is_playing(), "Imported zombie animation is playing")
   var stopped: Vector3 = room.weather.walkers[0].position
   room.weather.set_reduced_motion(true)
   room.weather._process(3)

@@ -81,6 +81,9 @@ func set_reduced_motion(reduced: bool) -> void:
 	for child in get_children():
 		if child.has_meta("aurora"):
 			child.material_override.set_shader_parameter("still", reduced)
+	for actor in walkers:
+		var animation: AnimationPlayer = actor.get_meta("animation")
+		animation.speed_scale = 0.0 if reduced else 0.75
 	for snow in emitters:
 		snow.visible = not reduced
 		snow.emitting = not reduced
@@ -114,7 +117,14 @@ func _exterior_particles(color: Color, falling: bool) -> void:
 
 
 func _build_flood(room: Node3D) -> void:
-	water = room._box(Vector3(0, -0.24, 0), Vector3(160, 0.08, 160), Color("285b7b"))
+	water = MeshInstance3D.new()
+	var ocean := PlaneMesh.new()
+	ocean.size = Vector2(160, 160)
+	ocean.subdivide_width = 127
+	ocean.subdivide_depth = 127
+	water.mesh = ocean
+	water.position.y = -0.55
+	room.add_child(water)
 	var water_mat := ShaderMaterial.new()
 	water_mat.shader = load("res://game/shaders/flood_water.gdshader")
 	water.material_override = water_mat
@@ -159,22 +169,24 @@ func _build_walkers(room: Node3D) -> void:
 		add_child(actor)
 		var pivot := Node3D.new()
 		actor.add_child(pivot)
-		var visual := Art.spawn(pivot, "modular_men_Worker" if i % 2 == 0 else "modular_women_Casual", Vector3.ZERO, Vector3(1, 1.4, 1), true)
-		# Preserve each imported garment/skin material and texture, tint rather than replace it.
-		for mesh in visual.find_children("*", "MeshInstance3D", true, false):
-			for surface in mesh.mesh.get_surface_count():
-				var original: Material = mesh.get_active_material(surface)
-				if original is StandardMaterial3D:
-					var infected: StandardMaterial3D = original.duplicate()
-					infected.albedo_color *= Color(0.60, 0.76, 0.58, 1.0)
-					infected.roughness = maxf(infected.roughness, 0.85)
-					mesh.set_surface_override_material(surface, infected)
-		visual.set_script(Visual)
-		visual._collect(visual)
-		pivot.rotation.x = -0.18
-		actor.set_meta("crawl", false)
+		var crawl := i == 2 or i == 6
+		var visual := Art.spawn(pivot, "zombie_a" if crawl or i % 2 == 0 else "zombie_b", Vector3.ZERO, Vector3(1, 1.4, 1), true)
+		var animation: AnimationPlayer = visual.find_children("*", "AnimationPlayer", true, false)[0]
+		var desired := "crawl" if crawl else "walk"
+		var selected := ""
+		for clip in animation.get_animation_list():
+			if str(clip).to_lower().ends_with(desired):
+				selected = clip
+				break
+		if not selected.is_empty():
+			animation.get_animation(selected).loop_mode = Animation.LOOP_LINEAR
+			animation.play(selected)
+			animation.seek(float(i) * 0.21, true)
+		actor.set_meta("animation", animation)
+		actor.set_meta("crawl", crawl)
+		actor.set_meta("reverse", i % 3 == 0)
 		actor.set_meta("distance", perimeter * float(i) / 8.0)
-		actor.set_meta("speed", 0.46 + float(i % 3) * 0.08)
+		actor.set_meta("speed", 0.27 if crawl else 0.35 + float(i % 3) * 0.08)
 		actor.position = _perimeter_point(actor.get_meta("distance"))
 		var ahead := _perimeter_point(float(actor.get_meta("distance")) + 0.1) - actor.position
 		actor.rotation.y = atan2(ahead.x, ahead.z)
@@ -189,20 +201,20 @@ func _process(delta: float) -> void:
 	if is_instance_valid(hazard_lamp):
 		hazard_lamp.light_energy = 2.0 + sin(clock * 2.0) * 1.2
 	if is_instance_valid(water):
-		water.position.y = -0.24 + sin(clock * 0.9) * 0.025
+		water.position.y = -0.55
 	for i in walkers.size():
 		var actor := walkers[i]
-		var distance: float = actor.get_meta("distance") + delta * float(actor.get_meta("speed"))
+		var direction_sign := -1.0 if actor.get_meta("reverse") else 1.0
+		# Individual stagger and pauses avoid a single clockwork procession.
+		var pace := 0.15 if sin(clock * 0.31 + float(i) * 2.4) < -0.76 else 1.0
+		var distance: float = actor.get_meta("distance") + delta * float(actor.get_meta("speed")) * pace * direction_sign
 		actor.set_meta("distance", distance)
 		actor.position = _perimeter_point(distance)
-		var direction := _perimeter_point(distance + 0.2) - actor.position
+		var direction := _perimeter_point(distance + 0.2 * direction_sign) - actor.position
 		if direction.length_squared() > 0.000001:
 			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(direction.x, direction.z), minf(delta * 3.0, 1.0))
-		var pivot: Node3D = actor.get_child(0)
-		var visual: Node3D = pivot.get_child(0)
-		visual.gesture = 0.8
-		visual.animate(delta * (0.45 if actor.get_meta("crawl") else 0.65), true, float(i))
-		pivot.rotation.z = sin(clock * 1.3 + float(i)) * (0.09 if actor.get_meta("crawl") else 0.045)
+		var animation: AnimationPlayer = actor.get_meta("animation")
+		animation.speed_scale = pace * (0.65 + float(i % 3) * 0.1)
 
 
 func _build_hazard(room: Node3D, weather: String) -> void:
