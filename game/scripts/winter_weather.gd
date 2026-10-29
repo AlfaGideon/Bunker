@@ -171,12 +171,10 @@ func _build_walkers(room: Node3D) -> void:
 					mesh.set_surface_override_material(surface, infected)
 		visual.set_script(Visual)
 		visual._collect(visual)
-		var crawl := i == 2 or i == 6
-		pivot.rotation.x = -1.08 if crawl else -0.18
-		pivot.position.y = 0.35 if crawl else 0.0
-		actor.set_meta("crawl", crawl)
+		pivot.rotation.x = -0.18
+		actor.set_meta("crawl", false)
 		actor.set_meta("distance", perimeter * float(i) / 8.0)
-		actor.set_meta("speed", 0.30 if crawl else 0.46 + float(i % 3) * 0.08)
+		actor.set_meta("speed", 0.46 + float(i % 3) * 0.08)
 		actor.position = _perimeter_point(actor.get_meta("distance"))
 		var ahead := _perimeter_point(float(actor.get_meta("distance")) + 0.1) - actor.position
 		actor.rotation.y = atan2(ahead.x, ahead.z)

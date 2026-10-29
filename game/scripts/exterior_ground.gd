@@ -45,18 +45,16 @@ static func build(room: Node3D) -> void:
   stone.position = at
   stone.scale = Vector3(rng.randf_range(0.4, 1.5), rng.randf_range(0.3, 0.9), rng.randf_range(0.6, 1.4))
   room.add_child(stone)
- # Hundreds of blades use one instanced draw rather than individual nodes.
- var grass := SurfaceTool.new()
- grass.begin(Mesh.PRIMITIVE_TRIANGLES)
- for angle in [0.0, PI / 2]:
-  var across := Vector3(cos(angle), 0, sin(angle)) * 0.14
-  for p in [-across, across, Vector3(0, 0.55, 0)]:
-   grass.add_vertex(p)
- grass.generate_normals()
+ # Reuse the detailed CC0 grass model as one instanced draw instead of cones.
+ var grass_scene := (load("res://assets/quaternius/nature_pack_Grass_Short.glb") as PackedScene).instantiate()
+ var grass_mesh_node: MeshInstance3D = grass_scene.find_children("*", "MeshInstance3D", true, false)[0]
+ var grass_mesh: Mesh = grass_mesh_node.mesh
+ var grass_basis: Basis = grass_mesh_node.transform.basis
+ grass_scene.free()
  var batch := MultiMesh.new()
  batch.transform_format = MultiMesh.TRANSFORM_3D
  batch.use_colors = true
- batch.mesh = grass.commit()
+ batch.mesh = grass_mesh
  batch.instance_count = 90 if snow or dry else 240
  for i in batch.instance_count:
   var x := rng.randf_range(-20, 20)
@@ -64,7 +62,7 @@ static func build(room: Node3D) -> void:
   if covered(room.layout, Vector2(x, z)):
    x = 21.0 if x > 0 else -21.0
   var scale_value := rng.randf_range(0.4, 1.0)
-  batch.set_instance_transform(i, Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(Vector3.ONE * scale_value), Vector3(x, -0.3, z)))
+  batch.set_instance_transform(i, Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)) * grass_basis.scaled(Vector3.ONE * scale_value), Vector3(x, -0.3, z)))
   batch.set_instance_color(i, Color("8b8261") if snow or dry else Color("718450"))
  var blades := MultiMeshInstance3D.new()
  blades.multimesh = batch
