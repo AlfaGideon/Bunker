@@ -24,6 +24,10 @@ func capture() -> void:
 		scenario_id = "infection"
 		seed_value = 3
 		shot_prefix = "INFECTIONSHOT"
+	if args.has("--infection-detail"):
+		scenario_id = "infection"
+		seed_value = 3
+		shot_prefix = "INFECTDETAILSHOT"
 	if args.has("--solar"):
 		scenario_id = "solar_superstorm"
 		shot_prefix = "AURORASHOT"
@@ -94,6 +98,14 @@ func capture() -> void:
 		room.camera.position = Vector3(3.6, 3.4, 9)
 		room.camera.look_at(Vector3(0.8, 0.8, 3.5))
 		shot_prefix = "CHARACTERSHOT"
+	if args.has("--infection-detail"):
+		room.ui_root.visible = false
+		room.set_physics_process(false)
+		var infected: Node3D = room.weather.walkers[2]
+		var focus: Vector3 = infected.position + Vector3(0, 0.5, 0)
+		room.camera.size = 5
+		room.camera.position = focus + Vector3(3, 3.5, 6)
+		room.camera.look_at(focus)
 	if args.has("--meteor-detail"):
 		room.ui_root.visible = false
 		room.camera.size = 8
@@ -130,7 +142,7 @@ func capture() -> void:
 			print("::error::Letterboxed logical canvas: " + str(logical))
 			quit(1)
 			return
-	var width := 800 if args.has("--characters") or args.has("--meteor-detail") else 640
+	var width := 800 if args.has("--characters") or args.has("--meteor-detail") or args.has("--infection-detail") else 640
 	image.resize(width, roundi(image.get_height() * float(width) / image.get_width()))
 	DirAccess.make_dir_recursive_absolute("res://builds")
 	var bytes := image.save_jpg_to_buffer(0.6)

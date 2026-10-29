@@ -11,6 +11,7 @@ var clock := 0.0
 var reduced_motion := false
 var meteor_field: Node3D
 var hazard_lamp: OmniLight3D
+var patrol_bounds: Rect2
 
 
 func setup(room: Node3D, weather: String) -> void:
@@ -73,6 +74,8 @@ func setup(room: Node3D, weather: String) -> void:
 
 func set_reduced_motion(reduced: bool) -> void:
 	reduced_motion = reduced
+	if is_instance_valid(water) and water.material_override is ShaderMaterial:
+		water.material_override.set_shader_parameter("still", reduced)
 	if is_instance_valid(meteor_field):
 		meteor_field.reduced_motion = reduced
 	for child in get_children():
@@ -112,6 +115,9 @@ func _exterior_particles(color: Color, falling: bool) -> void:
 
 func _build_flood(room: Node3D) -> void:
 	water = room._box(Vector3(0, -0.24, 0), Vector3(160, 0.08, 160), Color("285b7b"))
+	var water_mat := ShaderMaterial.new()
+	water_mat.shader = load("res://game/shaders/flood_water.gdshader")
+	water.material_override = water_mat
 	_exterior_particles(Color("9fc2d9"), true)
 	for i in 14:
 		var debris: MeshInstance3D = room._box(Vector3(-11 if i % 2 == 0 else 11, -0.13, float(i) - 6), Vector3(0.7, 0.1, 0.3), Color("76654d"))
@@ -125,21 +131,57 @@ func _build_meteors(room: Node3D) -> void:
 	emitters.append_array(meteor_field.emitters)
 
 
+# Infected follow a rectangular perimeter outside every procedural room and corridor.
+func _perimeter_point(distance: float) -> Vector3:
+	var w := patrol_bounds.size.x
+	var h := patrol_bounds.size.y
+	var d := fposmod(distance, 2.0 * (w + h))
+	var x := patrol_bounds.position.x
+	var z := patrol_bounds.position.y
+	if d < w:
+		return Vector3(x + d, -0.3, z)
+	d -= w
+	if d < h:
+		return Vector3(x + w, -0.3, z + d)
+	d -= h
+	if d < w:
+		return Vector3(x + w - d, -0.3, z + h)
+	return Vector3(x, -0.3, z + h - (d - w))
+
+
 func _build_walkers(room: Node3D) -> void:
-	for i in 6:
+	var layout_bounds: Rect2 = room.layout["bounds"]
+	patrol_bounds = layout_bounds.grow(2.2)
+	var perimeter := 2.0 * (patrol_bounds.size.x + patrol_bounds.size.y)
+	for i in 8:
 		var actor := Node3D.new()
+		actor.name = "Infected%02d" % i
 		add_child(actor)
-		var visual := Art.spawn(actor, "modular_men_Worker" if i % 2 == 0 else "modular_women_Casual", Vector3.ZERO, Vector3(1, 1.4, 1), true)
+		var pivot := Node3D.new()
+		actor.add_child(pivot)
+		var visual := Art.spawn(pivot, "modular_men_Worker" if i % 2 == 0 else "modular_women_Casual", Vector3.ZERO, Vector3(1, 1.4, 1), true)
+		# Preserve each imported garment/skin material and texture, tint rather than replace it.
 		for mesh in visual.find_children("*", "MeshInstance3D", true, false):
-			mesh.material_override = room._material(Color("71866b"))
+			for surface in mesh.mesh.get_surface_count():
+				var original: Material = mesh.get_active_material(surface)
+				if original is StandardMaterial3D:
+					var infected: StandardMaterial3D = original.duplicate()
+					infected.albedo_color *= Color(0.60, 0.76, 0.58, 1.0)
+					infected.roughness = maxf(infected.roughness, 0.85)
+					mesh.set_surface_override_material(surface, infected)
 		visual.set_script(Visual)
 		visual._collect(visual)
-		actor.position = Vector3(-10.3 if i % 2 == 0 else 10.3, -0.3, i * 1.8 - 4)
-		actor.set_meta("origin", actor.position)
+		var crawl := i == 2 or i == 6
+		pivot.rotation.x = -1.08 if crawl else -0.18
+		pivot.position.y = 0.35 if crawl else 0.0
+		actor.set_meta("crawl", crawl)
+		actor.set_meta("distance", perimeter * float(i) / 8.0)
+		actor.set_meta("speed", 0.30 if crawl else 0.46 + float(i % 3) * 0.08)
+		actor.position = _perimeter_point(actor.get_meta("distance"))
+		var ahead := _perimeter_point(float(actor.get_meta("distance")) + 0.1) - actor.position
+		actor.rotation.y = atan2(ahead.x, ahead.z)
 		walkers.append(actor)
-		var beacon: MeshInstance3D = room._box(actor.position + Vector3(0, 0, -1), Vector3(0.15, 0.8, 0.15), Color("ae5748"))
-		beacon.rotation.z = 0.25
-	room._world_label("ЗАРАЖЁННЫЕ • ПЕРИМЕТР", Vector3(10.3, 1.9, 0), 23).modulate = Color("fa9580")
+	_build_dust(Color("768b68"))
 
 
 func _process(delta: float) -> void:
@@ -152,14 +194,17 @@ func _process(delta: float) -> void:
 		water.position.y = -0.24 + sin(clock * 0.9) * 0.025
 	for i in walkers.size():
 		var actor := walkers[i]
-		var previous := actor.position
-		var origin: Vector3 = actor.get_meta("origin")
-		actor.position = origin + Vector3(sin(clock * 0.3 + i) * 0.4, 0, sin(clock * 0.45 + i) * 0.8)
-		var direction := actor.position - previous
+		var distance: float = actor.get_meta("distance") + delta * float(actor.get_meta("speed"))
+		actor.set_meta("distance", distance)
+		actor.position = _perimeter_point(distance)
+		var direction := _perimeter_point(distance + 0.2) - actor.position
 		if direction.length_squared() > 0.000001:
-			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(direction.x, direction.z), delta * 2)
-		actor.get_child(0).gesture = 0.7
-		actor.get_child(0).animate(delta * 0.6, true, float(i))
+			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(direction.x, direction.z), minf(delta * 3.0, 1.0))
+		var pivot: Node3D = actor.get_child(0)
+		var visual: Node3D = pivot.get_child(0)
+		visual.gesture = 0.8
+		visual.animate(delta * (0.45 if actor.get_meta("crawl") else 0.65), true, float(i))
+		pivot.rotation.z = sin(clock * 1.3 + float(i)) * (0.09 if actor.get_meta("crawl") else 0.045)
 
 
 func _build_hazard(room: Node3D, weather: String) -> void:

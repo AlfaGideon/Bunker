@@ -5,16 +5,10 @@ static func build(room: Node3D) -> void:
  var snow := weather == "snow"
  var dry := weather in ["heat", "sand", "volcano"]
  var tint := Color("a4b5bf") if snow else Color("71604a") if dry else Color("435446")
- var shader := Shader.new()
- shader.code = """shader_type spatial;
- varying vec3 world;
- uniform vec4 tint: source_color;
- void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;}
- void fragment(){float n=sin(world.x*1.7+sin(world.z*2.1))*sin(world.z*1.3)+sin(world.x*18.0+world.z*11.0)*0.15;
- ALBEDO=tint.rgb*(0.85+n*0.11); ROUGHNESS=1.0;}"""
  var material := ShaderMaterial.new()
- material.shader = shader
+ material.shader = load("res://game/shaders/terrain.gdshader")
  material.set_shader_parameter("tint", tint)
+ material.set_shader_parameter("dryness", 1.0 if dry else 0.0)
  var surface := SurfaceTool.new()
  surface.begin(Mesh.PRIMITIVE_TRIANGLES)
  for x in range(-64, 64, 2):
