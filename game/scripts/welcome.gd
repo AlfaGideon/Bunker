@@ -317,7 +317,7 @@ func home() -> void:
  card("ОБНОВЛЕНИЯ", "Проверить новую версию", func(): preload("res://game/scripts/app_updates.gd").show_updates(self), grid)
  card("КАК ИГРАТЬ", "Правила и управление", instructions, grid)
  card("ВЫХОД", "Завершить приложение", func(): get_tree().quit(), grid)
- error_label = label("Локальная партия • 0.20 • без сетевого поиска", 15)
+ error_label = label("Локальная партия • " + preload("res://game/scripts/app_updates.gd").VERSION_NAME + " • без сетевого поиска", 15)
 
 func edit_profile() -> void:
  page = "profile"
