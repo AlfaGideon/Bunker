@@ -6,6 +6,14 @@ func check(ok: bool, message: String) -> void:
   push_error(message)
 func _initialize() -> void:
  call_deferred("run")
+func _lock_count(room: Node) -> int:
+ var total := 0
+ for node in room.find_children("*", "Button", true, false):
+  if node.has_meta("parameter_lock"):
+   total += 1
+ return total
+
+
 func run() -> void:
  var room := (load("res://game/main.tscn") as PackedScene).instantiate()
  root.add_child(room)
@@ -70,6 +78,7 @@ func run() -> void:
  for node in room.find_children("*", "Button", true, false):
   if node.has_meta("parameter_lock") and node.parameter_id == "biology":
    red = node
+ print("::notice::LOCKDEBUG locks=" + str(_lock_count(room)) + " can=" + str(room.can_reveal_parameter()) + " speaker=" + str(room.speech.speaker()) + " phase=" + str(room.phase) + " card=" + str(room.character_card.visible) + "/" + str(room.character_card.index) + " tiles=" + str(room.character_card.tiles.size()) + " selected=" + str(room.selected))
  check(is_instance_valid(red) and not red.is_public and not red.disabled, "Small red lock opens own parameter in own speech")
  check(red.custom_minimum_size == Vector2(52, 52), "Reveal is a small lock, not a full-width button")
  red.pressed.emit()
