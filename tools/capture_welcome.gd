@@ -59,6 +59,9 @@ func capture() -> void:
   bytes = image.save_jpg_to_buffer(0.3)
  if bytes.size() > 22000:
   bytes = image.save_jpg_to_buffer(0.15)
+ DirAccess.make_dir_recursive_absolute("res://builds")
+ var file := FileAccess.open("res://builds/scene.jpg", FileAccess.WRITE)
+ file.store_buffer(bytes)
  var encoded := Marshalls.raw_to_base64(bytes)
  var prefix := "WELCOMEAVATARSHOT" if OS.get_cmdline_user_args().has("--female") else "MENUSHOT"
  if OS.get_cmdline_user_args().has("--profile"):
