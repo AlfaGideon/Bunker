@@ -122,7 +122,7 @@ func capture() -> void:
 		room.phase = "discussion"
 		room._refresh()
 		var look_index := 1
-		var published := room.Content.random_hidden_card(room.players[look_index])
+		var published = room.Content.random_hidden_card(room.players[look_index])
 		if not published.is_empty():
 			room._reveal_card(look_index, published)
 		room.open_character_card(look_index)
