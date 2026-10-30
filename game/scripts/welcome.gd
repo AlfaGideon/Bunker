@@ -36,6 +36,7 @@ var radio_music: AudioStreamPlayer
 var radio_track := 0
 var radio_hotspot: Button
 var radio_caption: Label
+var radio_plate: PanelContainer
 
 func mat(color: Color, glow: bool = false) -> StandardMaterial3D:
  var material := StandardMaterial3D.new()
@@ -144,7 +145,7 @@ func build_camp() -> void:
 ## bunker's own radio also catches other bunkers.
 func build_radio() -> void:
  radio_prop = Node3D.new()
- radio_prop.position = Vector3(-2.15, 0.58, -0.05)
+ radio_prop.position = Vector3(-2.35, 0.58, -0.05)
  add_child(radio_prop)
  var body := MeshInstance3D.new()
  var body_mesh := BoxMesh.new()
@@ -245,12 +246,12 @@ func _update_radio_hotspot() -> void:
  corner.x = clampf(corner.x, 12.0, maxf(12.0, bounds.x - ring.x - 12.0))
  corner.y = clampf(corner.y, 12.0, maxf(12.0, bounds.y - ring.y - 12.0))
  radio_hotspot.position = corner.round()
- if is_instance_valid(radio_caption):
-  var caption_size := radio_caption.size
-  var caption_corner := Vector2(corner.x + ring.x * 0.5 - caption_size.x * 0.5, corner.y + ring.y + 2.0)
-  caption_corner.x = clampf(caption_corner.x, 12.0, maxf(12.0, bounds.x - caption_size.x - 12.0))
-  caption_corner.y = clampf(caption_corner.y, 12.0, maxf(12.0, bounds.y - caption_size.y - 12.0))
-  radio_caption.position = caption_corner.round()
+ if is_instance_valid(radio_plate):
+  var plate_size := radio_plate.size
+  var plate_corner := Vector2(corner.x + ring.x * 0.5 - plate_size.x * 0.5, corner.y + ring.y + 4.0)
+  plate_corner.x = clampf(plate_corner.x, 12.0, maxf(12.0, bounds.x - plate_size.x - 12.0))
+  plate_corner.y = clampf(plate_corner.y, 12.0, maxf(12.0, bounds.y - plate_size.y - 12.0))
+  radio_plate.position = plate_corner.round()
 
 
 func update_avatar() -> void:
@@ -349,27 +350,37 @@ func build_radio_ui() -> void:
  radio_hotspot = Button.new()
  radio_hotspot.flat = true
  radio_hotspot.focus_mode = Control.FOCUS_NONE
- radio_hotspot.size = Vector2(168, 140)
+ radio_hotspot.size = Vector2(124, 112)
  radio_hotspot.tooltip_text = "Радио: сменить запись"
  radio_hotspot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
  for state in ["normal", "hover", "pressed", "focus"]:
   var ring := StyleBoxFlat.new()
-  ring.bg_color = Color(0.85, 0.65, 0.35, 0.0) if state == "normal" else Color(0.85, 0.65, 0.35, 0.10)
-  ring.border_color = Color(0.85, 0.65, 0.35, 0.34) if state == "normal" else Color(0.95, 0.78, 0.45, 0.75)
+  ring.bg_color = Color(0.85, 0.65, 0.35, 0.0) if state == "normal" else Color(0.85, 0.65, 0.35, 0.09)
+  ring.border_color = Color(0.85, 0.65, 0.35, 0.22) if state == "normal" else Color(0.95, 0.78, 0.45, 0.72)
   ring.set_border_width_all(1)
   ring.set_corner_radius_all(14)
   radio_hotspot.add_theme_stylebox_override(state, ring)
  radio_hotspot.pressed.connect(cycle_track)
  ui.add_child(radio_hotspot)
+ radio_plate = PanelContainer.new()
+ radio_plate.size = Vector2(256, 48)
+ radio_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ var plate := StyleBoxFlat.new()
+ plate.bg_color = Color(0.035, 0.07, 0.08, 0.88)
+ plate.border_color = Color(0.85, 0.65, 0.35, 0.42)
+ plate.set_border_width_all(1)
+ plate.set_corner_radius_all(10)
+ for edge in ["left", "right", "top", "bottom"]:
+  plate.set("content_margin_" + edge, 6)
+ radio_plate.add_theme_stylebox_override("panel", plate)
+ ui.add_child(radio_plate)
  radio_caption = Label.new()
  radio_caption.add_theme_font_size_override("font_size", 13)
  radio_caption.add_theme_color_override("font_color", Color("e6c793"))
- radio_caption.add_theme_constant_override("outline_size", 4)
- radio_caption.add_theme_color_override("font_outline_color", Color("0b1418"))
  radio_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
- radio_caption.size = Vector2(240, 40)
+ radio_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
  radio_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
- ui.add_child(radio_caption)
+ radio_plate.add_child(radio_caption)
  _update_radio_caption()
 
 
