@@ -76,6 +76,8 @@ func capture() -> void:
   prefix = "LIBFORMHOTSHOT"
  if OS.get_cmdline_user_args().has("--library-professions"):
   prefix = "LIBPROFSHOT"
+ if OS.get_cmdline_user_args().has("--camp-radio"):
+  prefix = "CAMPRADIOSHOT"
  if not skin.is_empty():
   prefix = "SKIN" + skin.replace("_", "").to_upper() + "SHOT"
  for index in ceili(encoded.length() / 3500.0):
