@@ -344,7 +344,8 @@ func build_ui() -> void:
 func build_radio_ui() -> void:
  radio_hotspot = Button.new()
  radio_hotspot.focus_mode = Control.FOCUS_NONE
- radio_hotspot.size = Vector2(252, 50)
+ radio_hotspot.custom_minimum_size = Vector2(252, 56)
+ radio_hotspot.size = Vector2(252, 56)
  radio_hotspot.text = ""
  radio_hotspot.tooltip_text = "Радио: сменить запись"
  radio_hotspot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

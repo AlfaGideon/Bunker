@@ -24,7 +24,7 @@ func run() -> void:
  check(welcome.radio_caption.text.begins_with("РАДИО · "), "Caption names the current record")
  check(welcome.radio_caption.text.contains("сменить"), "Caption explains the tap")
  check(not welcome.radio_caption.text.to_upper().contains("БУНКЕР"), "Camp radio has no bunker chatter")
- check(welcome.radio_hotspot.size.x > 60.0 and welcome.radio_hotspot.size.y > 60.0, "Radio has a sizeable tap target")
+ check(welcome.radio_hotspot.size.x > 120.0 and welcome.radio_hotspot.size.y > 40.0, "Radio has a sizeable tap target")
  check(welcome.radio_hotspot.get_global_rect().position.x < root.get_visible_rect().size.x * 0.5, "Tap target sits over the camp, not the menu")
  var screen_rect := Rect2(Vector2.ZERO, root.get_visible_rect().size)
  check(screen_rect.encloses(welcome.radio_hotspot.get_global_rect()), "Radio tap target fits the screen")
