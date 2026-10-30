@@ -113,7 +113,7 @@ func _ready() -> void:
 	profile.last_layout = layout["variant"]
 	profile.save()
 	navigation = Navigation.new(layout)
-	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance)
+	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance, profile.custom_parameters)
 	active.assign(range(players.size()))
 	capacity = players.size() / 2
 	meals = capacity

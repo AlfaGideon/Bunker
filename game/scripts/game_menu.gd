@@ -11,6 +11,7 @@ var room: Node3D
 var column: Deck
 var profile: BunkerProfile
 var page := ""
+var library_editor: RefCounted
 
 
 func setup(game: Node3D, player_profile: BunkerProfile) -> void:
@@ -215,7 +216,13 @@ func settings() -> void:
 		room.apply_settings()
 		if save_profile():
 			home())
+	button("Библиотека параметров (для новой партии)", open_library)
 	button("Назад", home)
+
+
+func open_library() -> void:
+	library_editor = preload("res://game/scripts/library_editor.gd").new(self)
+	library_editor.show_list()
 
 
 func instructions() -> void:

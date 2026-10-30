@@ -8,6 +8,7 @@ const Content = preload("res://game/scripts/game_content.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const Style = preload("res://game/scripts/avatar_style.gd")
 var profile := Profile.new()
+var library_editor: RefCounted
 var draft_name := ""
 var avatar: Node3D
 var animator: AnimationPlayer
@@ -424,6 +425,7 @@ func settings() -> void:
  reduced.button_pressed = profile.reduced_motion
  reduced.toggled.connect(func(value): profile.reduced_motion = value)
  add_control(reduced)
+ button("Библиотека параметров", open_library)
  label("Русскому TTS нужен установленный системный голос Android.", 16)
  button("Назад", home)
 
@@ -437,3 +439,7 @@ func instructions() -> void:
 func _notification(what: int) -> void:
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
   home()
+
+func open_library() -> void:
+ library_editor = preload("res://game/scripts/library_editor.gd").new(self)
+ library_editor.show_list()

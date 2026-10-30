@@ -24,6 +24,7 @@ jobs:
       - name: Check vote rules
         run: |
           bash tools/check_godot.sh --headless --path . --script tools/test_profile.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_parameter_library.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rules.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_timed_voting.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_weather.gd

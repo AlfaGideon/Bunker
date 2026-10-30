@@ -2,8 +2,8 @@ class_name BunkerContent
 extends RefCounted
 
 
-static func create_players(count: int, nickname: String, appearance: String = "male") -> Array:
-	var content: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/content.json"))
+static func create_players(count: int, nickname: String, appearance: String = "male", custom: Dictionary = {}) -> Array:
+	var content: Dictionary = preload("res://game/scripts/parameter_library.gd").merged(custom)
 	var professions: Array = content["professions"].duplicate()
 	professions.shuffle()
 	var names := [nickname, "Мира", "Ян", "Ника", "Лев", "Соня", "Марк", "Вера", "Тим", "Рая"]
