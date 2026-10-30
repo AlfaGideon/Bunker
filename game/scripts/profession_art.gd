@@ -130,7 +130,16 @@ const PORTRAITS := {
 	"Инженер водоочистки": "water_engineer",
 	"Агроном": "agronomist",
 	"Оператор теплицы": "greenhouse_operator",
-	"Зоотехник": "zootechnician"
+	"Зоотехник": "zootechnician",
+	"Электрик": "electrician",
+	"Энергетик": "power_engineer",
+	"Связист": "signal_operator",
+	"Радиотехник": "radio_technician",
+	"Программист": "programmer",
+	"Психолог": "psychologist",
+	"Учитель": "teacher",
+	"Переводчик": "translator",
+	"Архивист": "archivist"
 }
 
 static var _textures := {}
