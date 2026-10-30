@@ -190,13 +190,13 @@ func _build_front() -> void:
 	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	meta.add_theme_constant_override("separation", 8)
 	header.add_child(meta)
-	phase_label = _label("", 10, Color("b9cdd2"))
+	phase_label = _label("", 11, Color("b9cdd2"))
 	meta.add_child(phase_label)
 	var meta_gap := Control.new()
 	meta_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	meta_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	meta.add_child(meta_gap)
-	count_label = _label("", 10, Color("d9b06e"))
+	count_label = _label("", 11, Color("d9b06e"))
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	meta.add_child(count_label)
 
@@ -226,7 +226,7 @@ func _build_front() -> void:
 	footer.add_child(nav)
 	prev_button = _nav_button("‹", func(): step(-1))
 	nav.add_child(prev_button)
-	nav_label = _label("", 12, Color("d6c6a6"))
+	nav_label = _label("", 13, Color("d6c6a6"))
 	nav_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nav_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	nav_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -355,7 +355,7 @@ func _add_legend(parent: HBoxContainer, color: Color, text: String) -> void:
 	var dot := _label("●", 8, color)
 	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	parent.add_child(dot)
-	var caption := _label(text, 9, Color("8ea3a8"))
+	var caption := _label(text, 10, Color("8ea3a8"))
 	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	parent.add_child(caption)
 

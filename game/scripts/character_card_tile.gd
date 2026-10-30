@@ -79,7 +79,7 @@ func _build() -> void:
 	state_label = Label.new()
 	state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	state_label.text = _state_caption()
-	state_label.add_theme_font_size_override("font_size", 9)
+	state_label.add_theme_font_size_override("font_size", 10)
 	state_label.add_theme_color_override("font_color", _state_color())
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	head.add_child(state_label)
@@ -112,8 +112,8 @@ func _build() -> void:
 	note_label.text = note_text
 	note_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note_label.add_theme_font_size_override("font_size", 11)
-	note_label.add_theme_color_override("font_color", Color("9db4bb"))
+	note_label.add_theme_font_size_override("font_size", 12)
+	note_label.add_theme_color_override("font_color", Color("a9bec5"))
 	column.add_child(note_label)
 
 
