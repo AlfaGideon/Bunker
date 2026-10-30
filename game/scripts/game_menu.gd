@@ -1,4 +1,5 @@
 extends Control
+const Catalog = preload("res://game/scripts/avatar_catalog.gd")
 const Choice = preload("res://game/scripts/card_choice.gd")
 const Deck = preload("res://game/scripts/card_deck.gd")
 const Cards = preload("res://game/scripts/card_style.gd")
@@ -65,9 +66,10 @@ func home() -> void:
 	page = "home"
 	visible = true
 	clear()
-	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • 0.15", 26)
+	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • " + preload("res://game/scripts/app_updates.gd").VERSION_NAME, 26)
 	button("Продолжить партию", room.begin_game)
 	button("Новая партия", new_game)
+	button("Переролл участника • локальный тест", show_reroll)
 	button("Помещения и предметы", show_facility)
 	button("Отрицательные действия", show_negative_actions)
 	button("Сводка катастрофы / озвучка", briefing)
@@ -175,12 +177,12 @@ func settings() -> void:
 	column.add_card(motion_toggle)
 	text("Внешний вид до раскрытия биологии", 18)
 	var appearance := Choice.new()
-	appearance.add_item("Мужской", 0)
-	appearance.add_item("Женский", 1)
-	appearance.select(0 if profile.appearance == "male" else 1)
+	for name in Catalog.NAMES:
+		appearance.add_item(name)
+	appearance.select(Catalog.index_of(profile.appearance))
 	appearance.custom_minimum_size.y = 48
 	column.add_card(appearance)
-	text("После раскрытия карточки «Биология» модель примет указанный в карточке пол.", 17)
+	text("После раскрытия карточки «Биология» внешность примет указанные в карточке пол и возраст.", 17)
 	text("Громкость", 18)
 	var volume := HSlider.new()
 	volume.min_value = 0
@@ -207,7 +209,7 @@ func settings() -> void:
 	button("Применить и сохранить", func():
 		profile.volume = volume.value
 		profile.narration = narration_toggle.button_pressed
-		profile.appearance = "male" if appearance.selected == 0 else "female"
+		profile.appearance = Catalog.IDS[appearance.selected]
 		profile.shadows = shadow_toggle.button_pressed
 		profile.reduced_motion = motion_toggle.button_pressed
 		profile.camera_size = zoom.get_selected_id()
@@ -221,7 +223,7 @@ func instructions() -> void:
 	page = "instructions"
 	clear()
 	text("КАК ИГРАТЬ", 28)
-	text("Управление камерой: свайп одним пальцем — перемещение, два пальца — масштаб и перемещение. Короткое касание — движение персонажа. На ПК — перетаскивание мышью и колесо. Жесты над интерфейсом остаются интерфейсу.\n1. Профессия уже открыта. По очереди раскройте ещё одну карту, объясните выбор. На речь каждого — 60 секунд; есть передача хода, пропуск и автопереход. Голосовой связи нет.\n2. После круга — обсуждение и тестовое голосование.\n3. Рабочие предметы доступны только подходящим профессиям. Через список помещений можно поручить работу подходящему тестовому участнику. Радио, койки и еда за столом доступны всем. Готовит только пищевая профессия.\n4. Слева — две одноразовые способности. Цель выберите в списке досье справа. После начала голосования способности недоступны.\n5. Совет отдельно решает, открывать ли склад. Без большинства он может остаться закрытым.\n6. При изгнании выберите d6 или d20, диапазон, чётность или свои числа ДО единственного броска. Варианты равновероятны — половина граней.\n7. Профиль сохраняется, партия — нет. Остальные участники — локальные фикстуры, не онлайн-игроки.", 18)
+	text("Управление камерой: свайп одним пальцем — перемещение, два пальца — масштаб и перемещение. Короткое касание — движение персонажа. На ПК — перетаскивание мышью и колесо. Жесты над интерфейсом остаются интерфейсу.\n1. Профессия уже открыта. По очереди раскройте ещё одну карту, объясните выбор. На речь каждого — 60 секунд; есть передача хода, пропуск и автопереход. Голосовой связи нет.\n2. После речей — минута общего обсуждения и 20 секунд голосования. Пропуск или истечение времени: голос за себя. Остальные — локальные тестовые участники.\n3. Рабочие предметы доступны только подходящим профессиям. Через список помещений можно поручить работу подходящему тестовому участнику. Радио, койки и еда за столом доступны всем. Готовит только пищевая профессия.\n4. Слева — две одноразовые способности. Цель выберите в списке досье справа. После начала голосования способности недоступны.\n5. Совет отдельно решает, открывать ли склад. Без большинства он может остаться закрытым.\n6. При изгнании выберите d6 или d20, диапазон, чётность или свои числа ДО единственного броска. Варианты равновероятны — половина граней.\n7. Профиль сохраняется, партия — нет. Остальные участники — локальные фикстуры, не онлайн-игроки.", 18)
 	text("Меню приостанавливает движение. Партия в этой версии не сохраняется между перезапусками приложения; профиль и настройки сохраняются.", 17)
 	button("Назад", home)
 
@@ -350,3 +352,54 @@ func facility_information() -> void:
 	text("Инструменты: %d • Оружие: %d (бой пока не реализован). Ремкомплекты: %d." % [room.inventory["tools"], room.inventory["weapons"], room.inventory["repair"]], 17)
 	text("Каждый раунд: −12 бодрости, при дефиците −20. Характеристики здоровья увеличивают расход общих запасов. Предметы выполняются после подхода персонажа. Отдых и осмотр — раз в раунд.", 17)
 	button("К помещениям", show_facility)
+
+
+func show_reroll() -> void:
+	page = "reroll"
+	clear()
+	text("ПЕРЕРОЛЛ ХАРАКТЕРИСТИК", 26)
+	text("Локальный тест: выполняйте только по просьбе игрока. Профиля ведущего и сетевых запросов пока нет. Раскрытые карты останутся раскрытыми; таймер речи не меняется.", 17)
+	if not room.active.has(0) or room.finished or room.phase in ["vote", "end"]:
+		text("Сейчас переролл недоступен.", 18)
+		button("Назад", home)
+		return
+	var participants := Choice.new()
+	for id in room.active:
+		participants.add_item(room.players[id]["name"], id)
+	participants.select(maxi(0, room.active.find(room.selected)))
+	column.add_card(participants)
+	var card_choice := Choice.new()
+	card_choice.add_item("Все характеристики", -1)
+	for card in room.players[0]["cards"]:
+		card_choice.add_item(card["label"])
+	column.add_card(card_choice)
+	button("Продолжить", func():
+		var index: int = participants.get_selected_id()
+		var picked: int = card_choice.selected
+		var ids: Array = []
+		if picked == 0:
+			for card in room.players[index]["cards"]:
+				ids.append(card["id"])
+		else:
+			ids.append(room.players[index]["cards"][picked - 1]["id"])
+		confirm_reroll(index, ids))
+	button("Назад", home)
+
+
+func confirm_reroll(index: int, ids: Array) -> void:
+	page = "reroll_confirm"
+	clear()
+	text("ПОДТВЕРДИТЬ ПЕРЕРОЛЛ?", 26)
+	var label := "Все характеристики"
+	if ids.size() == 1:
+		for card in room.players[index]["cards"]:
+			if card["id"] == ids[0]:
+				label = card["label"]
+	text("Участник: " + room.players[index]["name"] + ". " + label + ". Старые значения будут заменены.", 18)
+	button("Да, переролить", func():
+		var ok: bool = room.reroll_player(index, ids)
+		clear()
+		text("Готово. " + room.players[index]["name"] + ": характеристики переролены." if ok else "Переролл сейчас недоступен или нет другого варианта.", 18)
+		button("К перероллу", show_reroll)
+		button("В меню", home))
+	button("Отмена", show_reroll)

@@ -1,4 +1,5 @@
 extends Node3D
+const Catalog = preload("res://game/scripts/avatar_catalog.gd")
 const Choice = preload("res://game/scripts/card_choice.gd")
 const Deck = preload("res://game/scripts/card_deck.gd")
 const Cards = preload("res://game/scripts/card_style.gd")
@@ -7,6 +8,7 @@ const Content = preload("res://game/scripts/game_content.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const Style = preload("res://game/scripts/avatar_style.gd")
 var profile := Profile.new()
+var library_editor: RefCounted
 var draft_name := ""
 var avatar: Node3D
 var animator: AnimationPlayer
@@ -21,6 +23,7 @@ var column: Container
 var page := ""
 var clock := 0.0
 var error_label: Label
+var entrance_nodes: Array[Node] = []
 var start_button: Button
 var name_input: LineEdit
 var appearance_picker: Choice
@@ -71,14 +74,14 @@ func build_camp() -> void:
  moon.light_energy = 0.8
  moon.shadow_enabled = profile.shadows
  add_child(moon)
- box(Vector3(0, -0.16, 0), Vector3(60, 0.3, 60), Color("253b37"))
+ box(Vector3(0, -0.20, 0), Vector3(60, 0.3, 60), Color("253b37"))
  # A real little campsite outside the bunker, unrelated to the game world.
- box(Vector3(-1.9, 0.17, -0.15), Vector3(1.8, 0.35, 0.55), Color("534235"))
+ box(Vector3(-1.9, 0.20, -0.20), Vector3(1.8, 0.35, 0.55), Color("534235"))
  for i in 10:
   var angle := float(i) * TAU / 10
   var rock := MeshInstance3D.new()
   var mesh := SphereMesh.new()
-  mesh.radius = 0.15
+  mesh.radius = 0.20
   mesh.height = 0.25
   rock.mesh = mesh
   rock.position = Vector3(cos(angle) * 0.6, 0.08, 1.0 + sin(angle) * 0.6)
@@ -92,8 +95,32 @@ func build_camp() -> void:
  fire_light.light_energy = 2.2
  fire_light.omni_range = 6
  add_child(fire_light)
- box(Vector3(4, 0.6, -3), Vector3(3.8, 1.2, 2), Color("445354"))
- Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.15))
+ var entrance_start := get_child_count()
+ # A framed entrance sits in the same camp in both scenes.
+ box(Vector3(4, 0.68, -3.05), Vector3(3.8, 1.36, 1.9), Color("455359"))
+ box(Vector3(4, 1.48, -3.05), Vector3(4.15, 0.28, 2.1), Color("394c43"))
+ for x in [2.35, 5.65]:
+  box(Vector3(x, 0.83, -2.04), Vector3(0.25, 1.66, 0.28), Color("7a8987"))
+ box(Vector3(4, 1.75, -2.04), Vector3(3.55, 0.25, 0.3), Color("72817f"))
+ box(Vector3(4, 0.08, -1.75), Vector3(2.0, 0.16, 0.65), Color("667274"))
+ Art.spawn(self, "modular_sci_fi_Door_Single", Vector3(4, 0, -1.98), Vector3(1.4, 1.8, 0.20))
+ for child in get_children().slice(entrance_start):
+  entrance_nodes.append(child)
+ # Authored CC0 grass remains visible in both welcome and the journey.
+ var rng := RandomNumberGenerator.new()
+ rng.seed = 73147
+ var grass: Node3D = Art.spawn(self, "nature_pack_Grass_Short", Vector3(-6, 0, 3), Vector3(0.55, 0.3, 0.55), true)
+ for i in 100:
+  var x := rng.randf_range(-8, 8)
+  var z := rng.randf_range(-4, 4)
+  if (x > 1.8 and z < -1.1) or (absf(x) < 2.5 and absf(z) < 1.4):
+   continue
+  var tuft := grass.duplicate() as Node3D
+  tuft.position = Vector3(x, 0, z)
+  tuft.rotation.y = rng.randf_range(-PI, PI)
+  var scale_factor := rng.randf_range(0.7, 1.4)
+  tuft.scale = Vector3.ONE * scale_factor
+  add_child(tuft)
  camera = Camera3D.new()
  camera.projection = Camera3D.PROJECTION_ORTHOGONAL
  camera.size = 5.2
@@ -106,9 +133,9 @@ func update_avatar() -> void:
  if is_instance_valid(avatar):
   remove_child(avatar)
   avatar.queue_free()
- avatar = Art.spawn(self, "kaykit_Knight" if profile.appearance == "male" else "kaykit_Rogue", Vector3(-1.7, 0, 0), Vector3(1, 1.8, 1), true)
+ avatar = Art.spawn(self, Catalog.model(profile.appearance), Vector3(-1.7, 0, 0), Vector3(1, 1.8, 1), true)
  avatar.rotation.y = 0.8
- Style.apply(avatar, profile.outfit)
+ Style.apply(avatar, profile.outfit, profile.appearance)
  animator = avatar.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
  animator.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
  animator.get_animation("Sit_Chair_Idle").loop_mode = Animation.LOOP_LINEAR
@@ -120,7 +147,7 @@ func _process(delta: float) -> void:
  if is_instance_valid(animator):
   animator.advance(delta)
  if is_instance_valid(fire_light):
-  fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.15 + sin(clock * 17) * 0.1
+  fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.20 + sin(clock * 17) * 0.1
  if is_instance_valid(camp_assets):
   camp_assets.reduced_motion = profile.reduced_motion
 
@@ -216,7 +243,7 @@ func subpage() -> void:
 func card(title: String, description: String, action: Callable, target: Container, primary: bool = false) -> Button:
  var node := Button.new()
  node.set_meta("card_control", true)
- node.custom_minimum_size = Vector2(0, 108 if primary else 100)
+ node.custom_minimum_size = Vector2(0, 88 if primary else 75)
  node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  node.clip_contents = true
  node.pressed.connect(action)
@@ -282,15 +309,16 @@ func home() -> void:
  var grid := GridContainer.new()
  grid.columns = 2
  grid.add_theme_constant_override("h_separation", 12)
- grid.add_theme_constant_override("v_separation", 12)
+ grid.add_theme_constant_override("v_separation", 8)
  column.add_child(grid)
+ card("БИБЛИОТЕКА", "Возраст, болезни, характер", open_library, grid)
  card("ПЕРСОНАЖ", draft_name + " • внешность и профиль", edit_profile, grid)
  card("ПАРАМЕТРЫ ПАРТИИ", "Катастрофа и состав группы", game_options, grid)
  card("НАСТРОЙКИ", "Звук, озвучка и эффекты", settings, grid)
  card("ОБНОВЛЕНИЯ", "Проверить новую версию", func(): preload("res://game/scripts/app_updates.gd").show_updates(self), grid)
  card("КАК ИГРАТЬ", "Правила и управление", instructions, grid)
  card("ВЫХОД", "Завершить приложение", func(): get_tree().quit(), grid)
- error_label = label("Локальная партия • 0.15 • без сетевого поиска", 15)
+ error_label = label("Локальная партия • " + preload("res://game/scripts/app_updates.gd").VERSION_NAME + " • без сетевого поиска", 15)
 
 func edit_profile() -> void:
  page = "profile"
@@ -305,12 +333,12 @@ func edit_profile() -> void:
  name_input.text_changed.connect(func(value): draft_name = value)
  add_control(name_input)
  appearance_picker = Choice.new()
- appearance_picker.add_item("Мужской персонаж")
- appearance_picker.add_item("Женский персонаж")
- appearance_picker.select(0 if profile.appearance == "male" else 1)
+ for name in Catalog.NAMES:
+  appearance_picker.add_item(name)
+ appearance_picker.select(Catalog.index_of(profile.appearance))
  appearance_picker.custom_minimum_size.y = 48
  appearance_picker.item_selected.connect(func(index):
-  profile.appearance = "male" if index == 0 else "female"
+  profile.appearance = Catalog.IDS[index]
   update_avatar())
  add_control(appearance_picker)
  palette_picker = Choice.new()
@@ -411,3 +439,9 @@ func instructions() -> void:
 func _notification(what: int) -> void:
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
   home()
+
+func open_library() -> void:
+ if not column is Deck:
+  subpage()
+ library_editor = preload("res://game/scripts/library_editor.gd").new(self)
+ library_editor.show_list()

@@ -11,6 +11,7 @@ var clock := 0.0
 var reduced_motion := false
 var meteor_field: Node3D
 var hazard_lamp: OmniLight3D
+var patrol_bounds: Rect2
 
 
 func setup(room: Node3D, weather: String) -> void:
@@ -73,11 +74,16 @@ func setup(room: Node3D, weather: String) -> void:
 
 func set_reduced_motion(reduced: bool) -> void:
 	reduced_motion = reduced
+	if is_instance_valid(water) and water.material_override is ShaderMaterial:
+		water.material_override.set_shader_parameter("still", reduced)
 	if is_instance_valid(meteor_field):
 		meteor_field.reduced_motion = reduced
 	for child in get_children():
 		if child.has_meta("aurora"):
 			child.material_override.set_shader_parameter("still", reduced)
+	for actor in walkers:
+		var animation: AnimationPlayer = actor.get_meta("animation")
+		animation.speed_scale = 0.0 if reduced else 0.75
 	for snow in emitters:
 		snow.visible = not reduced
 		snow.emitting = not reduced
@@ -111,7 +117,17 @@ func _exterior_particles(color: Color, falling: bool) -> void:
 
 
 func _build_flood(room: Node3D) -> void:
-	water = room._box(Vector3(0, -0.24, 0), Vector3(160, 0.08, 160), Color("285b7b"))
+	water = MeshInstance3D.new()
+	var ocean := PlaneMesh.new()
+	ocean.size = Vector2(160, 160)
+	ocean.subdivide_width = 127
+	ocean.subdivide_depth = 127
+	water.mesh = ocean
+	water.position.y = -0.55
+	room.add_child(water)
+	var water_mat := ShaderMaterial.new()
+	water_mat.shader = load("res://game/shaders/flood_water.gdshader")
+	water.material_override = water_mat
 	_exterior_particles(Color("9fc2d9"), true)
 	for i in 14:
 		var debris: MeshInstance3D = room._box(Vector3(-11 if i % 2 == 0 else 11, -0.13, float(i) - 6), Vector3(0.7, 0.1, 0.3), Color("76654d"))
@@ -125,21 +141,62 @@ func _build_meteors(room: Node3D) -> void:
 	emitters.append_array(meteor_field.emitters)
 
 
+# Infected follow a rectangular perimeter outside every procedural room and corridor.
+func _perimeter_point(distance: float) -> Vector3:
+	var w := patrol_bounds.size.x
+	var h := patrol_bounds.size.y
+	var d := fposmod(distance, 2.0 * (w + h))
+	var x := patrol_bounds.position.x
+	var z := patrol_bounds.position.y
+	if d < w:
+		return Vector3(x + d, -0.3, z)
+	d -= w
+	if d < h:
+		return Vector3(x + w, -0.3, z + d)
+	d -= h
+	if d < w:
+		return Vector3(x + w - d, -0.3, z + h)
+	return Vector3(x, -0.3, z + h - (d - w))
+
+
 func _build_walkers(room: Node3D) -> void:
-	for i in 6:
+	var layout_bounds: Rect2 = room.layout["bounds"]
+	patrol_bounds = layout_bounds.grow(2.2)
+	var perimeter := 2.0 * (patrol_bounds.size.x + patrol_bounds.size.y)
+	for i in 8:
 		var actor := Node3D.new()
+		actor.name = "Infected%02d" % i
 		add_child(actor)
-		var visual := Art.spawn(actor, "modular_men_Worker" if i % 2 == 0 else "modular_women_Casual", Vector3.ZERO, Vector3(1, 1.4, 1), true)
-		for mesh in visual.find_children("*", "MeshInstance3D", true, false):
-			mesh.material_override = room._material(Color("71866b"))
-		visual.set_script(Visual)
-		visual._collect(visual)
-		actor.position = Vector3(-10.3 if i % 2 == 0 else 10.3, -0.3, i * 1.8 - 4)
-		actor.set_meta("origin", actor.position)
+		var pivot := Node3D.new()
+		actor.add_child(pivot)
+		var crawl := i == 2 or i == 6
+		var visual := Art.spawn(pivot, "zombie_a" if crawl or i % 2 == 0 else "zombie_b", Vector3.ZERO, Vector3(1, 1.4, 1), true)
+		var animation: AnimationPlayer = visual.find_children("*", "AnimationPlayer", true, false)[0]
+		var desired := "crawl" if crawl else "walk"
+		var selected := ""
+		for clip in animation.get_animation_list():
+			if str(clip).to_lower().ends_with(desired):
+				selected = clip
+				break
+		if not selected.is_empty():
+			animation.get_animation(selected).loop_mode = Animation.LOOP_LINEAR
+			animation.play(selected)
+			animation.seek(float(i) * 0.21, true)
+		actor.set_meta("animation", animation)
+		actor.set_meta("crawl", crawl)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = room.layout_seed * 103 + i * 971 + 8183
+		actor.set_meta("rng", rng)
+		actor.set_meta("reverse", i % 3 == 0)
+		actor.set_meta("next_decision", rng.randf_range(2.0, 6.0))
+		actor.set_meta("pause_until", 0.0)
+		actor.set_meta("distance", perimeter * float(i) / 8.0)
+		actor.set_meta("speed", 0.27 if crawl else 0.35 + float(i % 3) * 0.08)
+		actor.position = _perimeter_point(actor.get_meta("distance"))
+		var ahead := _perimeter_point(float(actor.get_meta("distance")) + 0.1) - actor.position
+		actor.rotation.y = atan2(ahead.x, ahead.z)
 		walkers.append(actor)
-		var beacon: MeshInstance3D = room._box(actor.position + Vector3(0, 0, -1), Vector3(0.15, 0.8, 0.15), Color("ae5748"))
-		beacon.rotation.z = 0.25
-	room._world_label("ЗАРАЖЁННЫЕ • ПЕРИМЕТР", Vector3(10.3, 1.9, 0), 23).modulate = Color("fa9580")
+	_build_dust(Color("768b68"))
 
 
 func _process(delta: float) -> void:
@@ -149,17 +206,26 @@ func _process(delta: float) -> void:
 	if is_instance_valid(hazard_lamp):
 		hazard_lamp.light_energy = 2.0 + sin(clock * 2.0) * 1.2
 	if is_instance_valid(water):
-		water.position.y = -0.24 + sin(clock * 0.9) * 0.025
+		water.position.y = -0.55
 	for i in walkers.size():
 		var actor := walkers[i]
-		var previous := actor.position
-		var origin: Vector3 = actor.get_meta("origin")
-		actor.position = origin + Vector3(sin(clock * 0.3 + i) * 0.4, 0, sin(clock * 0.45 + i) * 0.8)
-		var direction := actor.position - previous
+		var rng: RandomNumberGenerator = actor.get_meta("rng")
+		if clock >= float(actor.get_meta("next_decision")):
+			if rng.randf() < 0.48:
+				actor.set_meta("reverse", not actor.get_meta("reverse"))
+			if rng.randf() < 0.40:
+				actor.set_meta("pause_until", clock + rng.randf_range(0.8, 2.5))
+			actor.set_meta("next_decision", clock + rng.randf_range(3.0, 9.0))
+		var direction_sign := -1.0 if actor.get_meta("reverse") else 1.0
+		var pace := 0.0 if clock < float(actor.get_meta("pause_until")) else 1.0
+		var distance: float = actor.get_meta("distance") + delta * float(actor.get_meta("speed")) * pace * direction_sign
+		actor.set_meta("distance", distance)
+		actor.position = _perimeter_point(distance)
+		var direction := _perimeter_point(distance + 0.2 * direction_sign) - actor.position
 		if direction.length_squared() > 0.000001:
-			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(direction.x, direction.z), delta * 2)
-		actor.get_child(0).gesture = 0.7
-		actor.get_child(0).animate(delta * 0.6, true, float(i))
+			actor.rotation.y = lerp_angle(actor.rotation.y, atan2(direction.x, direction.z), minf(delta * 3.0, 1.0))
+		var animation: AnimationPlayer = actor.get_meta("animation")
+		animation.speed_scale = pace * (0.65 + float(i % 3) * 0.1)
 
 
 func _build_hazard(room: Node3D, weather: String) -> void:

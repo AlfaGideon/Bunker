@@ -2,6 +2,8 @@ class_name BunkerProfile
 extends RefCounted
 
 const PATH := "user://profile.cfg"
+const Library = preload("res://game/scripts/parameter_library.gd")
+var custom_parameters: Dictionary = {}
 var nickname := "Алекс"
 var appearance := "male"
 var outfit := 0
@@ -21,11 +23,12 @@ func _init() -> void:
 	var config := ConfigFile.new()
 	if config.load(PATH) != OK:
 		return
+	custom_parameters = Library.sanitize(config.get_value("library", "custom", {}))
 	nickname = str(config.get_value("profile", "nickname", "Алекс")).strip_edges().left(20)
 	if nickname.is_empty():
 		nickname = "Алекс"
 	appearance = str(config.get_value("profile", "appearance", "male"))
-	if not ["male", "female"].has(appearance):
+	if not preload("res://game/scripts/avatar_catalog.gd").IDS.has(appearance):
 		appearance = "male"
 	outfit = clampi(int(config.get_value("profile", "outfit", 0)), 0, 2)
 	player_count = clampi(int(config.get_value("game", "players", 8)), 6, 10)
@@ -44,6 +47,7 @@ func _init() -> void:
 
 func save() -> Error:
 	var config := ConfigFile.new()
+	config.set_value("library", "custom", Library.sanitize(custom_parameters))
 	config.set_value("profile", "nickname", nickname)
 	config.set_value("profile", "appearance", appearance)
 	config.set_value("profile", "outfit", outfit)

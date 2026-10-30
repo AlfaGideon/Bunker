@@ -1,10 +1,14 @@
 extends Node3D
 const Cards = preload("res://game/scripts/card_style.gd")
 const Profile = preload("res://game/scripts/local_profile.gd")
-const Art = preload("res://game/scripts/scene_art.gd")
-const Style = preload("res://game/scripts/avatar_style.gd")
 const MAIN := "res://game/main.tscn"
-var profile := Profile.new()
+const RUN_START := Vector3(-1.7, 0, 0)
+const RUN_END := Vector3(16.0, 0, 0)
+const STAND_TIME := 0.85
+const RUN_TIME := 6.0
+const ARRIVAL_TIME := 7.15
+var profile
+var camp
 var runner: Node3D
 var animator: AnimationPlayer
 var status: Label
@@ -18,49 +22,42 @@ var transitioning := false
 var cancel_requested := false
 var failed := false
 var total := 0
+var running := false
+var arrived := false
+var camera_from: Vector3
+var camera_target_from := Vector3(0.7, 1.2, 0)
+var vault: Node3D
+var forest_extension: Node3D
 
 func _ready() -> void:
- var world := WorldEnvironment.new()
- world.environment = Environment.new()
- world.environment.background_mode = Environment.BG_COLOR
- world.environment.background_color = Color("0a1820")
- world.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
- world.environment.ambient_light_color = Color("a6c5cd")
- world.environment.ambient_light_energy = 0.8
- add_child(world)
- var light := DirectionalLight3D.new()
- light.rotation_degrees = Vector3(-50, -30, 0)
- light.light_color = Color("ffe1ad")
- light.light_energy = 1.3
- add_child(light)
- var camera := Camera3D.new()
- camera.projection = Camera3D.PROJECTION_ORTHOGONAL
- camera.size = 4.8
- camera.position = Vector3(0, 2.3, 12)
- add_child(camera)
- camera.look_at(Vector3(0, 1.0, 0))
- camera.current = true
- for i in range(-12, 13):
-  var marker := MeshInstance3D.new()
-  var mesh := BoxMesh.new()
-  mesh.size = Vector3(0.5, 0.025, 0.06)
-  marker.mesh = mesh
-  marker.position = Vector3(i, -0.02, 0)
-  var material := StandardMaterial3D.new()
-  material.albedo_color = Color("816a48")
-  material.emission_enabled = true
-  material.emission = Color("665037")
-  marker.material_override = material
-  add_child(marker)
- runner = Art.spawn(self, "kaykit_Knight" if profile.appearance == "male" else "kaykit_Rogue", Vector3(-4.2, 0, 0), Vector3(1, 1.8, 1), true)
- runner.rotation.y = PI / 2
- Style.apply(runner, profile.outfit)
- animator = runner.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
- animator.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
- var clip := "Idle" if profile.reduced_motion else "Running_A"
- animator.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
- animator.play(clip)
- animator.advance(0.01)
+ # Reuse the actual welcome scene: same stump, avatar, forest, fire and door.
+ # This is a continuation of the camp, not a detached loading animation.
+ camp = (load("res://game/welcome.tscn") as PackedScene).instantiate()
+ add_child(camp)
+ profile = camp.profile
+ runner = camp.avatar
+ animator = camp.animator
+ camera_from = camp.camera.position
+ # Hide the old in-game rectangular entrance; this is a distinct vault prop.
+ for node in camp.entrance_nodes:
+  node.visible = false
+ build_journey_environment()
+ camp.ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ for button in camp.find_children("*", "Button", true, false):
+  button.disabled = true
+ if profile.reduced_motion:
+  camp.panel.visible = false
+  runner.position = RUN_END
+  place_camera(1.0, 1.0)
+  animator.play("Idle")
+  arrived = true
+ else:
+  animator.get_animation("Sit_Chair_StandUp").loop_mode = Animation.LOOP_NONE
+  animator.play("Sit_Chair_StandUp", 0.18)
+  var slide: Tween = camp.panel.create_tween().set_parallel(true)
+  slide.tween_property(camp.panel, "offset_left", camp.panel.offset_left + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+  slide.tween_property(camp.panel, "offset_right", camp.panel.offset_right + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+  slide.tween_property(camp.ui.get_child(0), "modulate:a", 0.0, 0.65)
  build_ui()
  var assets: Array = JSON.parse_string(FileAccess.get_file_as_string("res://data/loading_assets.json"))
  pending.append(MAIN)
@@ -89,28 +86,28 @@ func text(parent: Node, value: String, size: int, anchors: Rect2) -> Label:
 
 func build_ui() -> void:
  var layer := CanvasLayer.new()
+ layer.layer = 5
  add_child(layer)
  var root := Control.new()
  root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  root.mouse_filter = Control.MOUSE_FILTER_IGNORE
  layer.add_child(root)
- text(root, "БУНКЕР  /  ПОСЛЕДНИЙ ШЛЮЗ", 22, Rect2(0.1, 0.06, 0.8, 0.08))
- text(root, "ПОДГОТОВКА ПАРТИИ", 34, Rect2(0.1, 0.16, 0.8, 0.09))
- text(root, "Собираем припасы и открываем убежище", 19, Rect2(0.1, 0.25, 0.8, 0.07))
- status = text(root, "Загружаем модели…", 20, Rect2(0.1, 0.73, 0.8, 0.08))
+ var heading := text(root, "ПОДГОТОВКА ПАРТИИ", 24, Rect2(0.18, 0.04, 0.64, 0.06))
+ heading.add_theme_color_override("font_color", Color("f5e6ca"))
+ status = text(root, "Готовим убежище…", 16, Rect2(0.2, 0.78, 0.6, 0.05))
  progress = ProgressBar.new()
  root.add_child(progress)
- progress.anchor_left = 0.25
- progress.anchor_right = 0.75
- progress.anchor_top = 0.83
- progress.anchor_bottom = 0.85
+ progress.anchor_left = 0.32
+ progress.anchor_right = 0.68
+ progress.anchor_top = 0.845
+ progress.anchor_bottom = 0.86
  progress.show_percentage = false
  var cancel := Button.new()
  cancel.text = "Вернуться к костру"
  Cards.button(cancel, true)
- cancel.custom_minimum_size = Vector2(240, 48)
+ cancel.custom_minimum_size = Vector2(230, 48)
  root.add_child(cancel)
- cancel.anchor_left = 0.28
+ cancel.anchor_left = 0.3
  cancel.anchor_right = 0.49
  cancel.anchor_top = 0.9
  cancel.anchor_bottom = 0.97
@@ -121,17 +118,62 @@ func build_ui() -> void:
  enter.disabled = true
  root.add_child(enter)
  enter.anchor_left = 0.51
- enter.anchor_right = 0.72
+ enter.anchor_right = 0.7
  enter.anchor_top = 0.9
  enter.anchor_bottom = 0.97
  enter.pressed.connect(finish)
 
+func build_journey_environment() -> void:
+ # Extend the actual forest along the route so the background never ends.
+ forest_extension = Node3D.new()
+ forest_extension.name = "JourneyForest"
+ camp.add_child(forest_extension)
+ for i in 26:
+  var source: Node3D = camp.camp_assets.trees[i % camp.camp_assets.trees.size()]
+  var tree := source.duplicate() as Node3D
+  tree.position = Vector3(7.0 + float(i % 13) * 1.65, 0, -4.5 - float(i / 13) * 2.5)
+  forest_extension.add_child(tree)
+ var grass_scene := load("res://assets/quaternius/nature_pack_Grass_Short.glb") as PackedScene
+ for i in 100:
+  var tuft := grass_scene.instantiate() as Node3D
+  tuft.position = Vector3(7.0 + float(i % 20) * 0.85, 0, -3.3 + float(i / 20) * 1.45)
+  tuft.scale = Vector3.ONE * (0.28 + 0.05 * sin(float(i)))
+  tuft.rotation.y = float(i) * 1.7
+  forest_extension.add_child(tuft)
+ vault = preload("res://game/scripts/cinematic_vault.gd").new()
+ vault.name = "CinematicVault"
+ vault.position = Vector3(18.0, 0, -0.8)
+ camp.add_child(vault)
+
+func place_camera(stage: float, travel: float) -> void:
+ # Translate a side-on camera with the runner: all stationary forest and the
+ # fire move left on screen, while the vault enters naturally from the right.
+ var camera_track := Vector3(-0.4 + (RUN_END.x - RUN_START.x) * travel, 3.15, 14.0)
+ var target_track := Vector3(camera_track.x, 1.0, 0)
+ camp.camera.position = camera_from.lerp(camera_track, stage)
+ camp.camera.size = lerpf(5.2, 7.4, stage)
+ camp.camera.look_at(camera_target_from.lerp(target_track, stage))
+
+func advance_cinematic() -> void:
+ if profile.reduced_motion:
+  return
+ var stage := smoothstep(0.0, 0.85, elapsed)
+ var travel := clampf((elapsed - STAND_TIME) / RUN_TIME, 0.0, 1.0)
+ place_camera(stage, travel)
+ if elapsed >= STAND_TIME and not running:
+  running = true
+  animator.get_animation("Running_A").loop_mode = Animation.LOOP_LINEAR
+  animator.play("Running_A", 0.16)
+  runner.rotation.y = PI / 2
+ if running and not arrived:
+  runner.position = RUN_START.lerp(RUN_END, travel)
+  if travel >= 1.0:
+   arrived = true
+   animator.play("Idle", 0.2)
+
 func _process(delta: float) -> void:
  elapsed += delta
- if is_instance_valid(animator):
-  animator.advance(delta)
- if is_instance_valid(runner):
-  runner.position.x = 0.0 if profile.reduced_motion else -4.2 + fmod(elapsed * 3.5, 8.4)
+ advance_cinematic()
  if failed or transitioning:
   return
  for index in range(pending.size() - 1, -1, -1):
@@ -150,9 +192,8 @@ func _process(delta: float) -> void:
   get_tree().change_scene_to_file("res://game/welcome.tscn")
   return
  enter.disabled = not ready_to_enter
- status.text = "Убежище готово • входим…" if ready_to_enter else "Загружено ресурсов: %d / %d" % [total - pending.size(), total]
- # A short skippable transition, not a simulated online matchmaking wait.
- if ready_to_enter and elapsed >= 2.4:
+ status.text = "Убежище готово" if ready_to_enter else "Готовим убежище: %d / %d" % [total - pending.size(), total]
+ if ready_to_enter and (profile.reduced_motion or elapsed >= ARRIVAL_TIME):
   finish()
 
 func fail(message: String) -> void:

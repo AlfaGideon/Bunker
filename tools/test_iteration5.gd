@@ -112,7 +112,10 @@ func run() -> void:
 		check(room.rest_remaining == 0 and room.stamina == 80, "Rest cooldown shared by beds")
 		room.phase = "result"
 		room._advance()
-		check(room.round_number == 2 and room.medical_open, "Actual next-round transition opens repaired medblock")
+		check(room.round_number == 2 and not room.medical_open, "Round two requires doctor action")
+		room.players[0]["cards"][0]["value"] = "Врач"
+		walk(room, "gate")
+		check(room.medical_open, "Doctor opens medical after round one")
 		check(room.stamina == 68, "Next round consumes stamina: rest remains meaningful")
 		check(not room.med_cover.visible and room.med_light.light_energy > 0, "Unlock removes roof and enables light")
 		room.players[0]["cards"][0]["value"] = "Фельдшер"
@@ -120,6 +123,13 @@ func run() -> void:
 		check(room.medicines == 1 and room.stamina == 83, "Limited medical treatment")
 		walk(room, "medical")
 		check(room.medicines == 1, "Treatment cooldown")
+		room.players[0]["cards"][0]["value"] = "Врач"
+		for id in room.active:
+			if id != 0 and room.players[id]["cards"][0]["value"] == "Врач":
+				room.players[id]["cards"][0]["value"] = "Учитель"
+		room.players[0]["cards"][0]["value"] = "Учитель"
+		room._update_medical_access()
+		check(not room.medical_open and not room.navigation.is_walkable(room.layout["items"]["medical"]["goal"]), "Medical closes without doctor")
 		walk(room, "radio")
 		check(room.audio.radio_on and room.audio.radio.playing, "Radio plays local loop")
 		check(room.audio.radio.volume_db >= -10 and room.audio.effect.volume_db >= -8, "Audible prototype mix gains")

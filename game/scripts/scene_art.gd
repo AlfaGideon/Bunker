@@ -27,7 +27,7 @@ static func spawn(parent: Node3D, filename: String, at: Vector3,
 	wrapper.set_meta("source", source)
 	if filename.begins_with("kaykit_"):
 		for mesh in model.find_children("*", "MeshInstance3D", true, false):
-			for accessory in ["Sword", "Shield", "Knife", "Crossbow", "Throwable", "Cape", "Helmet"]:
+			for accessory in ["Sword", "Shield", "Knife", "Crossbow", "Throwable", "Cape", "Helmet", "Axe", "Wand", "Staff", "Spellbook", "Mug", "Mage_Hat", "Barbarian_Hat"]:
 				if accessory in mesh.name:
 					mesh.visible = false
 	var found: Array = []

@@ -9,7 +9,7 @@ const Art = preload("res://game/scripts/scene_art.gd")
 static func build(room: Node3D) -> void:
 	var plan: Dictionary = room.layout
 	var side: float = plan["med_side"]
-	room._box(Vector3(0, -0.52, 0), Vector3(160, 0.2, 160), Color("242c30"))
+	room._box(Vector3(0, -1.15 if room.scenario["weather"] == "flood" else -0.52, 0), Vector3(160, 0.2, 160), Color("242c30"))
 	preload("res://game/scripts/modular_shell.gd").build(room)
 	var table: Vector3 = plan["table"]
 	var desk := Art.spawn(room, "house_interior_pack_Table_RoundLarge", table, Vector3(3.1, 0.9, 1.7))

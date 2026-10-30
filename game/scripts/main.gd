@@ -24,6 +24,13 @@ const VoteRules = preload("res://game/scripts/vote_rules.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
 var speech := Speech.new()
+var discussion_remaining := 0.0
+var vote_remaining := 0.0
+var vote_second := false
+var vote_candidates: Array = []
+var ballots := {}
+var vote_panel: Control
+var last_vote_result := {}
 var abilities := Abilities.new()
 var speech_label: Label
 var ability_buttons: Array[Button] = []
@@ -106,7 +113,7 @@ func _ready() -> void:
 	profile.last_layout = layout["variant"]
 	profile.save()
 	navigation = Navigation.new(layout)
-	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance)
+	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance, profile.custom_parameters)
 	active.assign(range(players.size()))
 	capacity = players.size() / 2
 	meals = capacity
@@ -217,8 +224,7 @@ func _build_world() -> void:
 		var appearance: String = players[i]["appearance"]
 		actor.set_meta("appearance", appearance)
 		var visual := Art.spawn(actor, _model_name(i, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
-		if i == 0:
-			preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit)
+		preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit if i == 0 else 0, appearance)
 		visual.set_script(SurvivorVisual)
 		visual._collect(visual)
 		actor.position = navigation.nearest_walkable(positions[i])
@@ -373,6 +379,9 @@ func _build_ui() -> void:
 	survival_panel = SurvivalPanel.new()
 	root.add_child(survival_panel)
 	survival_panel.setup(self)
+	vote_panel = preload("res://game/scripts/vote_panel.gd").new()
+	root.add_child(vote_panel)
+	vote_panel.setup(self)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 
@@ -406,10 +415,6 @@ func _refresh() -> void:
 		if card["id"] == "health" and (selected == 0 or card["revealed"]):
 			detail.add_info("Нагрузка на группу: " + Supplies.cost_text(card.get("cost", {})), 16)
 	detail.page_index = dossier_page
-	if phase == "vote" and active.has(0) and selected != 0 and active.has(selected):
-		_button("Голосовать (тестовые участники)", _demo_vote, detail)
-	if phase == "vote" and not active.has(0):
-		_button("Тестовое голосование оставшихся", _spectator_vote, detail)
 	if not active.has(selected):
 		detail.add_info("Наблюдатель — больше не участвует в голосовании.")
 
@@ -452,7 +457,7 @@ func _reveal_card(index: int, card: Dictionary) -> void:
 	card["revealed"] = true
 	reveal_log.append({"player": index, "card": card["id"]})
 	if card["id"] == "biology":
-		_change_appearance(index, players[index]["sex"])
+		_change_appearance(index, biology_appearance(index))
 
 
 func _biology_revealed(index: int) -> bool:
@@ -462,9 +467,13 @@ func _biology_revealed(index: int) -> bool:
 	return false
 
 
-func _model_name(index: int, appearance: String) -> String:
-	return "kaykit_Knight" if appearance == "male" else ("kaykit_Rogue" if index % 2 == 0 else "kaykit_Rogue_Hooded")
+func biology_appearance(index: int) -> String:
+	var age := int(players[index].get("age", 30))
+	return preload("res://game/scripts/avatar_catalog.gd").biology(players[index]["sex"], age)
 
+
+func _model_name(index: int, appearance: String) -> String:
+	return preload("res://game/scripts/avatar_catalog.gd").model(appearance, index)
 
 func _change_appearance(index: int, appearance: String) -> void:
 	var actor := actors[index]
@@ -474,8 +483,7 @@ func _change_appearance(index: int, appearance: String) -> void:
 	actor.remove_child(old)
 	old.queue_free()
 	var visual := Art.spawn(actor, _model_name(index, appearance), Vector3.ZERO, Vector3(1, 1.45, 1), true)
-	if index == 0:
-		preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit)
+	preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit if index == 0 else 0, appearance)
 	visual.set_script(SurvivorVisual)
 	visual._collect(visual)
 	actor.move_child(visual, 0)
@@ -491,10 +499,9 @@ func _advance() -> void:
 		"reveal":
 			pass_speech()
 		"discussion":
-			phase = "vote"
-			log_label.text = "Демонстрация результата: выберите другого участника и нажмите «Голосовать». Остальные голоса задаёт явно тестовый сценарий."
+			log_label.text = "Общее обсуждение продолжается: %d сек." % ceili(discussion_remaining)
 		"vote":
-			log_label.text = "Выберите другого активного персонажа."
+			log_label.text = "Голосование уже открыто в центре экрана."
 		"result":
 			if not departures.is_empty():
 				log_label.text = "Подождите: исключённый участник идёт к выходу."
@@ -512,34 +519,59 @@ func _advance() -> void:
 	_refresh()
 
 
-func _demo_vote() -> void:
-	if phase != "vote" or not active.has(0) or selected == 0 or not active.has(selected):
-		return
-	# Explicit deterministic fixture, not intelligent bots or real online votes.
-	var votes := {0: selected}
+func start_vote(candidates: Array = [], second: bool = false) -> void:
+	phase = "vote"
+	vote_second = second
+	vote_candidates = candidates.duplicate()
+	vote_remaining = 20.0
+	ballots.clear()
+	# Other participants are explicitly local test fixtures, not network players.
+	var pool: Array = active if candidates.is_empty() else candidates
 	for voter in active:
-		if voter == 0:
-			continue
-		votes[voter] = 0 if voter == selected else selected
-	var result := VoteRules.resolve(active, votes)
-	if result["status"] != "eliminated":
-		log_label.text = "Тестовый бюллетень не дал результата: " + result["status"]
-		return
-	var eliminated: int = result["player"]
-	_eliminate(eliminated)
+		if voter != 0 and not pool.is_empty():
+			ballots[voter] = pool.pick_random()
+	vote_panel.open_ballot()
+	log_label.text = "Голосование 20 секунд. Тестовые участники голосуют локально."
+	_refresh()
 
 
-func _spectator_vote() -> void:
-	if phase != "vote" or active.has(0):
+func cast_vote(target: int) -> bool:
+	if phase != "vote" or not active.has(0) or not active.has(target):
+		return false
+	if target != 0 and not vote_candidates.is_empty() and not vote_candidates.has(target):
+		return false
+	ballots[0] = target
+	vote_panel.update_state()
+	return true
+
+
+func finish_vote() -> void:
+	if phase != "vote":
 		return
-	var candidate: int = active.pick_random()
-	var votes := {}
-	for voter in active:
-		if voter != candidate:
-			votes[voter] = candidate
-	var result := VoteRules.resolve(active, votes)
-	if result["status"] == "eliminated":
-		_eliminate(result["player"])
+	last_vote_result = VoteRules.resolve(active, ballots, vote_candidates, vote_second)
+	if last_vote_result["status"] == "runoff":
+		var leaders: Array = last_vote_result["leaders"]
+		start_vote(leaders, true)
+		return
+	vote_panel.visible = false
+	if last_vote_result["status"] == "eliminated":
+		_eliminate(int(last_vote_result["player"]))
+
+
+func tick_round_timer(delta: float) -> void:
+	if not started:
+		return
+	if phase == "discussion":
+		discussion_remaining = maxf(0.0, discussion_remaining - maxf(0.0, delta))
+		if discussion_remaining <= 0.0:
+			start_vote()
+		else:
+			_refresh_left()
+	elif phase == "vote":
+		vote_remaining = maxf(0.0, vote_remaining - maxf(0.0, delta))
+		vote_panel.update_state()
+		if vote_remaining <= 0.0:
+			finish_vote()
 
 
 func test_own_expulsion() -> void:
@@ -552,6 +584,8 @@ func test_own_expulsion() -> void:
 func _eliminate(eliminated: int) -> void:
 	if not active.has(eliminated):
 		return
+	if is_instance_valid(vote_panel):
+		vote_panel.visible = false
 	if eliminated == 0:
 		if rest_remaining > 0:
 			rest_remaining = 0
@@ -570,6 +604,7 @@ func _eliminate(eliminated: int) -> void:
 		npc_rests.erase(eliminated)
 	create_tween().tween_property(exit_hatch, "position:y", -2.0, 0.5)
 	active.erase(eliminated)
+	_update_medical_access()
 	actors[eliminated].get_child(1).modulate = Color("71828c")
 	var departure := navigation.path_between(actors[eliminated].position, Vector3(3.8, 0, 3.2))
 	departure.append_array(PackedVector3Array([Vector3(3.8, 0, 4.5), Vector3(3.8, 0, 6.7), Vector3(8.9, 0, 6.7), Vector3(10.3, -0.3, 6.7)]))
@@ -591,6 +626,8 @@ func _eliminate(eliminated: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(vote_panel) and vote_panel.visible:
+		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if survival_panel.visible:
 			return
@@ -599,7 +636,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			menu.home()
 		return
-	if menu.visible or survival_panel.visible:
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
 		camera_gestures.reset()
 		return
 	# Native ScreenTouch may reach unhandled input before its emulated mouse
@@ -614,7 +651,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(menu) or not is_instance_valid(survival_panel):
 		return
-	if menu.visible or survival_panel.visible:
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
 		camera_gestures.reset()
 		return
 	# Starts reach us only after GUI handling; continuations remain captured
@@ -668,6 +705,7 @@ func _set_route(destination: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	if actors.is_empty() or menu.visible or survival_panel.visible:
 		return
+	tick_round_timer(delta)
 	if started and phase == "reveal":
 		if speech.tick(delta):
 			_begin_speaker()
@@ -780,10 +818,21 @@ func _narrate_intro() -> void:
 			menu.briefing(false)
 
 
+func _active_doctor() -> bool:
+	for id in active:
+		if Professions.profession(players[id]) == "Врач":
+			return true
+	return false
+
+
 func medical_status() -> String:
 	if medical_open:
 		return "Медблок открыт. Осталось наборов: %d." % medicines
-	return "Медблок закрыт: техник восстанавливает систему аварийным набором у терминала; доступ со второго раунда. Система: %s; раунд: %d." % ["готова" if systems_ready else "не восстановлена", round_number]
+	if round_number < 2:
+		return "Медблок закрыт до конца первого раунда. Затем врач может открыть дверь."
+	if not _active_doctor():
+		return "Медблок закрыт: в команде нет врача."
+	return "Медблок закрыт. Поручите врачу открыть дверь медблока."
 
 
 func request_interaction(key: String, operator: int = 0) -> bool:
@@ -799,10 +848,10 @@ func request_interaction(key: String, operator: int = 0) -> bool:
 	if key == "supply" and not warehouse_open:
 		log_label.text = "Склад опечатан решением совета. Он может остаться закрытым до конца партии."
 		return false
-	if not Professions.allowed(players[operator], key) and key != "gate":
+	if not Professions.allowed(players[operator], key):
 		log_label.text = "Профессия не подходит. " + Professions.requirement(key)
 		return false
-	if key == "gate" or (key == "medical" and not medical_open):
+	if (key == "gate" and (round_number < 2 or medical_open)) or (key == "medical" and not medical_open):
 		log_label.text = medical_status()
 		return false
 	if not layout["items"].has(key):
@@ -848,6 +897,8 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 		_start_extra_bed(key, operator)
 		return
 	match key:
+		"gate":
+			_open_medical(operator)
 		"supply":
 			if supply_taken:
 				log_label.text = "Склад проверен: снабжение уже получено."
@@ -943,8 +994,9 @@ func _tick_rest(delta: float) -> void:
 		log_label.text = "Вы отдохнули. Бодрость: %d/100. Снова можно отдохнуть в следующем раунде." % stamina
 
 
-func _update_medical_access() -> void:
-	if medical_open or not systems_ready or round_number < 2:
+func _open_medical(operator: int) -> void:
+	if medical_open or round_number < 2 or operator not in active or Professions.profession(players[operator]) != "Врач":
+		log_label.text = medical_status()
 		return
 	medical_open = true
 	navigation.unlock_medical()
@@ -952,6 +1004,34 @@ func _update_medical_access() -> void:
 	med_label.text = "МЕДБЛОК • ОТКРЫТ"
 	med_light.light_energy = 1.2
 	create_tween().tween_property(med_gate, "position:y", -1.2, 0.6)
+	log_label.text = "Врач открыл медблок."
+	audio.blip("door")
+
+
+func _update_medical_access() -> void:
+	if not medical_open or _active_doctor():
+		return
+	# Return occupants to the hall before sealing the navigation cells.
+	var med_bounds: Rect2 = layout["med_bounds"]
+	var corridor: Rect2 = layout["gate_blocker"]
+	var approach: Vector3 = layout["items"]["gate"]["goal"]
+	for i in actors.size():
+		var p := Vector2(actors[i].position.x, actors[i].position.z)
+		if med_bounds.has_point(p) or corridor.has_point(p):
+			actors[i].position = navigation.nearest_walkable(approach)
+			jobs.erase(i)
+		elif jobs.has(i) and jobs[i].get("key", "") in ["medical", "gate"]:
+			jobs.erase(i)
+	if pending_inspection in ["medical", "gate"]:
+		route.clear()
+		pending_inspection = ""
+		marker.visible = false
+	medical_open = false
+	navigation.lock_medical()
+	med_label.text = "МЕДБЛОК • ЗАКРЫТ"
+	med_light.light_energy = 0.0
+	create_tween().tween_property(med_gate, "position:y", layout["modules"]["medical"]["gate"].y, 0.6)
+	log_label.text = "Врач выбыл: медблок закрыт."
 	audio.blip("door")
 
 
@@ -1009,6 +1089,12 @@ func _refresh_left() -> void:
 	for slot in 2:
 		ability_buttons[slot].text = "%d. %s%s" % [slot + 1, Abilities.NAMES[abilities.cards[slot]], " • использована" if abilities.used[slot] else ""]
 		ability_buttons[slot].disabled = abilities.used[slot] or not active.has(0) or phase in ["vote", "end"]
+	if phase == "discussion":
+		speech_label.text = "Общее обсуждение\nОсталось %d сек.\nЗатем голосование." % ceili(discussion_remaining)
+		return
+	if phase == "vote":
+		speech_label.text = "Голосование\nОсталось %d сек." % ceili(vote_remaining)
+		return
 	speech_label.text = ("Речь: %s\nОсталось %d сек.\nРаскройте карту, объясните выбор и передайте ход. Меню = пауза." % [players[speech.speaker()]["name"], ceili(speech.remaining)]) if phase == "reveal" and not speech.finished else "Выступления завершены."
 
 
@@ -1018,7 +1104,7 @@ func use_ability(slot: int) -> void:
 	var result := abilities.apply(slot, players[0], players[selected])
 	log_label.text = result["message"]
 	if result.get("ok", false) and result.get("card", {}).get("id", "") == "biology" and result["card"]["revealed"]:
-		_change_appearance(selected, players[selected]["sex"])
+		_change_appearance(selected, biology_appearance(selected))
 	_refresh()
 
 
@@ -1032,7 +1118,8 @@ func pass_speech() -> void:
 func _begin_speaker() -> void:
 	if speech.finished:
 		phase = "discussion"
-		log_label.text = "Круг выступлений завершён. Обсудите решение, затем перейдите к голосованию."
+		discussion_remaining = 60.0
+		log_label.text = "Общее обсуждение: 60 секунд, затем голосование начнётся автоматически."
 	else:
 		selected = speech.speaker()
 		if selected != 0:
@@ -1132,5 +1219,31 @@ func perform_negative_action(key: String) -> bool:
 	used_actions["negative_0"] = round_number
 	_reveal_card(0, NegativeActions.quality_card(players[0]))
 	log_label.text = players[0]["name"] + ": " + action["title"] + ". " + action["effect"] + ". Недостаток характера раскрыт группе."
+	_refresh()
+	return true
+
+
+func reroll_player(index: int, ids: Array) -> bool:
+	if not active.has(0) or index not in active or finished or phase in ["vote", "end"]:
+		return false
+	var used: Array = []
+	for id in active:
+		if id != index:
+			used.append(Professions.profession(players[id]))
+	var updated: Dictionary = Content.reroll(players[index], ids, profile.custom_parameters, used)
+	if updated.is_empty():
+		return false
+	players[index] = updated
+	if "biology" in ids and _biology_revealed(index):
+		_change_appearance(index, biology_appearance(index))
+	if "profession" in ids:
+		if jobs.has(index) and not Professions.allowed(players[index], jobs[index].get("key", "")):
+			jobs.erase(index)
+		if index == 0 and not pending_inspection.is_empty() and not Professions.allowed(players[index], pending_inspection):
+			route.clear()
+			pending_inspection = ""
+			marker.visible = false
+		_update_medical_access()
+	selected = index
 	_refresh()
 	return true

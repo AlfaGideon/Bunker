@@ -2,7 +2,7 @@ name: Publish signed Android update
 on:
   workflow_dispatch:
   push:
-    branches: [arena/d3ec098c-bunker]
+    branches: [arena/6df6407d-bunker]
     paths:
       - 'game/**'
       - 'data/**'
@@ -84,6 +84,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "builds/bunker-$VERSION_CODE.apk"
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "builds/bunker-$VERSION_CODE.apk" > /tmp/apk-badging.txt
           grep "^package: name='org.bunker.prototype' versionCode='$VERSION_CODE'" /tmp/apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump permissions "builds/bunker-$VERSION_CODE.apk" | grep 'android.permission.REQUEST_INSTALL_PACKAGES' 
           cd builds
           cp "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk"
           sha256sum "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk" > SHA256SUMS

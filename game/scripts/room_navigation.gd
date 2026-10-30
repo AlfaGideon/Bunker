@@ -56,6 +56,11 @@ func unlock_medical() -> void:
 	rebuild()
 
 
+func lock_medical() -> void:
+	medical_open = false
+	rebuild()
+
+
 func cell_at(point: Vector3) -> Vector2i:
 	return Vector2i(((Vector2(point.x, point.z) - ORIGIN) / STEP).round())
 

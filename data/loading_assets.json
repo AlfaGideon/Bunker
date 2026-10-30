@@ -30,5 +30,8 @@
   "res://assets/kaykit/Rogue_Hooded.glb",
   "res://assets/quaternius/nature_pack_PineTree_1.glb",
   "res://assets/quaternius/nature_pack_PineTree_3.glb",
-  "res://assets/quaternius/survival_pack_Bonfire_Fire.glb"
+  "res://assets/quaternius/survival_pack_Bonfire_Fire.glb",
+  "res://assets/kaykit/Mage.glb",
+  "res://assets/kaykit/Barbarian.glb",
+  "res://assets/kaykit/rogue_silver.png"
 ]

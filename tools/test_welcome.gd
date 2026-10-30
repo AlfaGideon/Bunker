@@ -15,7 +15,7 @@ func run() -> void:
  check(ProjectSettings.get_setting("application/run/main_scene") == "res://game/welcome.tscn", "App launches welcome, not bunker")
  check(welcome.page == "home", "Welcome home visible")
  check(welcome.find_children("*", "ScrollContainer", true, false).is_empty(), "Welcome has no scrolling menu")
- check(welcome.cards.size() == 7, "Hero and six animated cards")
+ check(welcome.cards.size() == 8, "Hero and seven animated cards")
  for card in welcome.cards:
   check(card.get_global_rect().end.y <= root.get_visible_rect().size.y, "All cards fit vertically")
  welcome.edit_profile()
@@ -69,6 +69,7 @@ func run() -> void:
  check(not welcome.save_draft(), "Reject empty nickname")
  welcome.draft_name = "У костра"
  welcome.profile.outfit = 2
+ welcome.profile.reduced_motion = false
  check(welcome.save_draft(), "Save configured welcome profile")
  var saved := preload("res://game/scripts/local_profile.gd").new()
  check(saved.nickname == "У костра" and saved.outfit == 2, "Nickname and outfit persist")
@@ -82,10 +83,33 @@ func run() -> void:
  await scene_changed
  var loading: Node3D = current_scene
  check(loading.scene_file_path == "res://game/loading.tscn", "Start opens real preparation screen")
- check(loading.animator.current_animation == "Running_A", "Authored run animation on preparation")
+ check(loading.animator.current_animation == "Sit_Chair_StandUp", "Character stands from the original stump")
+ check(loading.camp.camp_assets.trees.size() == 13, "Preparation reuses forest and camp")
+ check(loading.runner == loading.camp.avatar, "Actual seated avatar makes the journey")
+ check(loading.runner.position.distance_to(loading.RUN_START) < 0.01, "Character starts on the stump")
+ loading.elapsed = 1.1
+ loading.advance_cinematic()
+ check(loading.animator.current_animation == "Running_A", "Authored run follows stand-up")
  var before_x: float = loading.runner.position.x
- loading._process(0.2)
- check(loading.runner.position.x > before_x, "Runner advances left to right")
+ var before_fire_x: float = loading.camp.camera.unproject_position(loading.camp.camp_assets.fire_model.global_position).x
+ var tree: Node3D = loading.forest_extension.get_child(0)
+ var before_tree_x: float = loading.camp.camera.unproject_position(tree.global_position).x
+ var start_vault_x: float = loading.camp.camera.unproject_position(loading.vault.global_position).x
+ check(start_vault_x > root.get_visible_rect().size.x, "Vault starts off the right side")
+ check(loading.vault.get_node("CircularBlastDoor") != null, "Dedicated circular vault door")
+ for old_door in loading.camp.entrance_nodes:
+  check(not old_door.visible, "Rectangular game entrance hidden in cinematic")
+ loading.elapsed = 2.5
+ loading.advance_cinematic()
+ check(loading.runner.position.x > before_x and is_equal_approx(loading.runner.position.z, 0.0), "Runner moves right across grass")
+ check(loading.camp.camera.unproject_position(loading.camp.camp_assets.fire_model.global_position).x < before_fire_x, "Campfire moves left on screen")
+ check(loading.camp.camera.unproject_position(tree.global_position).x < before_tree_x, "Forest moves left opposite the runner")
+ check(loading.forest_extension.get_child_count() >= 100, "Forest and grass extend along route")
+ loading.elapsed = 6.9
+ loading.advance_cinematic()
+ check(loading.arrived and loading.runner.position.distance_to(loading.RUN_END) < 0.01, "Runner stops at door without looping")
+ var end_vault_x: float = loading.camp.camera.unproject_position(loading.vault.global_position).x
+ check(end_vault_x > 0 and end_vault_x < root.get_visible_rect().size.x, "Vault enters and remains in view")
  check(loading.profile.nickname == "У костра", "Loading preserves nickname")
  loading.cancel_loading()
  await scene_changed
