@@ -1,5 +1,7 @@
 extends SceneTree
 
+const Art = preload("res://game/scripts/profession_art.gd")
+
 
 func _initialize() -> void:
 	call_deferred("capture")
@@ -122,6 +124,17 @@ func capture() -> void:
 		room.phase = "discussion"
 		room._refresh()
 		var look_index := 1
+		# Prefer a character whose profession already has an individual portrait,
+		# so the documentation shows the current art rather than only fallbacks.
+		var illustrated := false
+		for i in range(1, room.players.size()):
+			for card in room.players[i]["cards"]:
+				if str(card.get("id", "")) == "profession" and Art.PORTRAITS.has(str(card["value"])):
+					look_index = i
+					illustrated = true
+					break
+			if illustrated:
+				break
 		var published = room.Content.random_hidden_card(room.players[look_index])
 		if not published.is_empty():
 			room._reveal_card(look_index, published)
