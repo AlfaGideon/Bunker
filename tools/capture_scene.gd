@@ -128,6 +128,10 @@ func capture() -> void:
 		room.open_character_card(look_index)
 		room.character_card.show_for(look_index, false)
 		if args.has("--card-own"):
+			room.phase = "reveal"
+			room.speech.start(room.active)
+			room.speech.index = 0
+			room.speech.revealed = false
 			room.open_character_card(0)
 			room.character_card.show_for(0, false)
 			shot_prefix = "CARDOWNSHOT"

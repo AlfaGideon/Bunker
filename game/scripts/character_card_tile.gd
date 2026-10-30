@@ -132,7 +132,7 @@ func _state_caption() -> String:
 		"open":
 			return "ОТКРЫТО"
 		"own":
-			return "ТОЛЬКО ВАМ"
+			return "ВАМ"
 		_:
 			return "СКРЫТО"
 

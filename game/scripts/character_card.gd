@@ -20,6 +20,10 @@ const Supplies = preload("res://game/scripts/group_supplies.gd")
 
 const CARD_SIZE := Vector2(900, 600)
 const PARAMETER_ORDER := ["biology", "health", "quality", "skill", "baggage", "fact"]
+const PARAMETER_TITLE := {
+	"biology": "Биология", "health": "Здоровье", "quality": "Характер",
+	"skill": "Увлечение", "baggage": "Багаж", "fact": "Факт"
+}
 const PARAMETER_SUBTITLE := {
 	"biology": "Пол и возраст",
 	"health": "Медицинская нагрузка",
@@ -240,6 +244,7 @@ func _build_back() -> void:
 	back.add_child(art_view)
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 34)
 	back.add_child(margin)
@@ -251,8 +256,12 @@ func _build_back() -> void:
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(top)
 	back_brand = _label("БУНКЕР · ДОСЬЕ ВЫЖИВШЕГО", 12, Color("d9b06e"))
-	back_brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(back_brand)
+	var top_gap := Control.new()
+	top_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_gap.custom_minimum_size.x = 20
+	top.add_child(top_gap)
 	back_number = _label("", 12, Color("93a8ad"))
 	top.add_child(back_number)
 	var spacer := Control.new()
@@ -270,8 +279,12 @@ func _build_back() -> void:
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(bottom)
 	back_name = _label("", 17, Color("c9d5d6"))
-	back_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom.add_child(back_name)
+	var bottom_gap := Control.new()
+	bottom_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_gap.custom_minimum_size.x = 20
+	bottom.add_child(bottom_gap)
 	back_hint = _label("ОБОРОТ — ПАРАМЕТРЫ", 11, Color("8ea3a8"))
 	bottom.add_child(back_hint)
 
@@ -526,7 +539,7 @@ func _rebuild_tiles(player: Dictionary, accent: Color) -> void:
 		var tile := Tile.new()
 		tile.setup({
 			"id": parameter_id,
-			"title": str(card["label"]),
+			"title": str(PARAMETER_TITLE.get(parameter_id, card["label"])),
 			"number": number,
 			"state": state,
 			"icon": Art.parameter_icon(parameter_id),
