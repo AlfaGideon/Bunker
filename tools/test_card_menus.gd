@@ -78,6 +78,10 @@ func run() -> void:
  for node in room.find_children("*", "Button", true, false):
   if node.has_meta("parameter_lock") and node.parameter_id == "biology":
    red = node
+ var states: Array = []
+ for tile in room.character_card.tiles:
+  states.append(str(tile.parameter_id) + ":" + str(tile.state) + ":" + str(tile.revealable))
+ print("::notice::TILESTATE " + ", ".join(states))
  print("::notice::LOCKDEBUG locks=" + str(_lock_count(room)) + " can=" + str(room.can_reveal_parameter()) + " speaker=" + str(room.speech.speaker()) + " phase=" + str(room.phase) + " card=" + str(room.character_card.visible) + "/" + str(room.character_card.index) + " tiles=" + str(room.character_card.tiles.size()) + " selected=" + str(room.selected))
  check(is_instance_valid(red) and not red.is_public and not red.disabled, "Small red lock opens own parameter in own speech")
  check(red.custom_minimum_size == Vector2(52, 52), "Reveal is a small lock, not a full-width button")
