@@ -117,6 +117,25 @@ func capture() -> void:
 		room.NegativeActions.quality_card(room.players[0])["value"] = "Вспыльчивый"
 		room.menu.show_negative_actions()
 		shot_prefix = "NEGATIVEACTIONSHOT"
+	if args.has("--card-front") or args.has("--card-back") or args.has("--card-own"):
+		room.menu.visible = false
+		room.phase = "discussion"
+		room._refresh()
+		var look_index := 1
+		var published := room.Content.random_hidden_card(room.players[look_index])
+		if not published.is_empty():
+			room._reveal_card(look_index, published)
+		room.open_character_card(look_index)
+		room.character_card.show_for(look_index, false)
+		if args.has("--card-own"):
+			room.open_character_card(0)
+			room.character_card.show_for(0, false)
+			shot_prefix = "CARDOWNSHOT"
+		elif args.has("--card-back"):
+			room.character_card.set_side(true, false)
+			shot_prefix = "CARDBACKSHOT"
+		else:
+			shot_prefix = "CARDFRONTSHOT"
 	for i in 15:
 		await process_frame
 	if is_instance_valid(room.weather.meteor_field):

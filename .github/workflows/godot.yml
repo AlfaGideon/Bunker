@@ -46,6 +46,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_update_network.gd
           GODOT_TIMEOUT=240 bash tools/check_godot.sh --headless --path . --script tools/test_update_download.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_card_menus.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_character_card.gd
           python3 tools/test_release_config.py
       - name: Smoke test scene
         run: |
@@ -109,6 +110,26 @@ jobs:
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
       - name: Render kitchen and shared food
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --facilities
+  visual-character-card:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: checks
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Render face-up character card
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --card-front
+      - name: Render profession card back
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --card-back
+      - name: Render owner's private card
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --card-own
+
   visual-architecture:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -1,5 +1,6 @@
 extends HBoxContainer
 signal item_selected(index: int)
+signal caption_pressed
 const Style = preload("res://game/scripts/card_style.gd")
 var entries: Array = []
 var selected := 0
@@ -12,6 +13,7 @@ var disabled := false:
 var previous: Button
 var next: Button
 var caption: Label
+var caption_frame: PanelContainer
 
 func _init() -> void:
  set_meta("touch_choice", true)
@@ -23,16 +25,18 @@ func _init() -> void:
  Style.button(previous, true)
  previous.custom_minimum_size.x = 48
  add_child(previous)
- var frame := PanelContainer.new()
- frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
- frame.add_theme_stylebox_override("panel", Style.panel())
- add_child(frame)
+ caption_frame = PanelContainer.new()
+ caption_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ caption_frame.add_theme_stylebox_override("panel", Style.panel())
+ caption_frame.mouse_filter = Control.MOUSE_FILTER_STOP
+ caption_frame.gui_input.connect(_on_caption_input)
+ add_child(caption_frame)
  caption = Label.new()
  caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
  caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
  caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  caption.add_theme_font_size_override("font_size", 17)
- frame.add_child(caption)
+ caption_frame.add_child(caption)
  next = Button.new()
  next.text = "›"
  Style.button(next, true)
@@ -40,6 +44,13 @@ func _init() -> void:
  add_child(next)
  previous.pressed.connect(func(): cycle(-1))
  next.pressed.connect(func(): cycle(1))
+
+func _on_caption_input(event: InputEvent) -> void:
+ if disabled:
+  return
+ if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+  caption_pressed.emit()
+
 
 func add_item(value: String, id: int = -1) -> void:
  entries.append({"text": value, "id": entries.size() if id == -1 else id})

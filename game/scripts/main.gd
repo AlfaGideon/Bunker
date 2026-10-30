@@ -21,6 +21,7 @@ const Navigation = preload("res://game/scripts/room_navigation.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
+const CharacterCard = preload("res://game/scripts/character_card.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
 var speech := Speech.new()
@@ -70,6 +71,8 @@ var active: Array[int] = []
 var capacity := 4
 var profile := Profile.new()
 var menu: Control
+var character_card
+var roster
 var sun: DirectionalLight3D
 var departures: Dictionary = {}
 var selected := 0
@@ -332,17 +335,21 @@ func _build_ui() -> void:
 	facilities.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var negative := _button("Действия", func(): menu.show_negative_actions(), actions)
 	negative.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var roster := Choice.new()
+	roster = Choice.new()
 	for i in players.size():
 		roster.add_item(players[i]["name"] + (" — вы" if i == 0 else ""), i)
+	roster.tooltip_text = "Касание имени открывает карточку персонажа"
 	roster.item_selected.connect(func(index: int):
 		selected = index
 		detail.page_index = 0
+		if is_instance_valid(character_card) and character_card.visible:
+			character_card.show_for(selected, false, true)
 		_refresh())
+	roster.caption_pressed.connect(func(): open_character_card(selected))
 	shell.add_child(roster)
 	detail = Deck.new()
 	detail.columns = 1
-	detail.page_height = 170
+	detail.page_height = 150
 	shell.add_child(detail)
 	status_label = _label("", 16)
 	shell.add_child(status_label)
@@ -350,7 +357,7 @@ func _build_ui() -> void:
 	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 15)
 	log_label.max_lines_visible = 2
 	shell.add_child(log_label)
-	var hint := _label("Касание — идти; свайп — камера; два пальца — масштаб.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
+	var hint := _label("Касание персонажа — его карточка; касание пола — идти.\nСвайп — камера; два пальца — масштаб.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.position = Vector2(24, -75)
 	hint.size = Vector2(560, 60)
@@ -382,12 +389,24 @@ func _build_ui() -> void:
 	vote_panel = preload("res://game/scripts/vote_panel.gd").new()
 	root.add_child(vote_panel)
 	vote_panel.setup(self)
+	character_card = CharacterCard.new()
+	root.add_child(character_card)
+	character_card.setup(self)
+	character_card.player_changed.connect(func(index: int):
+		selected = index
+		_sync_roster()
+		_refresh())
+	character_card.reveal_requested.connect(func(id: String):
+		if reveal_parameter(id):
+			character_card.refresh())
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 
 
 func _refresh() -> void:
 	_refresh_left()
+	if is_instance_valid(character_card) and character_card.visible:
+		character_card.refresh()
 	var dossier_page := detail.page_index
 	detail.clear_cards()
 	var names := {"reveal": "Раскрытие", "discussion": "Обсуждение", "vote": "Голосование", "result": "Результат", "end": "Итог"}
@@ -417,6 +436,40 @@ func _refresh() -> void:
 	detail.page_index = dossier_page
 	if not active.has(selected):
 		detail.add_info("Наблюдатель — больше не участвует в голосовании.")
+
+
+func _sync_roster() -> void:
+	if is_instance_valid(roster) and not roster.entries.is_empty():
+		roster.select(selected)
+
+
+func open_character_card(player_index: int) -> void:
+	if players.is_empty():
+		return
+	selected = clampi(player_index, 0, players.size() - 1)
+	_sync_roster()
+	detail.page_index = 0
+	_refresh()
+	if is_instance_valid(character_card):
+		character_card.show_for(selected)
+
+
+func _actor_at_screen(point: Vector2) -> int:
+	if camera == null:
+		return -1
+	var limit := 0.58 * get_viewport().get_visible_rect().size.y / maxf(camera.size, 1.0)
+	var best := -1
+	var best_distance := limit
+	for i in actors.size():
+		var actor: Node3D = actors[i]
+		if not is_instance_valid(actor) or not actor.is_visible_in_tree():
+			continue
+		var screen_point := camera.unproject_position(actor.global_position + Vector3(0, 0.85, 0))
+		var distance := screen_point.distance_to(point)
+		if distance <= best_distance:
+			best = i
+			best_distance = distance
+	return best
 
 
 func can_reveal_parameter() -> bool:
@@ -626,6 +679,20 @@ func _eliminate(eliminated: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(character_card) and character_card.visible:
+		if event is InputEventKey and event.pressed and not event.echo:
+			match event.keycode:
+				KEY_ESCAPE:
+					character_card.close()
+				KEY_LEFT:
+					character_card.step(-1)
+				KEY_RIGHT:
+					character_card.step(1)
+				KEY_SPACE, KEY_F:
+					character_card.set_side(not character_card.showing_back)
+			get_viewport().set_input_as_handled()
+		camera_gestures.reset()
+		return
 	if is_instance_valid(vote_panel) and vote_panel.visible:
 		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -636,7 +703,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			menu.home()
 		return
-	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible):
 		camera_gestures.reset()
 		return
 	# Native ScreenTouch may reach unhandled input before its emulated mouse
@@ -651,7 +718,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(menu) or not is_instance_valid(survival_panel):
 		return
-	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible):
 		camera_gestures.reset()
 		return
 	# Starts reach us only after GUI handling; continuations remain captured
@@ -684,6 +751,10 @@ func _tap_world(point: Vector2) -> void:
 	if not nearest_item.is_empty():
 		request_interaction(nearest_item)
 		return
+	var tapped_actor := _actor_at_screen(point)
+	if tapped_actor >= 0:
+		open_character_card(tapped_actor)
+		return
 	var hit = Plane(Vector3.UP, 0).intersects_ray(camera.project_ray_origin(point), camera.project_ray_normal(point))
 	if hit == null:
 		return
@@ -703,7 +774,7 @@ func _set_route(destination: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if actors.is_empty() or menu.visible or survival_panel.visible:
+	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(character_card) and character_card.visible):
 		return
 	tick_round_timer(delta)
 	if started and phase == "reveal":
@@ -771,6 +842,9 @@ func _physics_process(delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and camera_gestures != null:
 		camera_gestures.reset()
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(character_card) and character_card.visible:
+		character_card.close()
+		return
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(menu) and not (is_instance_valid(survival_panel) and survival_panel.visible):
 		menu.home()
 
