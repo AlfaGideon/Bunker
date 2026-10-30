@@ -144,7 +144,7 @@ func build_camp() -> void:
 ## bunker's own radio also catches other bunkers.
 func build_radio() -> void:
  radio_prop = Node3D.new()
- radio_prop.position = Vector3(-2.42, 0.58, -0.16)
+ radio_prop.position = Vector3(-2.15, 0.58, -0.05)
  add_child(radio_prop)
  var body := MeshInstance3D.new()
  var body_mesh := BoxMesh.new()
@@ -236,10 +236,21 @@ func _update_radio_caption() -> void:
 func _update_radio_hotspot() -> void:
  if not is_instance_valid(radio_hotspot) or not is_instance_valid(radio_prop) or camera == null:
   return
+ # The camp is seen through an orthographic camera, so the tap target follows
+ # the prop. Square test viewports would push it off the edge: clamp instead.
+ var bounds: Vector2 = ui.size if is_instance_valid(ui) and ui.size.x > 1.0 else get_viewport().get_visible_rect().size
  var point := camera.unproject_position(radio_prop.global_position + Vector3(0, 0.18, 0.1))
- radio_hotspot.position = Vector2(point.x - radio_hotspot.size.x * 0.5, point.y - radio_hotspot.size.y * 0.6).round()
+ var ring := radio_hotspot.size
+ var corner := Vector2(point.x - ring.x * 0.5, point.y - ring.y * 0.62)
+ corner.x = clampf(corner.x, 12.0, maxf(12.0, bounds.x - ring.x - 12.0))
+ corner.y = clampf(corner.y, 12.0, maxf(12.0, bounds.y - ring.y - 12.0))
+ radio_hotspot.position = corner.round()
  if is_instance_valid(radio_caption):
-  radio_caption.position = Vector2(point.x - radio_caption.size.x * 0.5, radio_hotspot.position.y + radio_hotspot.size.y + 2.0).round()
+  var caption_size := radio_caption.size
+  var caption_corner := Vector2(corner.x + ring.x * 0.5 - caption_size.x * 0.5, corner.y + ring.y + 2.0)
+  caption_corner.x = clampf(caption_corner.x, 12.0, maxf(12.0, bounds.x - caption_size.x - 12.0))
+  caption_corner.y = clampf(caption_corner.y, 12.0, maxf(12.0, bounds.y - caption_size.y - 12.0))
+  radio_caption.position = caption_corner.round()
 
 
 func update_avatar() -> void:
