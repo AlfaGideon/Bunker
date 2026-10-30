@@ -119,12 +119,12 @@ func _build() -> void:
 
 func _value_font_size() -> int:
 	if state == "hidden":
-		return 18
+		return 20
 	if value_text.length() > 90:
-		return 14
-	if value_text.length() > 55:
 		return 15
-	return 16
+	if value_text.length() > 55:
+		return 16
+	return 17
 
 
 func _state_caption() -> String:
