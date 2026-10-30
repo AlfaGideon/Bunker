@@ -7,6 +7,7 @@ const Profile = preload("res://game/scripts/local_profile.gd")
 const Content = preload("res://game/scripts/game_content.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const Style = preload("res://game/scripts/avatar_style.gd")
+const Music = preload("res://game/scripts/music_library.gd")
 var profile := Profile.new()
 var library_editor: RefCounted
 var draft_name := ""
@@ -28,6 +29,13 @@ var start_button: Button
 var name_input: LineEdit
 var appearance_picker: Choice
 var palette_picker: Choice
+var radio_prop: Node3D
+var radio_lamp: OmniLight3D
+var radio_dial_material: StandardMaterial3D
+var radio_music: AudioStreamPlayer
+var radio_track := 0
+var radio_hotspot: Button
+var radio_caption: Label
 
 func mat(color: Color, glow: bool = false) -> StandardMaterial3D:
  var material := StandardMaterial3D.new()
@@ -54,8 +62,11 @@ func _ready() -> void:
   DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  draft_name = profile.nickname
  build_camp()
+ build_radio()
  build_ui()
  update_avatar()
+ start_radio()
+ _update_radio_hotspot()
  home()
 
 func build_camp() -> void:
@@ -129,6 +140,108 @@ func build_camp() -> void:
  camera.look_at(Vector3(0.7, 1.2, 0))
  camera.current = true
 
+## A working receiver by the bench: in the camp it only plays music, while the
+## bunker's own radio also catches other bunkers.
+func build_radio() -> void:
+ radio_prop = Node3D.new()
+ radio_prop.position = Vector3(-2.42, 0.58, -0.16)
+ add_child(radio_prop)
+ var body := MeshInstance3D.new()
+ var body_mesh := BoxMesh.new()
+ body_mesh.size = Vector3(0.66, 0.40, 0.32)
+ body.mesh = body_mesh
+ body.material_override = mat(Color("4a4038"))
+ radio_prop.add_child(body)
+ var grille := MeshInstance3D.new()
+ var grille_mesh := BoxMesh.new()
+ grille_mesh.size = Vector3(0.36, 0.26, 0.04)
+ grille.mesh = grille_mesh
+ grille.position = Vector3(-0.1, 0.02, 0.17)
+ grille.material_override = mat(Color("1d2529"))
+ radio_prop.add_child(grille)
+ var dial := MeshInstance3D.new()
+ var dial_mesh := BoxMesh.new()
+ dial_mesh.size = Vector3(0.16, 0.06, 0.03)
+ dial.mesh = dial_mesh
+ dial.position = Vector3(0.2, 0.11, 0.17)
+ radio_dial_material = mat(Color("e0b16a"), true)
+ dial.material_override = radio_dial_material
+ radio_prop.add_child(dial)
+ var knob := MeshInstance3D.new()
+ var knob_mesh := CylinderMesh.new()
+ knob_mesh.top_radius = 0.05
+ knob_mesh.bottom_radius = 0.05
+ knob_mesh.height = 0.05
+ knob.mesh = knob_mesh
+ knob.rotation_degrees = Vector3(90, 0, 0)
+ knob.position = Vector3(0.2, -0.09, 0.18)
+ knob.material_override = mat(Color("8e7a5f"))
+ radio_prop.add_child(knob)
+ var antenna := MeshInstance3D.new()
+ var antenna_mesh := CylinderMesh.new()
+ antenna_mesh.top_radius = 0.008
+ antenna_mesh.bottom_radius = 0.012
+ antenna_mesh.height = 0.9
+ antenna.mesh = antenna_mesh
+ antenna.position = Vector3(0.26, 0.62, -0.06)
+ antenna.rotation_degrees = Vector3(8, 0, -12)
+ antenna.material_override = mat(Color("9aa4a2"))
+ radio_prop.add_child(antenna)
+ radio_lamp = OmniLight3D.new()
+ radio_lamp.position = Vector3(0.2, 0.2, 0.34)
+ radio_lamp.light_color = Color("ffcf8a")
+ radio_lamp.light_energy = 0.45
+ radio_lamp.omni_range = 1.4
+ radio_prop.add_child(radio_lamp)
+
+
+func start_radio() -> void:
+ radio_music = AudioStreamPlayer.new()
+ radio_music.volume_db = -7
+ add_child(radio_music)
+ _apply_audio_settings()
+ play_track(0)
+
+
+func _apply_audio_settings() -> void:
+ AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, profile.volume)))
+ AudioServer.set_bus_mute(0, profile.volume <= 0)
+
+
+## Camp radio: music only, four records, no bunker chatter at all.
+func play_track(index: int) -> void:
+ radio_track = posmod(index, Music.count())
+ var source := load(Music.path(radio_track)) as AudioStreamWAV
+ if source == null or not is_instance_valid(radio_music):
+  return
+ var stream := source.duplicate() as AudioStreamWAV
+ stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+ stream.loop_begin = 0
+ stream.loop_end = roundi(stream.get_length() * stream.mix_rate)
+ radio_music.stream = stream
+ radio_music.play()
+ _update_radio_caption()
+
+
+func cycle_track() -> void:
+ play_track(radio_track + 1)
+
+
+func _update_radio_caption() -> void:
+ if not is_instance_valid(radio_caption):
+  return
+ radio_caption.text = "РАДИО · " + Music.title(radio_track) + "\nнажми — сменить запись"
+
+
+func _update_radio_hotspot() -> void:
+ if not is_instance_valid(radio_hotspot) or not is_instance_valid(radio_prop) or camera == null:
+  return
+ var point := camera.unproject_position(radio_prop.global_position + Vector3(0, 0.18, 0.1))
+ radio_hotspot.position = Vector2(point.x - radio_hotspot.size.x * 0.5, point.y - radio_hotspot.size.y * 0.6).round()
+ if is_instance_valid(radio_caption):
+  radio_caption.position = Vector2(point.x - radio_caption.size.x * 0.5, radio_hotspot.position.y + radio_hotspot.size.y + 2.0).round()
+
+
 func update_avatar() -> void:
  if is_instance_valid(avatar):
   remove_child(avatar)
@@ -150,6 +263,11 @@ func _process(delta: float) -> void:
   fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.20 + sin(clock * 17) * 0.1
  if is_instance_valid(camp_assets):
   camp_assets.reduced_motion = profile.reduced_motion
+ if is_instance_valid(radio_lamp):
+  radio_lamp.light_energy = 0.45 if profile.reduced_motion else 0.4 + 0.18 * (0.5 + 0.5 * sin(clock * 2.3))
+ if is_instance_valid(radio_dial_material):
+  radio_dial_material.emission_energy_multiplier = 1.2 if profile.reduced_motion else 1.1 + 0.5 * (0.5 + 0.5 * sin(clock * 2.3))
+ _update_radio_hotspot()
 
 func label(text: String, size: int = 18) -> Label:
  var node := Label.new()
@@ -182,6 +300,7 @@ func build_ui() -> void:
  logo.position = Vector2(30, 10)
  logo.size = Vector2(380, 175)
  ui.add_child(logo)
+ build_radio_ui()
  panel = PanelContainer.new()
  panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
  panel.offset_left = -660
@@ -213,6 +332,35 @@ func build_ui() -> void:
  column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  column.add_theme_constant_override("separation", 12)
  panel.add_child(column)
+
+## The camp radio is a tap target drawn over the prop, with a small caption.
+func build_radio_ui() -> void:
+ radio_hotspot = Button.new()
+ radio_hotspot.flat = true
+ radio_hotspot.focus_mode = Control.FOCUS_NONE
+ radio_hotspot.size = Vector2(168, 140)
+ radio_hotspot.tooltip_text = "Радио: сменить запись"
+ radio_hotspot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+ for state in ["normal", "hover", "pressed", "focus"]:
+  var ring := StyleBoxFlat.new()
+  ring.bg_color = Color(0.85, 0.65, 0.35, 0.0) if state == "normal" else Color(0.85, 0.65, 0.35, 0.10)
+  ring.border_color = Color(0.85, 0.65, 0.35, 0.34) if state == "normal" else Color(0.95, 0.78, 0.45, 0.75)
+  ring.set_border_width_all(1)
+  ring.set_corner_radius_all(14)
+  radio_hotspot.add_theme_stylebox_override(state, ring)
+ radio_hotspot.pressed.connect(cycle_track)
+ ui.add_child(radio_hotspot)
+ radio_caption = Label.new()
+ radio_caption.add_theme_font_size_override("font_size", 13)
+ radio_caption.add_theme_color_override("font_color", Color("e6c793"))
+ radio_caption.add_theme_constant_override("outline_size", 4)
+ radio_caption.add_theme_color_override("font_outline_color", Color("0b1418"))
+ radio_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+ radio_caption.size = Vector2(240, 40)
+ radio_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ ui.add_child(radio_caption)
+ _update_radio_caption()
+
 
 func add_control(node: Control) -> void:
  if column is Deck:
@@ -412,7 +560,9 @@ func settings() -> void:
  volume.step = 0.05
  volume.value = profile.volume
  volume.custom_minimum_size.y = 48
- volume.value_changed.connect(func(value): profile.volume = value)
+ volume.value_changed.connect(func(value):
+  profile.volume = value
+  _apply_audio_settings())
  add_control(volume)
  var narration := CheckButton.new()
  narration.text = "Озвучивать сводку катастрофы"

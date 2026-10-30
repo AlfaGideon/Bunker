@@ -8,6 +8,7 @@ extends RefCounted
 
 const PATH := "res://data/radio.json"
 const FEED_LIMIT := 24
+const Music = preload("res://game/scripts/music_library.gd")
 
 var frequency := ""
 var station_list: Array = []
@@ -19,6 +20,7 @@ var received: Array = []
 var next_broadcast := 10.0
 var scan_round := 0
 var signal_index := 0
+var track_index := 0
 
 
 func _init() -> void:
@@ -77,12 +79,36 @@ func power(on: bool) -> void:
 		station = str(station_list[0]["id"])
 
 
+## Music station: the dial cycles through four original instrumentals.
+func next_track() -> Dictionary:
+	track_index = posmod(track_index + 1, Music.count())
+	return Music.track(track_index)
+
+
+func current_track() -> Dictionary:
+	return Music.track(track_index)
+
+
+func track_title() -> String:
+	return Music.title(track_index)
+
+
+func track_mood() -> String:
+	return Music.mood(track_index)
+
+
+func track_count() -> int:
+	return Music.count()
+
+
 func status_text() -> String:
 	if not powered:
 		return "ВЫКЛЮЧЕНО"
 	var entry = tuned()
 	if entry.is_empty():
 		return "ВКЛЮЧЕНО · НЕТ НАСТРОЙКИ"
+	if str(entry.get("kind", "")) == "music":
+		return "ВКЛЮЧЕНО · " + str(entry.get("name", "")) + " · " + Music.title(track_index)
 	return "ВКЛЮЧЕНО · " + str(entry.get("name", "")) + " · " + str(entry.get("subtitle", ""))
 
 

@@ -1058,7 +1058,7 @@ func _tick_radio(delta: float) -> void:
 func apply_radio_audio() -> void:
 	if audio == null or radio == null:
 		return
-	audio.play_station(radio.kind())
+	audio.play_station(radio.kind(), radio.track_index)
 
 
 func open_radio() -> void:

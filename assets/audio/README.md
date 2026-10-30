@@ -4,9 +4,20 @@
 standard library. No recordings, external stations, licensed music samples or
 network streams are used.
 
-- `radio_music.wav` — the first radio item: a 31.75-second post-apocalyptic
-  ambient loop (slow A-minor drone, sparse bells, a four-second pulse, wind and
-  receiver crackle), crossfaded so the loop point is inaudible.
+- `music_campfire.wav` — «Эхо у костра»: Karplus-Strong guitars over Am–F–C–G,
+  wind and a crackling fire (28.8 s).
+- `music_zone.wav` — «Зона»: slow detuned D-minor pads, ticking eighths and a
+  lonely lead (32 s).
+- `music_bunker.wav` — «Гудок»: industrial A drone, metal clangs and a
+  mechanical arpeggio (30 s).
+- `music_gate.wav` — «Последний шлюз»: D-minor piano, quiet strings and vinyl
+  crackle (33.6 s).
+
+  These four are the original score of the game: the camp radio plays them with
+  no bunker chatter, the bunker receiver treats them as the «АВРОРА-7» station.
+  Each loop is rendered with its reverb tail folded back into the head, so the
+  seam is inaudible. `tools/generate_music.py` renders them; the older
+  `radio_music.wav` placeholder is gone.
 - `radio_static.wav` — the band-limited static bed of a tuned but noisy receiver.
 - `radio_voice.wav` — wordless formant "speech" that plays when another bunker
   comes through. It is a synthesiser, not a voice actor, and says no words.

@@ -1,4 +1,5 @@
 extends SceneTree
+const Music = preload("res://game/scripts/music_library.gd")
 ## The receiver has three numbered stations: music, other bunkers and a hidden
 ## beacon. Music really plays, the bunker feed arrives over time, and only a
 ## radio specialist can read the beacon.
@@ -37,6 +38,25 @@ func run() -> void:
 	check(room.audio.radio.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "Music loops without a gap")
 	check(room.audio.radio.stream.get_length() >= 20.0, "The music station is a full loop, not a blip")
 	check(room.audio.radio.volume_db >= -12.0, "Music sits inside the mix")
+	check(room.audio.radio is AudioStreamPlayer, "The cabinet is heard across the bunker, not hushed by distance")
+	check(room.radio.track_count() >= 4, "The music station carries several records")
+	var files := {}
+	for index in Music.count():
+		var track := load(Music.path(index)) as AudioStreamWAV
+		check(track != null, "Music file %d loads" % index)
+		if track != null:
+			check(track.get_length() >= 20.0, "Music file %d is a full piece" % index)
+			check(not files.has(track.get_length()), "Every record is its own file")
+			files[track.get_length()] = true
+	check(Music.path(0) != Music.path(1) and Music.path(1) != Music.path(2), "Records are different files")
+	var first_track: int = room.radio.track_index
+	var first_stream = room.audio.radio.stream
+	room.radio.next_track()
+	room.apply_radio_audio()
+	check(room.radio.track_index != first_track, "The dial changes the record")
+	check(room.audio.radio.stream != first_stream, "The player swaps the music file")
+	check(room.audio.music_index == room.radio.track_index and room.audio.radio.playing, "The new record keeps playing")
+	check(room.radio.status_text().contains(Music.title(room.radio.track_index)), "The receiver names the record")
 	check(receiver.tick(40.0).is_empty(), "The music station does not talk")
 	# Bunker feed: transmissions arrive while the station is tuned.
 	room.radio.tune("bunkers")

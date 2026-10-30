@@ -197,9 +197,20 @@ func _tune(index: int) -> void:
 		room.log_label.text = "Маяк 1180 слушает только специалист: связист или радиотехник."
 		refresh()
 		return
+	var active: bool = room.radio.powered and room.radio.station == station_id
+	if active and str(entry.get("kind", "")) == "music":
+		# A second tap on the music station changes the record.
+		room.radio.next_track()
+		room.apply_radio_audio()
+		room.log_label.text = "Пластинка: " + room.radio.track_title() + " · " + room.radio.track_mood() + "."
+		refresh()
+		return
 	room.radio.tune(station_id)
 	room.apply_radio_audio()
-	room.log_label.text = "Радио настроено: " + str(entry.get("name", "")) + " — " + str(entry.get("subtitle", "")) + "."
+	if str(entry.get("kind", "")) == "music":
+		room.log_label.text = "Радио: " + str(entry.get("name", "")) + " — " + room.radio.track_title() + "."
+	else:
+		room.log_label.text = "Радио настроено: " + str(entry.get("name", "")) + " — " + str(entry.get("subtitle", "")) + "."
 	refresh()
 
 
@@ -247,7 +258,10 @@ func refresh() -> void:
 		var locked: bool = not receiver.tunes_all(station_id) and not specialist
 		var active: bool = receiver.powered and receiver.station == station_id
 		button.disabled = locked
-		button.text = ("●  " if active else "○  ") + str(entry.get("number", "")) + "   " + str(entry.get("name", "")) + "   ·   " + str(entry.get("subtitle", ""))
+		var subtitle := str(entry.get("subtitle", ""))
+		if str(entry.get("kind", "")) == "music":
+			subtitle = receiver.track_title() + " · " + receiver.track_mood()
+		button.text = ("●  " if active else "○  ") + str(entry.get("number", "")) + "   " + str(entry.get("name", "")) + "   ·   " + subtitle
 		button.tooltip_text = str(entry.get("note", ""))
 
 	var lines: Array = receiver.feed_lines(4)
@@ -271,6 +285,8 @@ func refresh() -> void:
 		hint_label.text = "В этом раунде маяк уже прочитан. Вернитесь в следующем."
 	else:
 		hint_label.text = "Сканирование вслепую: одна передача за раунд, всего %d." % receiver.scans_left()
+	if kind == "music":
+		hint_label.text = "Повторное касание первой станции меняет пластинку — всего %d записей." % receiver.track_count()
 
 	var strength: int = receiver.signal_strength() + (4 if specialist and kind == "signal" else 0)
 	for index in signal_segments.size():

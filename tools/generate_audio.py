@@ -1,5 +1,5 @@
 """Original procedural prototype sounds, no third-party recordings or broadcasts."""
-import math, random, struct, wave
+import math, random, struct, sys, wave
 from pathlib import Path
 RATE = 22050
 OUT = Path(__file__).resolve().parents[1] / 'assets' / 'audio'
@@ -36,45 +36,6 @@ def loop_fade(values, fade=0.25):
     head = values[:n]
     tail = values[-n:]
     return [head[i] * (i / n) + tail[i] * (1 - i / n) for i in range(n)] + values[n:-n]
-
-
-def radio_music():
-    """32 s post-apocalyptic ambient loop: A-minor drone, bells, wind, crackle."""
-    length = 32.0
-    total = int(RATE * length)
-    drone = [110.0, 130.8125, 164.8125]
-    melody = [440.0, 392.0, 349.23, 329.63, 293.66, 261.63, 392.0, 220.0]
-    beats = []
-    beat = 0.0
-    index = 0
-    while beat < length - 2.5:
-        beats.append((beat, melody[index % len(melody)]))
-        beat += 2.0 if index % 3 else 3.0
-        index += 1
-    values = []
-    noise = 0.0
-    for i in range(total):
-        t = i / RATE
-        pad = 0.0
-        for freq in drone:
-            swell = 0.75 + 0.25 * math.sin(2 * math.pi * t / 16.0 + freq)
-            pad += math.sin(2 * math.pi * freq * t) * swell
-        pad /= len(drone)
-        bells = 0.0
-        for onset, freq in beats:
-            age = t - onset
-            if age < 0 or age > 6.0:
-                continue
-            env = (1 - math.exp(-age * 40)) * math.exp(-age * 1.35)
-            bells += env * (math.sin(2 * math.pi * freq * t) + 0.4 * math.sin(2 * math.pi * freq * 2.0 * t))
-        noise = noise * 0.985 + rng.uniform(-1, 1) * 0.015
-        wind = noise * (0.55 + 0.45 * math.sin(2 * math.pi * t / 11.0))
-        crackle = rng.uniform(-1, 1) * 0.02 if rng.random() < 0.0009 else 0.0
-        # slow pulse every four seconds: something still keeps time down there
-        age = t % 4.0
-        pulse = math.exp(-age * 5.0) * math.sin(2 * math.pi * 55.0 * t) * 0.5
-        values.append(0.17 * pad + 0.15 * bells + 0.5 * wind + 0.16 * pulse + crackle)
-    save('radio_music.wav', loop_fade(values))
 
 
 def radio_static():
@@ -119,7 +80,11 @@ def radio_voice():
     save('radio_voice.wav', smoothed)
 
 
-radio_music()
 radio_static()
 radio_voice()
-print('Generated original WAV loops and effects')
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import generate_music  # noqa: E402
+
+generate_music.render()
+print('Generated original WAV loops, effects and music')

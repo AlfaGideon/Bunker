@@ -165,6 +165,8 @@ func capture() -> void:
 		room.apply_radio_audio()
 		for step in 3:
 			room.radio.tick(60.0)
+		room.radio.tune("aurora")
+		room.apply_radio_audio()
 		room.radio_panel.open()
 		shot_prefix = "RADIOSHOT"
 	for i in 15:

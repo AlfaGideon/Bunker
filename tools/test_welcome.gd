@@ -1,4 +1,5 @@
 extends SceneTree
+const Music = preload("res://game/scripts/music_library.gd")
 var failures := 0
 func check(value: bool, title: String) -> void:
  if not value:
@@ -14,6 +15,24 @@ func run() -> void:
   await process_frame
  check(ProjectSettings.get_setting("application/run/main_scene") == "res://game/welcome.tscn", "App launches welcome, not bunker")
  check(welcome.page == "home", "Welcome home visible")
+ check(is_instance_valid(welcome.radio_prop), "A radio stands in the camp")
+ check(is_instance_valid(welcome.radio_music) and welcome.radio_music.playing, "Camp radio is playing music")
+ check(welcome.radio_music.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "Camp music loops")
+ check(welcome.radio_music.stream.get_length() >= 20.0, "Camp music is a real piece, not a blip")
+ var first_stream = welcome.radio_music.stream
+ var first_track: int = welcome.radio_track
+ check(welcome.radio_caption.text.begins_with("РАДИО · "), "Caption names the current record")
+ check(welcome.radio_caption.text.contains("сменить"), "Caption explains the tap")
+ check(not welcome.radio_caption.text.to_upper().contains("БУНКЕР"), "Camp radio has no bunker chatter")
+ check(welcome.radio_hotspot.size.x > 60.0 and welcome.radio_hotspot.size.y > 60.0, "Radio has a sizeable tap target")
+ check(welcome.radio_hotspot.get_global_rect().position.x < root.get_visible_rect().size.x * 0.5, "Tap target sits over the camp, not the menu")
+ welcome.cycle_track()
+ check(welcome.radio_track != first_track, "Tapping the camp radio switches the record")
+ check(welcome.radio_music.stream != first_stream and welcome.radio_music.playing, "Another record starts playing")
+ check(welcome.radio_caption.text.contains(Music.title(welcome.radio_track)), "Caption follows the record")
+ for step in 3:
+  welcome.cycle_track()
+ check(welcome.radio_track == first_track, "Four records cycle back to the first one")
  check(welcome.find_children("*", "ScrollContainer", true, false).is_empty(), "Welcome has no scrolling menu")
  check(welcome.cards.size() == 8, "Hero and seven animated cards")
  for card in welcome.cards:
