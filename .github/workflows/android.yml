@@ -1,7 +1,7 @@
 name: Android debug APK
 on:
   push:
-    branches: [arena/6df6407d-bunker]
+    branches: [arena/a25f55da-bunker]
   workflow_dispatch:
 permissions:
   contents: read
@@ -54,6 +54,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_app_updates.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_card_menus.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_character_card.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_library_gallery.gd
           python3 tools/test_release_config.py
       - name: Export debug APK
         run: |

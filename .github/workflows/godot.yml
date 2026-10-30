@@ -47,6 +47,7 @@ jobs:
           GODOT_TIMEOUT=240 bash tools/check_godot.sh --headless --path . --script tools/test_update_download.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_card_menus.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_character_card.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_library_gallery.gd
           python3 tools/test_release_config.py
       - name: Smoke test scene
         run: |
@@ -152,6 +153,8 @@ jobs:
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --library
       - name: Render library editing
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --library-form
+      - name: Render profession catalogue in the library
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --library-professions
       - name: Inspect touch settings card layout
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --settings
       - name: Render welcome appearance preview
