@@ -108,7 +108,7 @@ func run() -> void:
 	card.step(-1)
 	check(card.index == 0, "Card navigation wraps backwards")
 	# Survivors are selectable directly in the 3D scene.
-	var screen := room.camera.unproject_position(room.actors[0].global_position + Vector3(0, 0.85, 0))
+	var screen = room.camera.unproject_position(room.actors[0].global_position + Vector3(0, 0.85, 0))
 	check(room._actor_at_screen(screen) == 0, "Screen tap resolves the survivor under the finger")
 	check(room._actor_at_screen(Vector2(-400, -400)) == -1, "Empty floor does not select a survivor")
 	card.close()
