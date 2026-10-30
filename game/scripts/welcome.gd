@@ -143,8 +143,11 @@ func build_camp() -> void:
 ## A working receiver by the bench: in the camp it only plays music, while the
 ## bunker's own radio also catches other bunkers.
 func build_radio() -> void:
+ # The receiver stands on its own crate at the edge of the camp, clear of the
+ # survivor, so the prop itself is visible and not hidden by the seated model.
+ box(Vector3(-2.98, 0.18, 0.92), Vector3(0.66, 0.36, 0.5), Color("4d4136"))
  radio_prop = Node3D.new()
- radio_prop.position = Vector3(-2.35, 0.58, -0.05)
+ radio_prop.position = Vector3(-2.98, 0.56, 0.92)
  add_child(radio_prop)
  var body := MeshInstance3D.new()
  var body_mesh := BoxMesh.new()
