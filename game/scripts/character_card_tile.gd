@@ -92,6 +92,7 @@ func _build() -> void:
 	value_label.text = value_text
 	value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	value_label.max_lines_visible = 3
 	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	value_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -131,8 +132,10 @@ func _value_font_size() -> int:
 	if state == "hidden":
 		return 20
 	if value_text.length() > 90:
-		return 15
+		return 14
 	if value_text.length() > 55:
+		return 15
+	if value_text.length() > 34:
 		return 16
 	return 17
 
