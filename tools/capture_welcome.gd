@@ -25,9 +25,12 @@ func capture() -> void:
   welcome.edit_profile()
  if OS.get_cmdline_user_args().has("--settings"):
   welcome.settings()
- if OS.get_cmdline_user_args().has("--library"):
+ if OS.get_cmdline_user_args().has("--library") or OS.get_cmdline_user_args().has("--library-form"):
   welcome.settings()
   welcome.open_library()
+  if OS.get_cmdline_user_args().has("--library-form"):
+   welcome.library_editor.key = "health"
+   welcome.library_editor.show_form(-1)
  for frame in 25:
   await process_frame
  await create_timer(0.9).timeout
@@ -49,6 +52,8 @@ func capture() -> void:
   prefix = "UPDATESHOT"
  if OS.get_cmdline_user_args().has("--library"):
   prefix = "LIBRARYSHOT"
+ if OS.get_cmdline_user_args().has("--library-form"):
+  prefix = "LIBFORMHOTSHOT"
  if not skin.is_empty():
   prefix = "SKIN" + skin.replace("_", "").to_upper() + "SHOT"
  for index in ceili(encoded.length() / 3500.0):

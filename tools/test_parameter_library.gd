@@ -80,7 +80,7 @@ func run() -> void:
   welcome.column.page_index = page
   welcome.column.rebuild()
   await process_frame
-  check(welcome.column.navigation.get_global_rect().end.y <= root.get_visible_rect().size.y, "Library pages fit on screen")
+  check(welcome.column.navigation.get_global_rect().end.y <= root.get_visible_rect().size.y, "Library pages fit on screen %s / %s page %d" % [str(welcome.column.navigation.get_global_rect()), str(root.get_visible_rect()), page])
  welcome.free()
  original.save()
  await process_frame
