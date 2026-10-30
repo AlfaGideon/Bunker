@@ -20,7 +20,7 @@ func run() -> void:
   quit(1)
   return
  var response: Array = await request.request_completed
- var valid := response[0] == HTTPRequest.RESULT_SUCCESS and response[1] == 200 and Updates.verified_file(PATH, HASH, SIZE)
+ var valid: bool = response[0] == HTTPRequest.RESULT_SUCCESS and response[1] == 200 and Updates.verified_file(PATH, HASH, SIZE)
  if FileAccess.file_exists(PATH):
   DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
  if not valid:
