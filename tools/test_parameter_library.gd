@@ -7,6 +7,12 @@ func check(value: bool, message: String) -> void:
  if not value:
   failures += 1
   push_error(message)
+func press_card(welcome: Node, title: String) -> void:
+ for item in welcome.column.card_nodes:
+  if item is Button and item.text == title:
+   item.pressed.emit()
+   return
+ check(false, "Button found: " + title)
 func _initialize() -> void:
  call_deferred("run")
 func run() -> void:
@@ -49,6 +55,32 @@ func run() -> void:
  welcome.library_editor.show_form(-1)
  await process_frame
  check(welcome.page == "library_form" and welcome.find_children("*", "LineEdit", true, false).size() > 0, "Add form accessible")
+ var field: LineEdit = welcome.find_children("*", "LineEdit", true, false)[0]
+ field.text = "77"
+ press_card(welcome, "Сохранить")
+ await process_frame
+ check("77" in welcome.profile.custom_parameters.ages and welcome.page == "library", "Adding via UI saves and returns")
+ welcome.library_editor.show_form(1)
+ await process_frame
+ field = welcome.find_children("*", "LineEdit", true, false)[0]
+ field.text = "78"
+ press_card(welcome, "Сохранить")
+ await process_frame
+ check("78" in welcome.profile.custom_parameters.ages and "77" not in welcome.profile.custom_parameters.ages, "Editing via UI replaces own value")
+ press_card(welcome, "Удалить выбранное")
+ await process_frame
+ press_card(welcome, "Да, удалить")
+ await process_frame
+ check("78" not in welcome.profile.custom_parameters.ages and "67" in welcome.profile.custom_parameters.ages, "Confirmed deletion preserves other entries")
+ welcome.library_editor.key = "health"
+ welcome.library_editor.show_form(-1)
+ for frame in 4:
+  await process_frame
+ for page in welcome.column.pages.size():
+  welcome.column.page_index = page
+  welcome.column.rebuild()
+  await process_frame
+  check(welcome.column.navigation.get_global_rect().end.y <= root.get_visible_rect().size.y, "Library pages fit on screen")
  welcome.free()
  original.save()
  await process_frame
