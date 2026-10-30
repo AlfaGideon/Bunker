@@ -64,13 +64,13 @@ func _build() -> void:
 	var number_label := Label.new()
 	number_label.text = "%02d" % number
 	number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	number_label.add_theme_font_size_override("font_size", 11)
+	number_label.add_theme_font_size_override("font_size", 12)
 	number_label.add_theme_color_override("font_color", Color(accent, 0.75))
 	head.add_child(number_label)
 	title_label = Label.new()
 	title_label.text = title_text.to_upper()
 	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_label.add_theme_font_size_override("font_size", 12)
+	title_label.add_theme_font_size_override("font_size", 13)
 	title_label.add_theme_color_override("font_color", Color("a9bdc4"))
 	title_label.clip_text = true
 	title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -79,7 +79,7 @@ func _build() -> void:
 	state_label = Label.new()
 	state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	state_label.text = _state_caption()
-	state_label.add_theme_font_size_override("font_size", 10)
+	state_label.add_theme_font_size_override("font_size", 11)
 	state_label.add_theme_color_override("font_color", _state_color())
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	head.add_child(state_label)
