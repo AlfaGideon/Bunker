@@ -68,14 +68,14 @@ func run() -> void:
  # Dispatch through GUI normally, without applying physical stretch twice.
  var event := InputEventScreenTouch.new()
  event.index = 4
- event.position = Vector2(root.get_visible_rect().size.x - 60, 70)
+ event.position = Vector2(root.get_visible_rect().size.x - 176, 380)
  event.pressed = true
  root.push_input(event, true)
  await process_frame
  check(controller.fingers.is_empty(), "Touch over HUD stays in GUI")
  event = InputEventScreenTouch.new()
  event.index = 4
- event.position = Vector2(root.get_visible_rect().size.x - 60, 70)
+ event.position = Vector2(root.get_visible_rect().size.x - 176, 380)
  event.pressed = false
  root.push_input(event, true)
  await process_frame
