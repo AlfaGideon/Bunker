@@ -24,9 +24,9 @@ func run() -> void:
  room.speech.remaining = 37.0
  var old: Dictionary = room.players[0].duplicate(true)
  check(room.reroll_player(0, ["health"]), "One parameter rerolled")
- check(room.players[0].cards[3].value != old.cards[3].value, "Changed health value")
+ check(room.players[0].cards[4].value != old.cards[4].value, "Changed health value")
  check(room.players[0].cards[0] == old.cards[0], "Other cards unchanged")
- check(room.players[0].cards[3].revealed == old.cards[3].revealed, "Privacy unchanged")
+ check(room.players[0].cards[4].revealed == old.cards[4].revealed, "Privacy unchanged")
  check(room.speech.remaining == 37.0, "Reroll does not reset speech timer")
  var ids: Array = []
  for card in room.players[1].cards:
