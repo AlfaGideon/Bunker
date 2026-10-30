@@ -14,7 +14,7 @@ var hovered := false
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(0, 124)
+	custom_minimum_size = Vector2(0, 112)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -63,7 +63,7 @@ func _draw() -> void:
 	frame.set_border_width_all(1)
 	frame.set_corner_radius_all(12)
 	draw_style_box(frame, Rect2(Vector2.ZERO, size))
-	var thumb_width := clampf(size.x * 0.30, 58.0, 88.0)
+	var thumb_width := clampf(size.x * 0.26, 52.0, 80.0)
 	var thumb := Rect2(7, 7, thumb_width, size.y - 14)
 	var texture := Art.texture_for(profession)
 	if texture != null:
@@ -75,12 +75,11 @@ func _draw() -> void:
 	var font := get_theme_font("font")
 	var left := thumb.end.x + 12.0
 	var text_width := maxf(24.0, size.x - left - 10.0)
-	var title_size := 17 if size.y >= 118.0 else 16
-	draw_string(font, Vector2(left, size.y * 0.42), profession, HORIZONTAL_ALIGNMENT_LEFT,
-		text_width, title_size, Color("eef2e9"))
-	draw_string(font, Vector2(left, size.y * 0.63), str(look["tag"]), HORIZONTAL_ALIGNMENT_LEFT,
+	draw_string(font, Vector2(left, size.y * 0.44), profession, HORIZONTAL_ALIGNMENT_LEFT,
+		text_width, 16, Color("eef2e9"))
+	draw_string(font, Vector2(left, size.y * 0.66), str(look["tag"]), HORIZONTAL_ALIGNMENT_LEFT,
 		text_width, 11, Color(accent, 0.92))
-	draw_string(font, Vector2(left, size.y * 0.81), "ПОРТРЕТ • 768 × 1152", HORIZONTAL_ALIGNMENT_LEFT,
-		text_width, 10, Color("7f979d"))
+	draw_string(font, Vector2(left, size.y * 0.82), "ПОРТРЕТ 768 × 1152", HORIZONTAL_ALIGNMENT_LEFT,
+		text_width, 9, Color("7f979d"))
 	if has_focus():
 		Art.draw_frame(self, Rect2(Vector2(2, 2), size - Vector2(4, 4)), accent, 0.85)

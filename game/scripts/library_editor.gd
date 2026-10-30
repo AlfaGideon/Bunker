@@ -104,7 +104,7 @@ func show_professions() -> void:
  host.page = "library_professions"
  host.clear()
  host.column.columns = 2
- host.column.page_height = 470.0
+ host.column.page_height = 440.0
  var entries := filters()
  var index := 0
  for i in entries.size():
@@ -138,7 +138,7 @@ func show_profession(name: String) -> void:
  host.page = "library_profession"
  host.clear()
  host.column.columns = 2
- host.column.page_height = 470.0
+ host.column.page_height = 440.0
  var look := Art.style(name)
  var ratio := AspectRatioContainer.new()
  ratio.ratio = 2.0 / 3.0
