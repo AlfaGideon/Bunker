@@ -14,7 +14,8 @@ func capture() -> void:
   welcome.edit_profile()
  if OS.get_cmdline_user_args().has("--update"):
   var update = preload("res://game/scripts/app_updates.gd").show_updates(welcome, false)
-  update.show_result({"code": 17, "url": "https://github.com/AlfaGideon/Bunker/releases/tag/android-17"})
+  var next: int = preload("res://game/scripts/app_updates.gd").VERSION_CODE + 1
+  update.show_result({"code": next, "apk_url": "https://github.com/AlfaGideon/Bunker/releases/download/android-%d/Bunker-Posledniy-Shlyuz-%d.apk" % [next, next], "sha256": "a".repeat(64), "size": 64000000})
  if OS.get_cmdline_user_args().has("--female"):
   welcome.profile.appearance = "female"
   welcome.profile.outfit = 1
