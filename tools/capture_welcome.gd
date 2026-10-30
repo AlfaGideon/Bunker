@@ -34,6 +34,20 @@ func capture() -> void:
  for frame in 25:
   await process_frame
  await create_timer(0.9).timeout
+ if OS.get_cmdline_user_args().has("--library-form"):
+  for page in welcome.column.pages.size():
+   welcome.column.page_index = page
+   welcome.column.rebuild()
+   for frame in 4:
+    await process_frame
+   if welcome.column.navigation.get_global_rect().end.y > root.get_visible_rect().size.y:
+    print("::error::Library navigation clipped on page " + str(page))
+    quit(1)
+    return
+  welcome.column.page_index = 0
+  welcome.column.rebuild()
+  for frame in 4:
+   await process_frame
  await RenderingServer.frame_post_draw
  var image := root.get_texture().get_image()
  image.resize(800, roundi(image.get_height() * 800.0 / image.get_width()))
