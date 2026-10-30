@@ -44,6 +44,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_avatar_skins.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_app_updates.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_update_network.gd
+          GODOT_TIMEOUT=240 bash tools/check_godot.sh --headless --path . --script tools/test_update_download.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_card_menus.gd
           python3 tools/test_release_config.py
       - name: Smoke test scene
