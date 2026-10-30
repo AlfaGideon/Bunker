@@ -112,8 +112,8 @@ func _build() -> void:
 
 	flip_button = _action_button("Оборот", 80, 36)
 	flip_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	flip_button.offset_left = -136
-	flip_button.offset_right = -58
+	flip_button.offset_left = -144
+	flip_button.offset_right = -66
 	flip_button.offset_top = 12
 	flip_button.offset_bottom = 48
 	flip_button.tooltip_text = "Перевернуть карточку"
@@ -122,8 +122,8 @@ func _build() -> void:
 
 	close_button = _action_button("×", 36, 36)
 	close_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	close_button.offset_left = -50
-	close_button.offset_right = -14
+	close_button.offset_left = -58
+	close_button.offset_right = -22
 	close_button.offset_top = 12
 	close_button.offset_bottom = 48
 	close_button.tooltip_text = "Закрыть карточку"
@@ -264,16 +264,16 @@ func _build_back() -> void:
 	margin.add_child(column)
 	var top := HBoxContainer.new()
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_theme_constant_override("separation", 12)
 	column.add_child(top)
 	back_brand = _label("БУНКЕР · ДОСЬЕ", 10, Color("d9b06e"))
 	top.add_child(back_brand)
+	back_number = _label("", 10, Color("93a8ad"))
+	top.add_child(back_number)
 	var top_gap := Control.new()
 	top_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_gap.custom_minimum_size.x = 14
 	top.add_child(top_gap)
-	back_number = _label("", 10, Color("93a8ad"))
-	top.add_child(back_number)
 	var spacer := Control.new()
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL

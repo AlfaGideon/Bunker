@@ -70,8 +70,8 @@ func _build() -> void:
 	title_label = Label.new()
 	title_label.text = title_text.to_upper()
 	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_label.add_theme_font_size_override("font_size", 11)
-	title_label.add_theme_color_override("font_color", Color("9db3ba"))
+	title_label.add_theme_font_size_override("font_size", 12)
+	title_label.add_theme_color_override("font_color", Color("a9bdc4"))
 	title_label.clip_text = true
 	title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -112,8 +112,8 @@ func _build() -> void:
 	note_label.text = note_text
 	note_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note_label.add_theme_font_size_override("font_size", 10)
-	note_label.add_theme_color_override("font_color", Color("76909a"))
+	note_label.add_theme_font_size_override("font_size", 11)
+	note_label.add_theme_color_override("font_color", Color("9db4bb"))
 	column.add_child(note_label)
 
 
@@ -169,7 +169,7 @@ func _draw() -> void:
 	draw_rect(Rect2(16, 0, maxf(0.0, size.x - 32), 2), Color(_state_color(), 0.65), true)
 	draw_rect(Rect2(0, 18, 3, maxf(0.0, size.y - 36)), Color(accent, 0.70), true)
 	# A faint watermark keeps every tile recognisable without reading it.
-	Art.draw_icon(self, Vector2(size.x - 32, size.y - 30), 18.0, icon, Color(accent, 0.15), 1.6)
+	Art.draw_icon(self, Vector2(size.x - 32, size.y - 30), 18.0, icon, Color(accent, 0.12), 1.6)
 	if state == "hidden":
 		var y := 42.0
 		while y < size.y - 30.0:
