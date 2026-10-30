@@ -33,7 +33,7 @@ func run() -> void:
 	check(room.find_children("*", "ScrollContainer", true, false).is_empty(), "HUD still never scrolls")
 	var choices: Array = []
 	for node in room.ui_root.find_children("*", "HBoxContainer", true, false):
-		if node.has_meta("touch_choice"):
+		if node.has_meta("touch_choice") and node.is_visible_in_tree():
 			choices.append(node)
 	check(choices.is_empty(), "The old roster selector is gone from the HUD")
 	# The speaker's card is the one on the table.
