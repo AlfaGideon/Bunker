@@ -123,8 +123,8 @@ func _build() -> void:
 	badge.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	badge.offset_left = -58
 	badge.offset_right = 58
-	badge.offset_top = 6
-	badge.offset_bottom = 28
+	badge.offset_top = -29
+	badge.offset_bottom = -3
 	badge.visible = false
 	card_root.add_child(badge)
 

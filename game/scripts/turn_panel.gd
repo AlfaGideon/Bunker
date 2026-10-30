@@ -28,8 +28,8 @@ var ratio := 1.0
 
 func setup(game: Node3D) -> void:
 	room = game
-	custom_minimum_size = Vector2(PANEL_WIDTH, 214)
-	size = Vector2(PANEL_WIDTH, 214)
+	custom_minimum_size = Vector2(PANEL_WIDTH, 238)
+	size = Vector2(PANEL_WIDTH, 238)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_theme_stylebox_override("panel", _panel_style())
 	var margin := MarginContainer.new()
@@ -89,7 +89,9 @@ func setup(game: Node3D) -> void:
 		var index: int = slot
 		var button := _button("", func(): room.use_ability(index))
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.add_theme_font_size_override("font_size", 12)
+		button.add_theme_font_size_override("font_size", 11)
+		button.autowrap_mode = TextServer.AUTOWRAP_OFF
+		button.clip_text = true
 		abilities.add_child(button)
 		ability_buttons.append(button)
 

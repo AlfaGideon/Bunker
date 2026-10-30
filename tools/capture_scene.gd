@@ -115,6 +115,9 @@ func capture() -> void:
 		room.camera.position = focus + Vector3(7, 9, 13)
 		room.camera.look_at(focus)
 		shot_prefix = "METEORDETAILSHOT"
+	if args.has("--hud-front"):
+		room.table_card.set_side(false, false)
+		shot_prefix = "HUDFRONTSHOT"
 	if args.has("--negative-actions"):
 		room.NegativeActions.quality_card(room.players[0])["value"] = "Вспыльчивый"
 		room.menu.show_negative_actions()
