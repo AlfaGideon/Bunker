@@ -120,7 +120,7 @@ func run() -> void:
 	# Side roster stays in sync while leafing.
 	card.step(1)
 	check(card.index == 1 and room.selected == 1, "Card arrows move through the roster")
-	check(room.roster.selected == 1, "Side roster follows card navigation")
+	check(room.table_card.index == 1, "Table card follows card navigation")
 	card.step(-1)
 	check(card.index == 0, "Card navigation wraps backwards")
 	# Survivors are selectable directly in the 3D scene.

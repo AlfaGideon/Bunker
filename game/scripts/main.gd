@@ -22,6 +22,8 @@ const Art = preload("res://game/scripts/scene_art.gd")
 const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
 const CharacterCard = preload("res://game/scripts/character_card.gd")
+const TableCard = preload("res://game/scripts/table_card.gd")
+const TurnPanel = preload("res://game/scripts/turn_panel.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
 var speech := Speech.new()
@@ -72,14 +74,15 @@ var capacity := 4
 var profile := Profile.new()
 var menu: Control
 var character_card
-var roster
+var table_card
+var turn_panel: Control
+var speaker_ring: MeshInstance3D
 var sun: DirectionalLight3D
 var departures: Dictionary = {}
 var selected := 0
 var round_number := 1
 var phase := "reveal"
 var camera: Camera3D
-var detail: Deck
 var status_label: Label
 var log_label: Label
 var phase_label: Label
@@ -128,6 +131,9 @@ func _ready() -> void:
 	_build_ui()
 	original_camera = camera.transform
 	apply_settings()
+	selected = maxi(0, speech.speaker())
+	if is_instance_valid(table_card):
+		table_card.show_for(selected, false, false)
 	_refresh()
 	get_viewport().size_changed.connect(_frame_camera)
 	if get_tree().has_meta("start_game"):
@@ -217,6 +223,19 @@ func _build_world() -> void:
 	marker.material_override = _material(Color("73dfc5"))
 	marker.visible = false
 	add_child(marker)
+	speaker_ring = MeshInstance3D.new()
+	var halo := TorusMesh.new()
+	halo.inner_radius = 0.52
+	halo.outer_radius = 0.62
+	speaker_ring.mesh = halo
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = Color("f6e0b4")
+	glow.emission_enabled = true
+	glow.emission = Color("f7d9a0")
+	glow.emission_energy_multiplier = 1.8
+	speaker_ring.material_override = glow
+	speaker_ring.visible = false
+	add_child(speaker_ring)
 	var positions := [Vector3(-2.5, 0, 1.8), Vector3(2.5, 0, 1.8),
 		Vector3(-2.5, 0, -1.5), Vector3(2.5, 0, -1.5),
 		Vector3(-3.8, 0, 0), Vector3(3.8, 0, 0), Vector3(0, 0, 2.7),
@@ -300,88 +319,48 @@ func _build_ui() -> void:
 	root.theme = theme
 	var header := VBoxContainer.new()
 	header.position = Vector2(24, 18)
-	header.size = Vector2(590, 140)
+	header.size = Vector2(590, 120)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(header)
 	header.add_child(_label("Б У Н К Е Р  /  ПОСЛЕДНИЙ ШЛЮЗ", 25))
 	header.add_child(_label("ЛОКАЛЬНЫЙ ПРОТОТИП • НЕ СЕТЕВАЯ ИГРА", 15))
 	phase_label = _label("", 20)
 	header.add_child(phase_label)
-	menu_button = _button("☰", func(): menu.home(), root)
-	menu_button.tooltip_text = "Меню / пауза"
-	menu_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	menu_button.offset_left = -438
-	menu_button.offset_right = -382
-	menu_button.offset_top = 16
-	menu_button.offset_bottom = 68
-	var panel := PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
-	panel.offset_left = -370
-	panel.offset_top = 16
-	panel.offset_right = -16
-	panel.offset_bottom = -16
-	root.add_child(panel)
-	var margin := MarginContainer.new()
-	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 16)
-	panel.add_child(margin)
-	var shell := VBoxContainer.new()
-	shell.add_theme_constant_override("separation", 7)
-	margin.add_child(shell)
-	shell.add_child(_label(scenario["title"], 21))
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 8)
-	shell.add_child(actions)
-	var facilities := _button("Помещения", func(): menu.show_facility(), actions)
-	facilities.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var negative := _button("Действия", func(): menu.show_negative_actions(), actions)
-	negative.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	roster = Choice.new()
-	for i in players.size():
-		roster.add_item(players[i]["name"] + (" — вы" if i == 0 else ""), i)
-	roster.tooltip_text = "Касание имени открывает карточку персонажа"
-	roster.item_selected.connect(func(index: int):
-		selected = index
-		detail.page_index = 0
-		if is_instance_valid(character_card) and character_card.visible:
-			character_card.show_for(selected, false, true)
-		_refresh())
-	roster.caption_pressed.connect(func(): open_character_card(selected))
-	shell.add_child(roster)
-	var card_button := _button("Открыть карточку персонажа", func(): open_character_card(selected), shell)
-	card_button.tooltip_text = "Досье выбранного участника одним экраном"
-	detail = Deck.new()
-	detail.columns = 1
-	detail.page_height = 170
-	shell.add_child(detail)
-	status_label = _label("", 16)
-	shell.add_child(status_label)
-	_button("Следующий этап →", _advance, shell)
-	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 15)
+
+	# The whole right-hand menu is replaced by one card on the table.
+	table_card = TableCard.new()
+	root.add_child(table_card)
+	table_card.setup(self)
+	table_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	table_card.offset_left = -356
+	table_card.offset_right = -16
+	table_card.offset_top = -250
+	table_card.offset_bottom = 250
+	table_card.expand_requested.connect(func(): open_character_card(selected))
+
+	turn_panel = TurnPanel.new()
+	root.add_child(turn_panel)
+	turn_panel.setup(self)
+	turn_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	turn_panel.offset_left = 16
+	turn_panel.offset_right = 16 + TurnPanel.PANEL_WIDTH
+	turn_panel.offset_top = -232
+	turn_panel.offset_bottom = -16
+	menu_button = turn_panel.menu_button
+	status_label = turn_panel.status_label
+	speech_label = turn_panel.speaker_label
+	ability_buttons = turn_panel.ability_buttons
+
+	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 13)
 	log_label.max_lines_visible = 2
-	shell.add_child(log_label)
-	var hint := _label("Касание персонажа или имени в списке — его карточка.\nКасание пола — идти; свайп — камера; два пальца — масштаб.", 16)
-	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	hint.position = Vector2(24, -75)
-	hint.size = Vector2(560, 60)
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(hint)
-	var left_panel := PanelContainer.new()
-	left_panel.position = Vector2(20, 130)
-	root.add_child(left_panel)
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 245
-	left.size.x = 245
-	left.add_theme_constant_override("separation", 8)
-	left_panel.add_child(left)
-	for slot in 2:
-		var number: int = slot
-		var button := _button("", func(): use_ability(number), left)
-		ability_buttons.append(button)
-	speech_label = _label("", 17)
-	left.add_child(speech_label)
-	_button("Передать ход / пропустить", pass_speech, left)
-	_button("Совет: доступ к складу", func(): menu.show_council(), left)
-	_button("Общий вид бункера", _frame_camera, left)
+	log_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	log_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	log_label.offset_left = 400
+	log_label.offset_right = -400
+	log_label.offset_top = -58
+	log_label.offset_bottom = -14
+	root.add_child(log_label)
+
 	menu = Menu.new()
 	root.add_child(menu)
 	menu.setup(self, profile)
@@ -396,7 +375,7 @@ func _build_ui() -> void:
 	character_card.setup(self)
 	character_card.player_changed.connect(func(index: int):
 		selected = index
-		_sync_roster()
+		_sync_table_card()
 		_refresh())
 	character_card.reveal_requested.connect(func(id: String):
 		if reveal_parameter(id):
@@ -409,48 +388,34 @@ func _refresh() -> void:
 	_refresh_left()
 	if is_instance_valid(character_card) and character_card.visible:
 		character_card.refresh()
-	var dossier_page := detail.page_index
-	detail.clear_cards()
+	if is_instance_valid(table_card):
+		table_card.refresh()
 	var names := {"reveal": "Раскрытие", "discussion": "Обсуждение", "vote": "Голосование", "result": "Результат", "end": "Итог"}
 	phase_label.text = "РАУНД %d  /  %s" % [round_number, names[phase]]
-	status_label.text = "В бункере: %d • Мест: %d • Раунд: %d/%d" % [active.size(), capacity, round_number, players.size() - capacity]
-	for c in players[selected]["cards"]:
-		var card: Dictionary = c
-		var frame := PanelContainer.new()
-		frame.add_theme_stylebox_override("panel", Cards.panel())
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		frame.add_child(row)
-		var value := _label(card["label"] + "\n" + card_value_for(selected, card, 0), 16)
-		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(value)
-		frame.custom_minimum_size.y = maxf(76, 24 + ceili(float(value.text.length()) / 23) * 20)
-		var lock := RevealLock.new()
-		lock.parameter_id = card["id"]
-		lock.is_public = card["revealed"]
-		lock.disabled = selected != 0 or card["revealed"] or not can_reveal_parameter()
-		lock.tooltip_text = "Открыто всем" if card["revealed"] else "Раскрыть в свой ход • таймер не меняется"
-		lock.pressed.connect(func(): reveal_parameter(card["id"]))
-		row.add_child(lock)
-		detail.add_card(frame)
-		if card["id"] == "health" and (selected == 0 or card["revealed"]):
-			detail.add_info("Нагрузка на группу: " + Supplies.cost_text(card.get("cost", {})), 16)
-	detail.page_index = dossier_page
-	if not active.has(selected):
-		detail.add_info("Наблюдатель — больше не участвует в голосовании.")
+	_update_speaker_glow()
 
 
-func _sync_roster() -> void:
-	if is_instance_valid(roster) and not roster.entries.is_empty():
-		roster.select(selected)
+func _sync_table_card() -> void:
+	if is_instance_valid(table_card):
+		table_card.show_for(selected, false, true)
+
+
+# A tap on a survivor only switches the table card; the full dossier opens
+# from the card itself.
+func select_player(player_index: int) -> void:
+	if players.is_empty():
+		return
+	selected = clampi(player_index, 0, players.size() - 1)
+	if is_instance_valid(table_card):
+		table_card.show_for(selected)
+	_refresh()
 
 
 func open_character_card(player_index: int) -> void:
 	if players.is_empty():
 		return
 	selected = clampi(player_index, 0, players.size() - 1)
-	_sync_roster()
-	detail.page_index = 0
+	_sync_table_card()
 	_refresh()
 	if is_instance_valid(character_card):
 		character_card.show_for(selected)
@@ -755,7 +720,7 @@ func _tap_world(point: Vector2) -> void:
 		return
 	var tapped_actor := _actor_at_screen(point)
 	if tapped_actor >= 0:
-		open_character_card(tapped_actor)
+		select_player(tapped_actor)
 		return
 	var hit = Plane(Vector3.UP, 0).intersects_ray(camera.project_ray_origin(point), camera.project_ray_normal(point))
 	if hit == null:
@@ -779,6 +744,8 @@ func _physics_process(delta: float) -> void:
 	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(character_card) and character_card.visible):
 		return
 	tick_round_timer(delta)
+	if is_instance_valid(speaker_ring) and speaker_ring.visible:
+		_update_speaker_glow()
 	if started and phase == "reveal":
 		if speech.tick(delta):
 			_begin_speaker()
@@ -1160,18 +1127,8 @@ func focus_module(kind: String) -> void:
 
 
 func _refresh_left() -> void:
-	if not is_instance_valid(speech_label):
-		return
-	for slot in 2:
-		ability_buttons[slot].text = "%d. %s%s" % [slot + 1, Abilities.NAMES[abilities.cards[slot]], " • использована" if abilities.used[slot] else ""]
-		ability_buttons[slot].disabled = abilities.used[slot] or not active.has(0) or phase in ["vote", "end"]
-	if phase == "discussion":
-		speech_label.text = "Общее обсуждение\nОсталось %d сек.\nЗатем голосование." % ceili(discussion_remaining)
-		return
-	if phase == "vote":
-		speech_label.text = "Голосование\nОсталось %d сек." % ceili(vote_remaining)
-		return
-	speech_label.text = ("Речь: %s\nОсталось %d сек.\nРаскройте карту, объясните выбор и передайте ход. Меню = пауза." % [players[speech.speaker()]["name"], ceili(speech.remaining)]) if phase == "reveal" and not speech.finished else "Выступления завершены."
+	if is_instance_valid(turn_panel):
+		turn_panel.refresh()
 
 
 func use_ability(slot: int) -> void:
@@ -1198,6 +1155,8 @@ func _begin_speaker() -> void:
 		log_label.text = "Общее обсуждение: 60 секунд, затем голосование начнётся автоматически."
 	else:
 		selected = speech.speaker()
+		if is_instance_valid(table_card):
+			table_card.show_for(selected, true, false)
 		if selected != 0:
 			var card := Content.random_hidden_card(players[selected])
 			if not card.is_empty():
@@ -1205,6 +1164,23 @@ func _begin_speaker() -> void:
 				speech.revealed = true
 		log_label.text = "Ход: " + players[selected]["name"] + (". Тестовый участник: карта открыта, речь не генерируется; можно пропустить." if selected != 0 else ". Раскройте одну карту и объясните решение.")
 	_refresh()
+
+
+func _update_speaker_glow() -> void:
+	if not is_instance_valid(speaker_ring) or actors.size() != players.size():
+		return
+	var who := speech.speaker() if phase == "reveal" and not speech.finished else -1
+	var lit := who >= 0 and active.has(who) and is_instance_valid(actors[who])
+	speaker_ring.visible = lit
+	if lit:
+		speaker_ring.position = actors[who].position + Vector3(0, 0.04, 0)
+	for i in actors.size():
+		if not is_instance_valid(actors[i]) or actors[i].get_child_count() < 2:
+			continue
+		var tag: Label3D = actors[i].get_child(1)
+		if tag is Label3D and active.has(i):
+			tag.modulate = Color("f9e4b6") if i == who else Color("b7ccd0")
+			tag.font_size = 30 if i == who else 26
 
 
 func vote_warehouse(voter: int, open_vote: bool) -> void:

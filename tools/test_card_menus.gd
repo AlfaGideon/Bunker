@@ -13,7 +13,8 @@ func run() -> void:
  for frame in 4:
   await process_frame
  check(room.log_label.get_global_rect().end.y <= root.get_visible_rect().size.y + 1, "Whole HUD fits screen, including message footer")
- check(room.detail.navigation.get_global_rect().end.y <= root.get_visible_rect().size.y + 1, "Dossier pager never pushes controls below screen")
+ check(room.table_card.get_global_rect().end.y <= root.get_visible_rect().size.y + 1, "Table card never leaves the screen")
+ check(room.turn_panel.get_global_rect().end.y <= root.get_visible_rect().size.y + 1, "Turn panel never leaves the screen")
  check(room.find_children("*", "ScrollContainer", true, false).is_empty(), "No menu scrollers in game, dice or HUD")
  check(room.find_children("*", "OptionButton", true, false).is_empty(), "No scrolling native selector popups")
  for method in ["home", "new_game", "show_profile", "settings", "instructions", "briefing", "show_facility", "show_council", "show_negative_actions"]:

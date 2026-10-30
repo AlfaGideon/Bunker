@@ -200,7 +200,7 @@ func capture() -> void:
 	var encoded := Marshalls.raw_to_base64(bytes)
 	var chunks := ceili(encoded.length() / 3500.0)
 	for index in chunks:
-		var prefix := "MENUSHOT" if show_menu else ("SURVIVALSHOT" if show_survival else ("WIDESHOT" if OS.get_cmdline_user_args().has("--wide") else "SCREENSHOT"))
+		var prefix := "MENUSHOT" if show_menu else ("SURVIVALSHOT" if show_survival else ("HUDSHOT" if OS.get_cmdline_user_args().has("--hud") else ("WIDESHOT" if OS.get_cmdline_user_args().has("--wide") else "SCREENSHOT")))
 		if not shot_prefix.is_empty():
 			prefix = shot_prefix
 		print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))

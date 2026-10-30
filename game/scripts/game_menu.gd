@@ -71,6 +71,10 @@ func home() -> void:
 	button("Новая партия", new_game)
 	button("Переролл участника • локальный тест", show_reroll)
 	button("Помещения и предметы", show_facility)
+	button("Общий вид бункера", func():
+		room._frame_camera()
+		visible = false)
+	button("Совет: доступ к складу", show_council)
 	button("Отрицательные действия", show_negative_actions)
 	button("Сводка катастрофы / озвучка", briefing)
 	button("Профиль игрока", show_profile)
