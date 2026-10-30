@@ -11,7 +11,6 @@ var room: Node3D
 var column: Deck
 var profile: BunkerProfile
 var page := ""
-var library_editor: RefCounted
 
 
 func setup(game: Node3D, player_profile: BunkerProfile) -> void:
@@ -70,6 +69,7 @@ func home() -> void:
 	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • " + preload("res://game/scripts/app_updates.gd").VERSION_NAME, 26)
 	button("Продолжить партию", room.begin_game)
 	button("Новая партия", new_game)
+	button("Переролл участника • локальный тест", show_reroll)
 	button("Помещения и предметы", show_facility)
 	button("Отрицательные действия", show_negative_actions)
 	button("Сводка катастрофы / озвучка", briefing)
@@ -216,13 +216,7 @@ func settings() -> void:
 		room.apply_settings()
 		if save_profile():
 			home())
-	button("Библиотека параметров (для новой партии)", open_library)
 	button("Назад", home)
-
-
-func open_library() -> void:
-	library_editor = preload("res://game/scripts/library_editor.gd").new(self)
-	library_editor.show_list()
 
 
 func instructions() -> void:
@@ -358,3 +352,49 @@ func facility_information() -> void:
 	text("Инструменты: %d • Оружие: %d (бой пока не реализован). Ремкомплекты: %d." % [room.inventory["tools"], room.inventory["weapons"], room.inventory["repair"]], 17)
 	text("Каждый раунд: −12 бодрости, при дефиците −20. Характеристики здоровья увеличивают расход общих запасов. Предметы выполняются после подхода персонажа. Отдых и осмотр — раз в раунд.", 17)
 	button("К помещениям", show_facility)
+
+
+func show_reroll() -> void:
+	page = "reroll"
+	clear()
+	text("ПЕРЕРОЛЛ ХАРАКТЕРИСТИК", 26)
+	text("Локальный тест: выполняйте только по просьбе игрока. Профиля ведущего и сетевых запросов пока нет. Раскрытые карты останутся раскрытыми; таймер речи не меняется.", 17)
+	if not room.active.has(0) or room.finished or room.phase in ["vote", "end"]:
+		text("Сейчас переролл недоступен.", 18)
+		button("Назад", home)
+		return
+	var participants := Choice.new()
+	for id in room.active:
+		participants.add_item(room.players[id]["name"], id)
+	participants.select(maxi(0, room.active.find(room.selected)))
+	column.add_card(participants)
+	var card_choice := Choice.new()
+	card_choice.add_item("Все характеристики", -1)
+	for card in room.players[0]["cards"]:
+		card_choice.add_item(card["label"])
+	column.add_card(card_choice)
+	button("Продолжить", func():
+		var index: int = participants.get_selected_id()
+		var picked: int = card_choice.selected
+		var ids: Array = []
+		if picked == 0:
+			for card in room.players[index]["cards"]:
+				ids.append(card["id"])
+		else:
+			ids.append(room.players[index]["cards"][picked - 1]["id"])
+		confirm_reroll(index, ids))
+	button("Назад", home)
+
+
+func confirm_reroll(index: int, ids: Array) -> void:
+	page = "reroll_confirm"
+	clear()
+	text("ПОДТВЕРДИТЬ ПЕРЕРОЛЛ?", 26)
+	text("Участник: " + room.players[index]["name"] + ". " + ("Все характеристики." if ids.size() > 1 else "Характеристика: " + str(ids[0])) + " Старые значения будут заменены.", 18)
+	button("Да, переролить", func():
+		var ok: bool = room.reroll_player(index, ids)
+		clear()
+		text("Готово. " + room.players[index]["name"] + ": характеристики переролены." if ok else "Переролл сейчас недоступен или нет другого варианта.", 18)
+		button("К перероллу", show_reroll)
+		button("В меню", home))
+	button("Отмена", show_reroll)

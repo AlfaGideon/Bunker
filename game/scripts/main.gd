@@ -1221,3 +1221,29 @@ func perform_negative_action(key: String) -> bool:
 	log_label.text = players[0]["name"] + ": " + action["title"] + ". " + action["effect"] + ". Недостаток характера раскрыт группе."
 	_refresh()
 	return true
+
+
+func reroll_player(index: int, ids: Array) -> bool:
+	if not active.has(0) or index not in active or finished or phase in ["vote", "end"]:
+		return false
+	var used: Array = []
+	for id in active:
+		if id != index:
+			used.append(Professions.profession(players[id]))
+	var updated: Dictionary = Content.reroll(players[index], ids, profile.custom_parameters, used)
+	if updated.is_empty():
+		return false
+	players[index] = updated
+	if "biology" in ids and _biology_revealed(index):
+		_change_appearance(index, biology_appearance(index))
+	if "profession" in ids:
+		if jobs.has(index) and not Professions.allowed(players[index], jobs[index].get("key", "")):
+			jobs.erase(index)
+		if index == 0 and not pending_inspection.is_empty() and not Professions.allowed(players[index], pending_inspection):
+			route.clear()
+			pending_inspection = ""
+			marker.visible = false
+		_update_medical_access()
+	selected = index
+	_refresh()
+	return true

@@ -243,7 +243,7 @@ func subpage() -> void:
 func card(title: String, description: String, action: Callable, target: Container, primary: bool = false) -> Button:
  var node := Button.new()
  node.set_meta("card_control", true)
- node.custom_minimum_size = Vector2(0, 108 if primary else 100)
+ node.custom_minimum_size = Vector2(0, 88 if primary else 75)
  node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  node.clip_contents = true
  node.pressed.connect(action)
@@ -309,8 +309,9 @@ func home() -> void:
  var grid := GridContainer.new()
  grid.columns = 2
  grid.add_theme_constant_override("h_separation", 12)
- grid.add_theme_constant_override("v_separation", 12)
+ grid.add_theme_constant_override("v_separation", 8)
  column.add_child(grid)
+ card("БИБЛИОТЕКА ПАРАМЕТРОВ", "Свои варианты карточек", open_library, grid)
  card("ПЕРСОНАЖ", draft_name + " • внешность и профиль", edit_profile, grid)
  card("ПАРАМЕТРЫ ПАРТИИ", "Катастрофа и состав группы", game_options, grid)
  card("НАСТРОЙКИ", "Звук, озвучка и эффекты", settings, grid)
@@ -425,7 +426,6 @@ func settings() -> void:
  reduced.button_pressed = profile.reduced_motion
  reduced.toggled.connect(func(value): profile.reduced_motion = value)
  add_control(reduced)
- button("Библиотека параметров", open_library)
  label("Русскому TTS нужен установленный системный голос Android.", 16)
  button("Назад", home)
 
@@ -441,5 +441,7 @@ func _notification(what: int) -> void:
   home()
 
 func open_library() -> void:
+ if not column is Deck:
+  subpage()
  library_editor = preload("res://game/scripts/library_editor.gd").new(self)
  library_editor.show_list()

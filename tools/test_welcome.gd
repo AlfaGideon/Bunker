@@ -15,7 +15,7 @@ func run() -> void:
  check(ProjectSettings.get_setting("application/run/main_scene") == "res://game/welcome.tscn", "App launches welcome, not bunker")
  check(welcome.page == "home", "Welcome home visible")
  check(welcome.find_children("*", "ScrollContainer", true, false).is_empty(), "Welcome has no scrolling menu")
- check(welcome.cards.size() == 7, "Hero and six animated cards")
+ check(welcome.cards.size() == 8, "Hero and seven animated cards")
  for card in welcome.cards:
   check(card.get_global_rect().end.y <= root.get_visible_rect().size.y, "All cards fit vertically")
  welcome.edit_profile()
