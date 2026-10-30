@@ -25,7 +25,7 @@ var title_label: Label
 
 func _init() -> void:
 	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	custom_minimum_size = Vector2(0, 148)
+	custom_minimum_size = Vector2(0, 140)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -48,10 +48,10 @@ func setup(data: Dictionary) -> void:
 func _build() -> void:
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_theme_constant_override("margin_left", 15)
-	margin.add_theme_constant_override("margin_right", 13)
-	margin.add_theme_constant_override("margin_top", 11)
-	margin.add_theme_constant_override("margin_bottom", 11)
+	margin.add_theme_constant_override("margin_left", 13)
+	margin.add_theme_constant_override("margin_right", 11)
+	margin.add_theme_constant_override("margin_top", 9)
+	margin.add_theme_constant_override("margin_bottom", 9)
 	add_child(margin)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -70,7 +70,7 @@ func _build() -> void:
 	title_label = Label.new()
 	title_label.text = title_text.to_upper()
 	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_label.add_theme_font_size_override("font_size", 12)
+	title_label.add_theme_font_size_override("font_size", 11)
 	title_label.add_theme_color_override("font_color", Color("9db3ba"))
 	title_label.clip_text = true
 	title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -79,7 +79,7 @@ func _build() -> void:
 	state_label = Label.new()
 	state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	state_label.text = _state_caption()
-	state_label.add_theme_font_size_override("font_size", 10)
+	state_label.add_theme_font_size_override("font_size", 9)
 	state_label.add_theme_color_override("font_color", _state_color())
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	head.add_child(state_label)
@@ -112,19 +112,19 @@ func _build() -> void:
 	note_label.text = note_text
 	note_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note_label.add_theme_font_size_override("font_size", 12)
+	note_label.add_theme_font_size_override("font_size", 10)
 	note_label.add_theme_color_override("font_color", Color("76909a"))
 	column.add_child(note_label)
 
 
 func _value_font_size() -> int:
 	if state == "hidden":
-		return 20
-	if value_text.length() > 88:
+		return 18
+	if value_text.length() > 90:
+		return 14
+	if value_text.length() > 55:
 		return 15
-	if value_text.length() > 54:
-		return 16
-	return 17
+	return 16
 
 
 func _state_caption() -> String:

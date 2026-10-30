@@ -9,27 +9,27 @@ const GROUP_STYLE := {
 	"medical": {"icon": "cross", "accent": "7fe3c0", "deep": "0b2628", "tag": "МЕДИЦИНА И УХОД"},
 	"science": {"icon": "flask", "accent": "8ecbff", "deep": "0d2334", "tag": "НАУКА И АНАЛИЗ"},
 	"engineering": {"icon": "gear", "accent": "f0b45f", "deep": "241c13", "tag": "МЕХАНИКА И СВЕТ"},
+	"electrical": {"icon": "bolt", "accent": "f5d06f", "deep": "251f12", "tag": "ЭНЕРГИЯ И СИГНАЛ"},
+	"construction": {"icon": "hammer", "accent": "e0b07a", "deep": "261a13", "tag": "МАСТЕРСКАЯ И РЕМЕСЛО"},
 	"food": {"icon": "pot", "accent": "ffb38a", "deep": "291812", "tag": "ПИЩА И ТЕПЛО"},
 	"nature": {"icon": "leaf", "accent": "b6e07f", "deep": "172815", "tag": "ЖИЗНЬ И ЗЕМЛЯ"},
 	"rescue": {"icon": "flame", "accent": "ff8a6a", "deep": "2b1411", "tag": "ОГОНЬ И СПАСЕНИЕ"},
 	"mind": {"icon": "book", "accent": "d1b3ff", "deep": "20182e", "tag": "ЗНАНИЕ И ПАМЯТЬ"},
-	"tech": {"icon": "chip", "accent": "7ce3ff", "deep": "0b252e", "tag": "КОД И СИГНАЛ"},
-	"logistics": {"icon": "crate", "accent": "ffd98a", "deep": "292212", "tag": "ПУТИ И ЗАПАСЫ"},
-	"craft": {"icon": "needle", "accent": "f3a9c7", "deep": "28161f", "tag": "РУКИ И ТКАНЬ"}
+	"logistics": {"icon": "crate", "accent": "ffd98a", "deep": "292212", "tag": "ПУТИ И ЗАПАСЫ"}
 }
 
 const GROUPS := {
 	"medical": ["Врач", "Фельдшер", "Медсестра", "Фармацевт", "Ветеринар", "Инструктор первой помощи", "Микробиолог"],
 	"science": ["Химик", "Биолог", "Геолог", "Метеоролог", "Эколог", "Картограф"],
-	"engineering": ["Электрик", "Инженер-механик", "Сантехник", "Связист", "Сварщик", "Слесарь",
-		"Техник вентиляции", "Энергетик", "Радиотехник", "Инженер водоочистки", "Строитель", "Плотник"],
+	"engineering": ["Инженер-механик", "Сантехник", "Сварщик", "Слесарь",
+		"Техник вентиляции", "Инженер водоочистки"],
+	"electrical": ["Электрик", "Энергетик", "Связист", "Радиотехник", "Программист"],
+	"construction": ["Строитель", "Плотник", "Швея"],
 	"food": ["Повар", "Пекарь", "Технолог пищевого производства"],
 	"nature": ["Агроном", "Оператор теплицы", "Зоотехник"],
 	"rescue": ["Пожарный", "Спасатель"],
 	"mind": ["Психолог", "Учитель", "Переводчик", "Архивист"],
-	"tech": ["Программист"],
-	"logistics": ["Логист", "Водитель"],
-	"craft": ["Швея"]
+	"logistics": ["Логист", "Водитель"]
 }
 
 # A specific pictogram for the professions whose work is easy to recognise.
@@ -100,6 +100,20 @@ static func parameter_icon(parameter_id: String) -> String:
 	return str(PARAMETER_ICONS.get(parameter_id, "note"))
 
 
+# Each group has a generated portrait illustration: a faceless mannequin in
+# profession gear. Textures are loaded on demand and cached by Godot.
+static var _textures := {}
+
+static func texture_for(profession: String) -> Texture2D:
+	var group := group_of(profession)
+	if _textures.has(group):
+		return _textures[group]
+	var path := "res://assets/professions/" + group + ".jpg"
+	var texture: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_textures[group] = texture
+	return texture
+
+
 # ---------------------------------------------------------------- background
 
 static func draw_background(canvas: CanvasItem, rect: Rect2, look: Dictionary) -> void:
@@ -135,6 +149,22 @@ static func draw_background(canvas: CanvasItem, rect: Rect2, look: Dictionary) -
 			Vector2(rect.end.x, rect.position.y + i * 2.0), shade, 2.0)
 		canvas.draw_line(Vector2(rect.position.x, rect.end.y - i * 2.0),
 			Vector2(rect.end.x, rect.end.y - i * 2.0), shade, 2.0)
+
+
+static func draw_cover(canvas: CanvasItem, texture: Texture2D, rect: Rect2) -> void:
+	var texture_size := texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0 or rect.size.x <= 0.0 or rect.size.y <= 0.0:
+		return
+	var target_ratio := rect.size.x / rect.size.y
+	var source_ratio := texture_size.x / texture_size.y
+	var region := Rect2(Vector2.ZERO, texture_size)
+	if source_ratio > target_ratio:
+		var width := texture_size.y * target_ratio
+		region = Rect2((texture_size.x - width) * 0.5, 0, width, texture_size.y)
+	else:
+		var height := texture_size.x / target_ratio
+		region = Rect2(0, (texture_size.y - height) * 0.5, texture_size.x, height)
+	canvas.draw_texture_rect_region(texture, rect, region)
 
 
 static func draw_frame(canvas: CanvasItem, rect: Rect2, accent: Color, alpha: float = 0.55) -> void:

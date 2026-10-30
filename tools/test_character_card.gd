@@ -2,6 +2,10 @@ extends SceneTree
 ## The character card must open on tap, flip, navigate the whole roster and
 ## keep every parameter on one screen with stage-correct masking.
 
+const Art = preload("res://game/scripts/profession_art.gd")
+const CardScript = preload("res://game/scripts/character_card.gd")
+const Library = preload("res://game/scripts/parameter_library.gd")
+
 var failures := 0
 
 
@@ -39,6 +43,14 @@ func run() -> void:
 	check(is_instance_valid(card), "Character card is created with the HUD")
 	check(not card.visible, "Character card starts hidden")
 	check(card.find_children("*", "ScrollContainer", true, false).is_empty(), "Card never scrolls")
+	check(CardScript.CARD_SIZE.y > CardScript.CARD_SIZE.x, "Card uses a vertical playing-card shape")
+	check(CardScript.CARD_SIZE.y / CardScript.CARD_SIZE.x < 0.75, "Card is clearly portrait, not square")
+	var content: Dictionary = Library.base()
+	for profession in content["professions"]:
+		var art: Texture2D = Art.texture_for(str(profession))
+		check(art != null, "Generated profession art is present: " + str(profession))
+		if art != null:
+			check(art.get_size().y > art.get_size().x, "Profession art is portrait: " + str(profession))
 	room.menu.visible = false
 	room.phase = "reveal"
 	room.speech.start(room.active)

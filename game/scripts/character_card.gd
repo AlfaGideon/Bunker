@@ -18,7 +18,7 @@ const Backdrop = preload("res://game/scripts/card_backdrop.gd")
 const Cards = preload("res://game/scripts/card_style.gd")
 const Supplies = preload("res://game/scripts/group_supplies.gd")
 
-const CARD_SIZE := Vector2(900, 600)
+const CARD_SIZE := Vector2(520, 780)
 const PARAMETER_ORDER := ["biology", "health", "quality", "skill", "baggage", "fact"]
 const PARAMETER_TITLE := {
 	"biology": "Биология", "health": "Здоровье", "quality": "Характер",
@@ -110,22 +110,22 @@ func _build() -> void:
 	_build_front()
 	_build_back()
 
-	flip_button = _action_button("Оборот", 116, 44)
+	flip_button = _action_button("Оборот", 80, 36)
 	flip_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	flip_button.offset_left = -182
-	flip_button.offset_right = -66
-	flip_button.offset_top = 18
-	flip_button.offset_bottom = 62
+	flip_button.offset_left = -136
+	flip_button.offset_right = -58
+	flip_button.offset_top = 12
+	flip_button.offset_bottom = 48
 	flip_button.tooltip_text = "Перевернуть карточку"
 	flip_button.pressed.connect(func(): set_side(not showing_back))
 	card_root.add_child(flip_button)
 
-	close_button = _action_button("×", 44, 44)
+	close_button = _action_button("×", 36, 36)
 	close_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	close_button.offset_left = -58
-	close_button.offset_right = -18
-	close_button.offset_top = 18
-	close_button.offset_bottom = 62
+	close_button.offset_left = -50
+	close_button.offset_right = -14
+	close_button.offset_top = 12
+	close_button.offset_bottom = 48
 	close_button.tooltip_text = "Закрыть карточку"
 	close_button.pressed.connect(close)
 	card_root.add_child(close_button)
@@ -145,50 +145,58 @@ func _build_front() -> void:
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 22)
+		margin.add_theme_constant_override("margin_" + side, 16)
 	front.add_child(margin)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 11)
+	column.add_theme_constant_override("separation", 8)
 	margin.add_child(column)
 
-	var header := HBoxContainer.new()
+	var header := VBoxContainer.new()
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_theme_constant_override("separation", 13)
+	header.add_theme_constant_override("separation", 3)
 	header.custom_minimum_size.y = 58
 	column.add_child(header)
+	var top := HBoxContainer.new()
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_theme_constant_override("separation", 9)
+	header.add_child(top)
 	mini_art = ArtView.new()
 	mini_art.compact = true
-	mini_art.custom_minimum_size = Vector2(52, 52)
+	mini_art.custom_minimum_size = Vector2(42, 42)
 	mini_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	header.add_child(mini_art)
+	top.add_child(mini_art)
 	var identity := VBoxContainer.new()
 	identity.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	identity.add_theme_constant_override("separation", 0)
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	header.add_child(identity)
-	name_label = _label("", 26, Color("f2ead9"))
+	top.add_child(identity)
+	name_label = _label("", 22, Color("f2ead9"))
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	identity.add_child(name_label)
-	profession_label = _label("", 14, Color("c9a36a"))
+	profession_label = _label("", 11, Color("c9a36a"))
 	profession_label.clip_text = true
 	profession_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	identity.add_child(profession_label)
-	var chips := HBoxContainer.new()
-	chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chips.add_theme_constant_override("separation", 8)
-	chips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	header.add_child(chips)
-	phase_label = _label("", 12, Color("b9cdd2"))
-	chips.add_child(_chip(phase_label))
-	count_label = _label("", 12, Color("d9b06e"))
-	chips.add_child(_chip(count_label))
 	var reserve := Control.new()
 	reserve.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	reserve.custom_minimum_size.x = 186
-	header.add_child(reserve)
+	reserve.custom_minimum_size.x = 128
+	top.add_child(reserve)
+	var meta := HBoxContainer.new()
+	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meta.add_theme_constant_override("separation", 8)
+	header.add_child(meta)
+	phase_label = _label("", 10, Color("b9cdd2"))
+	meta.add_child(phase_label)
+	var meta_gap := Control.new()
+	meta_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meta_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	meta.add_child(meta_gap)
+	count_label = _label("", 10, Color("d9b06e"))
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	meta.add_child(count_label)
 
 	var rule := ColorRect.new()
 	rule.color = Color(0.788, 0.639, 0.416, 0.28)
@@ -197,39 +205,41 @@ func _build_front() -> void:
 	column.add_child(rule)
 
 	grid = GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(grid)
 
-	var footer := HBoxContainer.new()
+	var footer := VBoxContainer.new()
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	footer.add_theme_constant_override("separation", 10)
-	footer.custom_minimum_size.y = 48
+	footer.add_theme_constant_override("separation", 3)
+	footer.custom_minimum_size.y = 52
 	column.add_child(footer)
+	var nav := HBoxContainer.new()
+	nav.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nav.add_theme_constant_override("separation", 6)
+	footer.add_child(nav)
+	prev_button = _nav_button("‹", func(): step(-1))
+	nav.add_child(prev_button)
+	nav_label = _label("", 12, Color("d6c6a6"))
+	nav_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nav_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	nav_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nav_label.clip_text = true
+	nav_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nav.add_child(nav_label)
+	next_button = _nav_button("›", func(): step(1))
+	nav.add_child(next_button)
 	var legend := HBoxContainer.new()
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	legend.add_theme_constant_override("separation", 12)
-	legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	legend.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	legend.add_theme_constant_override("separation", 8)
 	footer.add_child(legend)
 	_add_legend(legend, Color("7fe3b0"), "ОТКРЫТО ВСЕМ")
 	_add_legend(legend, Color("f0b45f"), "ВИДНО ТОЛЬКО ВАМ")
 	_add_legend(legend, Color("70858d"), "СКРЫТО")
-	prev_button = _nav_button("‹", func(): step(-1))
-	footer.add_child(prev_button)
-	nav_label = _label("", 13, Color("d6c6a6"))
-	nav_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nav_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	nav_label.custom_minimum_size.x = 190
-	nav_label.clip_text = true
-	nav_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	footer.add_child(nav_label)
-	next_button = _nav_button("›", func(): step(1))
-	footer.add_child(next_button)
 
 
 func _build_back() -> void:
@@ -246,46 +256,46 @@ func _build_back() -> void:
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 34)
+		margin.add_theme_constant_override("margin_" + side, 20)
 	back.add_child(margin)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 6)
+	column.add_theme_constant_override("separation", 5)
 	margin.add_child(column)
 	var top := HBoxContainer.new()
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(top)
-	back_brand = _label("БУНКЕР · ДОСЬЕ ВЫЖИВШЕГО", 12, Color("d9b06e"))
+	back_brand = _label("БУНКЕР · ДОСЬЕ", 10, Color("d9b06e"))
 	top.add_child(back_brand)
 	var top_gap := Control.new()
 	top_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_gap.custom_minimum_size.x = 20
+	top_gap.custom_minimum_size.x = 14
 	top.add_child(top_gap)
-	back_number = _label("", 12, Color("93a8ad"))
+	back_number = _label("", 10, Color("93a8ad"))
 	top.add_child(back_number)
 	var spacer := Control.new()
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(spacer)
-	back_profession = _label("", 34, Color("f6efdd"))
+	back_profession = _label("", 32, Color("f6efdd"))
 	back_profession.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	back_profession.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(back_profession)
-	back_tag = _label("", 12, Color("c9a36a"))
+	back_tag = _label("", 10, Color("c9a36a"))
 	back_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(back_tag)
 	var bottom := HBoxContainer.new()
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(bottom)
-	back_name = _label("", 17, Color("c9d5d6"))
+	back_name = _label("", 13, Color("c9d5d6"))
 	bottom.add_child(back_name)
 	var bottom_gap := Control.new()
 	bottom_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bottom_gap.custom_minimum_size.x = 20
+	bottom_gap.custom_minimum_size.x = 14
 	bottom.add_child(bottom_gap)
-	back_hint = _label("ОБОРОТ — ПАРАМЕТРЫ", 11, Color("8ea3a8"))
+	back_hint = _label("ОБОРОТ — ПАРАМЕТРЫ", 9, Color("8ea3a8"))
 	bottom.add_child(back_hint)
 
 
@@ -320,11 +330,11 @@ func _chip(content: Label) -> PanelContainer:
 func _nav_button(glyph: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = glyph
-	button.custom_minimum_size = Vector2(44, 44)
+	button.custom_minimum_size = Vector2(36, 36)
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	Cards.button(button, true)
-	button.custom_minimum_size = Vector2(44, 44)
-	button.add_theme_font_size_override("font_size", 20)
+	button.custom_minimum_size = Vector2(36, 36)
+	button.add_theme_font_size_override("font_size", 18)
 	button.pressed.connect(action)
 	return button
 
@@ -335,15 +345,15 @@ func _action_button(text: String, width: float, height: float) -> Button:
 	button.custom_minimum_size = Vector2(width, height)
 	Cards.button(button, true)
 	button.custom_minimum_size = Vector2(width, height)
-	button.add_theme_font_size_override("font_size", 15)
+	button.add_theme_font_size_override("font_size", 13)
 	return button
 
 
 func _add_legend(parent: HBoxContainer, color: Color, text: String) -> void:
-	var dot := _label("●", 10, color)
+	var dot := _label("●", 8, color)
 	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	parent.add_child(dot)
-	var caption := _label(text, 10, Color("8ea3a8"))
+	var caption := _label(text, 9, Color("8ea3a8"))
 	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	parent.add_child(caption)
 
@@ -353,12 +363,12 @@ func _frame_style() -> StyleBoxFlat:
 	box.bg_color = Color("071418")
 	box.border_color = Color("c9a36a")
 	box.set_border_width_all(2)
-	box.set_corner_radius_all(26)
+	box.set_corner_radius_all(24)
 	for side in ["left", "right", "top", "bottom"]:
 		box.set("content_margin_" + side, 10)
 	box.shadow_color = Color(0, 0, 0, 0.55)
-	box.shadow_size = 18
-	box.shadow_offset = Vector2(0, 10)
+	box.shadow_size = 16
+	box.shadow_offset = Vector2(0, 9)
 	return box
 
 
@@ -517,7 +527,12 @@ func refresh() -> void:
 	prev_button.disabled = room.players.size() < 2
 	next_button.disabled = room.players.size() < 2
 	back_profession.text = profession
-	back_profession.add_theme_font_size_override("font_size", 34 if profession.length() <= 24 else 27)
+	var title_size := 32
+	if profession.length() > 26:
+		title_size = 22
+	elif profession.length() > 18:
+		title_size = 27
+	back_profession.add_theme_font_size_override("font_size", title_size)
 	back_tag.text = str(look["tag"])
 	back_name.text = str(player["name"]) + ("  ·  вы" if index == 0 else "")
 	back_number.text = "%02d / %02d" % [index + 1, room.players.size()]
