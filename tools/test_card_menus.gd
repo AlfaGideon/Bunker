@@ -57,6 +57,10 @@ func run() -> void:
  room.speech.start(room.active)
  room.speech.remaining = 37.25
  room._refresh()
+ # Reveal locks live on the full character card now, not in a side panel.
+ room.open_character_card(0)
+ for frame in 3:
+  await process_frame
  var biology: Dictionary
  for card in room.players[0]["cards"]:
   if card["id"] == "biology":
@@ -86,6 +90,7 @@ func run() -> void:
  room.speech.index = 0
  room.phase = "discussion"
  check(not room.reveal_parameter("quality"), "No reveal outside reveal phase")
+ room.character_card.close()
  room.free()
  await process_frame
  print("Card menu and parameter lock failures: ", failures)
