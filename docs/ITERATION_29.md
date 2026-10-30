@@ -39,4 +39,4 @@
 
 ## Сборка
 
-`version/code` 29, версия 0.29.0, package `org.bunker.prototype`; подпись та же, что у 0.28.
+APK 105 212 388 байт, version code 29, версия 0.29.0, package `org.bunker.prototype`; подпись та же, что у 0.28.
