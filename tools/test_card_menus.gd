@@ -83,8 +83,13 @@ func run() -> void:
  var green := false
  for node in room.find_children("*", "Button", true, false):
   if node is Lock and node.parameter_id == "biology":
-   green = node.is_public and node.disabled
- check(green, "Published parameter has permanent green open lock")
+   green = true
+ check(not green, "Published parameter drops the reveal lock")
+ var open_tile := false
+ for tile in room.character_card.tiles:
+  if str(tile.parameter_id) == "biology" and str(tile.state) == "open":
+   open_tile = true
+ check(open_tile, "Published parameter switches to the open style")
  room.speech.pass_turn()
  room.speech.remaining = 29
  check(not room.reveal_parameter("quality") and room.speech.remaining == 29, "Another speaker's turn cannot reveal or change timer")
