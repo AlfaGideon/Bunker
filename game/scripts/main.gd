@@ -344,7 +344,7 @@ func _build_ui() -> void:
 	turn_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	turn_panel.offset_left = 16
 	turn_panel.offset_right = 16 + TurnPanel.PANEL_WIDTH
-	turn_panel.offset_top = -254
+	turn_panel.offset_top = -276
 	turn_panel.offset_bottom = -16
 	menu_button = turn_panel.menu_button
 	status_label = turn_panel.status_label

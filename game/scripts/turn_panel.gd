@@ -28,8 +28,8 @@ var ratio := 1.0
 
 func setup(game: Node3D) -> void:
 	room = game
-	custom_minimum_size = Vector2(PANEL_WIDTH, 238)
-	size = Vector2(PANEL_WIDTH, 238)
+	custom_minimum_size = Vector2(PANEL_WIDTH, 260)
+	size = Vector2(PANEL_WIDTH, 260)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_theme_stylebox_override("panel", _panel_style())
 	var margin := MarginContainer.new()
@@ -82,14 +82,16 @@ func setup(game: Node3D) -> void:
 	bar.draw.connect(_draw_bar)
 	column.add_child(bar)
 
-	var abilities := HBoxContainer.new()
-	abilities.add_theme_constant_override("separation", 7)
+	var abilities := VBoxContainer.new()
+	abilities.add_theme_constant_override("separation", 5)
 	column.add_child(abilities)
 	for slot in 2:
 		var index: int = slot
 		var button := _button("", func(): room.use_ability(index))
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size.y = 34
 		button.add_theme_font_size_override("font_size", 11)
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.autowrap_mode = TextServer.AUTOWRAP_OFF
 		button.clip_text = true
 		abilities.add_child(button)
@@ -188,8 +190,8 @@ func refresh() -> void:
 		str(PHASE_NAMES.get(room.phase, str(room.phase).to_upper()))]
 	status_label.text = "В БУНКЕРЕ %d / %d" % [room.active.size(), room.players.size()]
 	for slot in ability_buttons.size():
-		ability_buttons[slot].text = "%d  %s" % [slot + 1, Abilities.NAMES[room.abilities.cards[slot]]]
-		ability_buttons[slot].text += " ·" if room.abilities.used[slot] else ""
+		ability_buttons[slot].text = "%d   %s" % [slot + 1, Abilities.NAMES[room.abilities.cards[slot]]]
+		ability_buttons[slot].text += "  ✓" if room.abilities.used[slot] else ""
 		ability_buttons[slot].disabled = room.abilities.used[slot] or not room.active.has(0) or room.phase in ["vote", "end"]
 	ratio = 0.0
 	timer_label.text = "--"

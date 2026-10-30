@@ -247,7 +247,9 @@ func _build_front() -> void:
 		row.add_child(body)
 		var title := _label("", 8, Color("93a8ad"))
 		body.add_child(title)
-		var value := _label("", 12, Color("eef4ec"))
+		var value := _label("", 11, Color("eef4ec"))
+		value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		value.max_lines_visible = 2
 		value.clip_text = true
 		value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		body.add_child(value)
