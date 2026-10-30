@@ -311,7 +311,7 @@ func home() -> void:
  grid.add_theme_constant_override("h_separation", 12)
  grid.add_theme_constant_override("v_separation", 8)
  column.add_child(grid)
- card("БИБЛИОТЕКА ПАРАМЕТРОВ", "Свои варианты карточек", open_library, grid)
+ card("БИБЛИОТЕКА", "Возраст, болезни, характер", open_library, grid)
  card("ПЕРСОНАЖ", draft_name + " • внешность и профиль", edit_profile, grid)
  card("ПАРАМЕТРЫ ПАРТИИ", "Катастрофа и состав группы", game_options, grid)
  card("НАСТРОЙКИ", "Звук, озвучка и эффекты", settings, grid)

@@ -390,7 +390,12 @@ func confirm_reroll(index: int, ids: Array) -> void:
 	page = "reroll_confirm"
 	clear()
 	text("ПОДТВЕРДИТЬ ПЕРЕРОЛЛ?", 26)
-	text("Участник: " + room.players[index]["name"] + ". " + ("Все характеристики." if ids.size() > 1 else "Характеристика: " + str(ids[0])) + " Старые значения будут заменены.", 18)
+	var label := "Все характеристики"
+	if ids.size() == 1:
+		for card in room.players[index]["cards"]:
+			if card["id"] == ids[0]:
+				label = card["label"]
+	text("Участник: " + room.players[index]["name"] + ". " + label + ". Старые значения будут заменены.", 18)
 	button("Да, переролить", func():
 		var ok: bool = room.reroll_player(index, ids)
 		clear()
