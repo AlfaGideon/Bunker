@@ -49,6 +49,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_character_card.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_library_gallery.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_table_card.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_radio.gd
           python3 tools/test_release_config.py
       - name: Smoke test scene
         run: |
@@ -135,6 +136,8 @@ jobs:
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --hud
       - name: Render table card parameters
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --hud-front
+      - name: Render radio receiver
+        run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --radio
 
   visual-architecture:
     runs-on: ubuntu-latest

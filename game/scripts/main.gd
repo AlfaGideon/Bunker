@@ -24,9 +24,12 @@ const VoteRules = preload("res://game/scripts/vote_rules.gd")
 const CharacterCard = preload("res://game/scripts/character_card.gd")
 const TableCard = preload("res://game/scripts/table_card.gd")
 const TurnPanel = preload("res://game/scripts/turn_panel.gd")
+const Radio = preload("res://game/scripts/radio_receiver.gd")
+const RadioPanel = preload("res://game/scripts/radio_panel.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
 var speech := Speech.new()
+var radio := Radio.new()
 var discussion_remaining := 0.0
 var vote_remaining := 0.0
 var vote_second := false
@@ -77,6 +80,7 @@ var character_card
 var table_card
 var turn_panel: Control
 var speaker_ring: MeshInstance3D
+var radio_panel: Control
 var sun: DirectionalLight3D
 var departures: Dictionary = {}
 var selected := 0
@@ -380,12 +384,17 @@ func _build_ui() -> void:
 	character_card.reveal_requested.connect(func(id: String):
 		if reveal_parameter(id):
 			character_card.refresh())
+	radio_panel = RadioPanel.new()
+	root.add_child(radio_panel)
+	radio_panel.setup(self)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 
 
 func _refresh() -> void:
 	_refresh_left()
+	if is_instance_valid(radio_panel) and radio_panel.visible:
+		radio_panel.refresh()
 	if is_instance_valid(character_card) and character_card.visible:
 		character_card.refresh()
 	if is_instance_valid(table_card):
@@ -741,9 +750,10 @@ func _set_route(destination: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(character_card) and character_card.visible):
+	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(character_card) and character_card.visible) or (is_instance_valid(radio_panel) and radio_panel.visible):
 		return
 	tick_round_timer(delta)
+	_tick_radio(delta)
 	if is_instance_valid(speaker_ring) and speaker_ring.visible:
 		_update_speaker_glow()
 	if started and phase == "reveal":
@@ -849,6 +859,10 @@ func begin_game() -> void:
 		return
 	started = true
 	audio.begin()
+	# The cabinet wakes up on the surviving civil station: quiet music, no news.
+	radio.power(true)
+	radio.tune("aurora")
+	apply_radio_audio()
 	menu.briefing()
 	_narrate_intro()
 
@@ -965,8 +979,11 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 				log_label.text = scenario["repair"] + " " + medical_status()
 				_update_medical_access()
 		"radio":
-			audio.toggle_radio()
-			log_label.text = "Радио: аварийная частота, авторская инструментальная петля." if audio.radio_on else "Радио выключено."
+			if radio_panel.visible:
+				radio_panel.close()
+			else:
+				radio_panel.open()
+			log_label.text = "Приёмник: три станции, эфир других бункеров и маяк 1180."
 		"bed", "bed2":
 			if used_actions.get("rest", 0) == round_number:
 				log_label.text = "В этом раунде вы уже отдыхали."
@@ -1023,6 +1040,80 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 				medicines -= 1
 				stamina = mini(100, stamina + (5 if supplies.shortage else 15))
 				log_label.text = "Осмотр выполнен, бодрость +%d. Закрытые характеристики не раскрываются. " % (5 if supplies.shortage else 15) + medical_status()
+
+
+func _tick_radio(delta: float) -> void:
+	if not started or finished or radio == null:
+		return
+	var arrival: Dictionary = radio.tick(delta)
+	if arrival.is_empty():
+		return
+	audio.play_transmission()
+	log_label.text = "ЭФИР · " + str(arrival["from"]) + ": " + str(arrival["text"])
+	if is_instance_valid(radio_panel) and radio_panel.visible:
+		radio_panel.refresh()
+
+
+## Pushes the tuned station into the three cabinet players.
+func apply_radio_audio() -> void:
+	if audio == null or radio == null:
+		return
+	audio.play_station(radio.kind())
+
+
+func open_radio() -> void:
+	if is_instance_valid(radio_panel):
+		radio_panel.open()
+
+
+func can_scan_radio() -> bool:
+	for id in active:
+		if id >= 0 and id < players.size() and Professions.radio_operator(players[id]):
+			return true
+	return false
+
+
+func radio_operator_name() -> String:
+	for id in active:
+		if id >= 0 and id < players.size() and Professions.radio_operator(players[id]):
+			return players[id]["name"] + " — " + Professions.profession(players[id])
+	return ""
+
+
+## Reads the hidden beacon. Only a radio specialist can decode it, once per round.
+func scan_radio() -> bool:
+	if radio == null:
+		return false
+	if not can_scan_radio():
+		log_label.text = "Маяк 1180 разбирает только связист или радиотехник."
+		return false
+	if not radio.powered or radio.kind() != "signal":
+		log_label.text = "Сначала настройтесь на маяк 1180."
+		return false
+	var result: Dictionary = radio.scan(round_number)
+	if not bool(result.get("ok", false)):
+		match str(result.get("reason", "")):
+			"cooldown":
+				log_label.text = "Маяк уже прочитан в этом раунде. Вернитесь в следующем."
+			"exhausted":
+				log_label.text = "Все передачи маяка прочитаны."
+			_:
+				log_label.text = "Эфир пуст."
+		return false
+	var headline: String = str(result["title"]) + ": " + str(result["text"])
+	match str(result.get("effect", "")):
+		"supplies":
+			supplies.stock["filters"] += 3
+			supplies.stock["food"] += 4
+			log_label.text = headline + " Получено 3 фильтра и 4 рациона."
+		"stamina":
+			stamina = mini(100, stamina + 15)
+			log_label.text = headline + " Бодрость +15."
+		_:
+			log_label.text = headline
+	audio.blip("click")
+	_refresh()
+	return true
 
 
 func _tick_rest(delta: float) -> void:

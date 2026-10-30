@@ -156,6 +156,17 @@ func capture() -> void:
 			shot_prefix = "CARDBACKSHOT"
 		else:
 			shot_prefix = "CARDFRONTSHOT"
+	if args.has("--radio"):
+		room.menu.visible = false
+		# A specialist on duty so the beacon is unlocked in the documentation.
+		room.players[0]["cards"][0]["value"] = "Связист"
+		room.radio.power(true)
+		room.radio.tune("bunkers")
+		room.apply_radio_audio()
+		for step in 3:
+			room.radio.tick(60.0)
+		room.radio_panel.open()
+		shot_prefix = "RADIOSHOT"
 	for i in 15:
 		await process_frame
 	if is_instance_valid(room.weather.meteor_field):
@@ -181,7 +192,7 @@ func capture() -> void:
 			print("::error::Letterboxed logical canvas: " + str(logical))
 			quit(1)
 			return
-	var width := 800 if args.has("--characters") or args.has("--meteor-detail") or args.has("--infection-detail") or shot_prefix.begins_with("CARD") or shot_prefix.begins_with("HUD") or args.has("--hud") else 640
+	var width := 800 if args.has("--characters") or args.has("--meteor-detail") or args.has("--infection-detail") or shot_prefix.begins_with("CARD") or shot_prefix.begins_with("HUD") or shot_prefix.begins_with("RADIO") or args.has("--hud") else 640
 	image.resize(width, roundi(image.get_height() * float(width) / image.get_width()))
 	DirAccess.make_dir_recursive_absolute("res://builds")
 	var bytes := image.save_jpg_to_buffer(0.6)
