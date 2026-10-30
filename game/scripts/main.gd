@@ -347,9 +347,11 @@ func _build_ui() -> void:
 		_refresh())
 	roster.caption_pressed.connect(func(): open_character_card(selected))
 	shell.add_child(roster)
+	var card_button := _button("Открыть карточку персонажа", func(): open_character_card(selected), shell)
+	card_button.tooltip_text = "Досье выбранного участника одним экраном"
 	detail = Deck.new()
 	detail.columns = 1
-	detail.page_height = 150
+	detail.page_height = 170
 	shell.add_child(detail)
 	status_label = _label("", 16)
 	shell.add_child(status_label)
@@ -357,7 +359,7 @@ func _build_ui() -> void:
 	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 15)
 	log_label.max_lines_visible = 2
 	shell.add_child(log_label)
-	var hint := _label("Касание персонажа — его карточка; касание пола — идти.\nСвайп — камера; два пальца — масштаб.", 16)
+	var hint := _label("Касание персонажа или имени в списке — его карточка.\nКасание пола — идти; свайп — камера; два пальца — масштаб.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.position = Vector2(24, -75)
 	hint.size = Vector2(560, 60)

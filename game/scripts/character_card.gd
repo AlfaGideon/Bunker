@@ -558,7 +558,7 @@ func _note_for(card: Dictionary, state: String) -> String:
 	if state == "hidden":
 		return "Скроется до раскрытия"
 	if state == "own":
-		return "Видно только вам" + (" · можно раскрыть" if room.can_reveal_parameter() else "")
+		return "Можно раскрыть сейчас" if room.can_reveal_parameter() else "Скрыто от остальных"
 	if str(card.get("id", "")) == "health":
 		return Supplies.cost_text(card.get("cost", {}))
 	return str(PARAMETER_SUBTITLE.get(str(card.get("id", "")), ""))

@@ -32,6 +32,7 @@ func _init() -> void:
  caption_frame.gui_input.connect(_on_caption_input)
  add_child(caption_frame)
  caption = Label.new()
+ caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
  caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
  caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
  caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
