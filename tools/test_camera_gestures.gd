@@ -66,7 +66,6 @@ func run() -> void:
  # Local viewport coordinates: headless has a 64px physical window, so
  # Input.parse_input_event would multiply these logical coordinates by 20.
  # Dispatch through GUI normally, without applying physical stretch twice.
- print("::notice::HUDCARD card=" + str(room.table_card.get_global_rect()) + " visible=" + str(room.table_card.visible) + " panel=" + str(room.turn_panel.get_global_rect()) + " screen=" + str(root.get_visible_rect().size))
  var hud_point: Vector2 = room.turn_panel.get_global_rect().get_center()
  var event := InputEventScreenTouch.new()
  event.index = 4

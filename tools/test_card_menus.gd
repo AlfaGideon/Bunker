@@ -1,4 +1,5 @@
 extends SceneTree
+const Lock = preload("res://game/scripts/reveal_lock.gd")
 var failures := 0
 func check(ok: bool, message: String) -> void:
  if not ok:
@@ -6,14 +7,6 @@ func check(ok: bool, message: String) -> void:
   push_error(message)
 func _initialize() -> void:
  call_deferred("run")
-func _lock_count(room: Node) -> int:
- var total := 0
- for node in room.find_children("*", "Button", true, false):
-  if node.has_meta("parameter_lock"):
-   total += 1
- return total
-
-
 func run() -> void:
  var room := (load("res://game/main.tscn") as PackedScene).instantiate()
  root.add_child(room)
@@ -76,13 +69,8 @@ func run() -> void:
  check(room.card_value_for(0, biology, 1) == "скрыто", "Other viewer cannot see closed parameter")
  var red: Button
  for node in room.find_children("*", "Button", true, false):
-  if node.has_meta("parameter_lock") and node.parameter_id == "biology":
+  if node is Lock and node.parameter_id == "biology":
    red = node
- var states: Array = []
- for tile in room.character_card.tiles:
-  states.append(str(tile.parameter_id) + ":" + str(tile.state) + ":" + str(tile.revealable))
- print("::notice::TILESTATE " + ", ".join(states))
- print("::notice::LOCKDEBUG locks=" + str(_lock_count(room)) + " can=" + str(room.can_reveal_parameter()) + " speaker=" + str(room.speech.speaker()) + " phase=" + str(room.phase) + " card=" + str(room.character_card.visible) + "/" + str(room.character_card.index) + " tiles=" + str(room.character_card.tiles.size()) + " selected=" + str(room.selected))
  check(is_instance_valid(red) and not red.is_public and not red.disabled, "Small red lock opens own parameter in own speech")
  check(red.custom_minimum_size == Vector2(52, 52), "Reveal is a small lock, not a full-width button")
  red.pressed.emit()
@@ -94,7 +82,7 @@ func run() -> void:
  check(not room.reveal_parameter("quality"), "Cannot reveal a second parameter in the same speech")
  var green := false
  for node in room.find_children("*", "Button", true, false):
-  if node.has_meta("parameter_lock") and node.parameter_id == "biology":
+  if node is Lock and node.parameter_id == "biology":
    green = node.is_public and node.disabled
  check(green, "Published parameter has permanent green open lock")
  room.speech.pass_turn()
