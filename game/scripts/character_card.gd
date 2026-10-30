@@ -110,10 +110,11 @@ func _build() -> void:
 	_build_front()
 	_build_back()
 
-	flip_button = _action_button("Оборот", 80, 36)
+	flip_button = _action_button("Оборот", 100, 36)
+	flip_button.add_theme_font_size_override("font_size", 12)
 	flip_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	flip_button.offset_left = -144
-	flip_button.offset_right = -66
+	flip_button.offset_left = -168
+	flip_button.offset_right = -64
 	flip_button.offset_top = 12
 	flip_button.offset_bottom = 48
 	flip_button.tooltip_text = "Перевернуть карточку"
@@ -121,6 +122,7 @@ func _build() -> void:
 	card_root.add_child(flip_button)
 
 	close_button = _action_button("×", 36, 36)
+	close_button.add_theme_font_size_override("font_size", 15)
 	close_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	close_button.offset_left = -58
 	close_button.offset_right = -22
@@ -182,7 +184,7 @@ func _build_front() -> void:
 	identity.add_child(profession_label)
 	var reserve := Control.new()
 	reserve.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	reserve.custom_minimum_size.x = 128
+	reserve.custom_minimum_size.x = 160
 	top.add_child(reserve)
 	var meta := HBoxContainer.new()
 	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
