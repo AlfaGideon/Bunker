@@ -51,6 +51,10 @@ func run() -> void:
 		check(art != null, "Generated profession art is present: " + str(profession))
 		if art != null:
 			check(art.get_size().y > art.get_size().x, "Profession art is portrait: " + str(profession))
+	for profession in Art.PORTRAITS:
+		var path: String = "res://assets/professions/" + str(Art.PORTRAITS[profession]) + ".jpg"
+		check(ResourceLoader.exists(path), "Individual portrait exists: " + path)
+	check(Art.texture_for("Врач") != Art.texture_for("Медсестра"), "Professions inside a group use their own portraits")
 	room.menu.visible = false
 	room.phase = "reveal"
 	room.speech.start(room.active)

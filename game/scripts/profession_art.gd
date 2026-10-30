@@ -1,9 +1,9 @@
 extends RefCounted
-## Vector identity art for the character cards.
+## Identity art for the character cards.
 ##
-## Every emblem is drawn from Godot primitives, so the cards work in the APK
-## without extra textures: a profession picks a palette, a tagline and an icon
-## that is used on the card back and as a watermark on its parameter tiles.
+## A profession uses its own generated portrait when one exists and falls back
+## to the portrait of its workshop group. Palettes, taglines and pictograms stay
+## procedural and are reused on the card back and on parameter tiles.
 
 const GROUP_STYLE := {
 	"medical": {"icon": "cross", "accent": "7fe3c0", "deep": "0b2628", "tag": "МЕДИЦИНА И УХОД"},
@@ -100,11 +100,33 @@ static func parameter_icon(parameter_id: String) -> String:
 	return str(PARAMETER_ICONS.get(parameter_id, "note"))
 
 
-# Each group has a generated portrait illustration: a faceless mannequin in
-# profession gear. Textures are loaded on demand and cached by Godot.
+# Individual portraits are added group by group. A missing file falls back to
+# the group painting, so the card never loses its illustration.
+const PORTRAITS := {
+	"Врач": "doctor",
+	"Фельдшер": "paramedic",
+	"Медсестра": "nurse",
+	"Фармацевт": "pharmacist",
+	"Ветеринар": "vet",
+	"Инструктор первой помощи": "first_aid",
+	"Микробиолог": "microbiologist",
+	"Повар": "cook",
+	"Пекарь": "baker",
+	"Технолог пищевого производства": "food_technologist"
+}
+
 static var _textures := {}
+static var _portraits := {}
 
 static func texture_for(profession: String) -> Texture2D:
+	var slug := str(PORTRAITS.get(profession, ""))
+	if not slug.is_empty():
+		var own_path := "res://assets/professions/" + slug + ".jpg"
+		if ResourceLoader.exists(own_path):
+			if not _portraits.has(own_path):
+				_portraits[own_path] = load(own_path)
+			var portrait: Texture2D = _portraits[own_path]
+			return portrait
 	var group := group_of(profession)
 	if _textures.has(group):
 		return _textures[group]
