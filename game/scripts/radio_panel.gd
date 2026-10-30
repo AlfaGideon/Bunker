@@ -228,15 +228,15 @@ func _scan() -> void:
 func refresh() -> void:
 	if room == null or room.radio == null:
 		return
-	var receiver = room.radio
+	var receiver: RefCounted = room.radio
 	status_label.text = receiver.status_text()
 	status_label.add_theme_color_override("font_color", Color("7fe3b0") if receiver.powered else Color("8ea3a8"))
 	power_button.text = "ВЫКЛЮЧИТЬ РАДИО" if receiver.powered else "ВКЛЮЧИТЬ РАДИО"
 
 	frequency_label.text = receiver.frequency
 
-	var specialist := room.can_scan_radio()
-	var operator_name := room.radio_operator_name()
+	var specialist: bool = room.can_scan_radio()
+	var operator_name: String = room.radio_operator_name()
 	specialist_label.text = ("За приёмником: " + operator_name) if specialist else "Специалиста по связи в бункере нет."
 	specialist_label.add_theme_color_override("font_color", Color("c9a36a") if specialist else Color("a97f6a"))
 
@@ -250,7 +250,7 @@ func refresh() -> void:
 		button.text = ("●  " if active else "○  ") + str(entry.get("number", "")) + "   " + str(entry.get("name", "")) + "   ·   " + str(entry.get("subtitle", ""))
 		button.tooltip_text = str(entry.get("note", ""))
 
-	var lines := receiver.feed_lines(4)
+	var lines: Array = receiver.feed_lines(4)
 	if lines.is_empty():
 		feed_label.text = "Пока тишина. Другие бункеры выходят в эфир не сразу."
 	else:
@@ -259,7 +259,7 @@ func refresh() -> void:
 			text += ("\n" if not text.is_empty() else "") + str(line)
 		feed_label.text = text
 
-	var kind := receiver.kind()
+	var kind: String = receiver.kind()
 	scan_button.disabled = kind != "signal" or not specialist or receiver.scans_left() == 0 or receiver.scan_round == room.round_number
 	if kind != "signal":
 		hint_label.text = "Сканирование 1180 доступно на третьей станции. Маяк разбирает только связист или радиотехник."
