@@ -2,10 +2,10 @@ extends Control
 ## Full-screen collectible-style character card.
 ##
 ## A tap on a survivor (or on their name in the side roster) opens a single
-## card: its face is a fixed six-tile grid of characteristics, its back is a
-## vector profession illustration. Nothing scrolls and nothing is paginated —
-## every parameter is on the face, hidden ones stay masked until the rules open
-## them.
+## vertical card: its face is a fixed six-tile grid of characteristics, its
+## back is a generated portrait of a faceless mannequin in profession gear.
+## Nothing scrolls and nothing is paginated — every parameter is on the face,
+## hidden ones stay masked until the rules open them.
 
 signal closed
 signal player_changed(index: int)
