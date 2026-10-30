@@ -46,13 +46,13 @@ func setup(game: Node3D) -> void:
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_theme_constant_override("separation", 8)
 	column.add_child(top)
-	phase_label = _label("", 10, Color("c9a36a"))
+	phase_label = _label("", 11, Color("c9a36a"))
 	top.add_child(phase_label)
 	var gap := Control.new()
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(gap)
-	status_label = _label("", 10, Color("8ea3a8"))
+	status_label = _label("", 11, Color("8ea3a8"))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	top.add_child(status_label)
 
@@ -70,7 +70,7 @@ func setup(game: Node3D) -> void:
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	clock.add_child(who)
-	who.add_child(_label("ХОД", 9, Color("6f8b92")))
+	who.add_child(_label("ХОД", 10, Color("6f8b92")))
 	speaker_label = _label("", 14, Color("dbe6e4"))
 	speaker_label.clip_text = true
 	speaker_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -90,7 +90,7 @@ func setup(game: Node3D) -> void:
 		var button := _button("", func(): room.use_ability(index))
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.custom_minimum_size.y = 34
-		button.add_theme_font_size_override("font_size", 11)
+		button.add_theme_font_size_override("font_size", 12)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.autowrap_mode = TextServer.AUTOWRAP_OFF
 		button.clip_text = true
@@ -190,7 +190,8 @@ func refresh() -> void:
 		str(PHASE_NAMES.get(room.phase, str(room.phase).to_upper()))]
 	status_label.text = "В БУНКЕРЕ %d / %d" % [room.active.size(), room.players.size()]
 	for slot in ability_buttons.size():
-		ability_buttons[slot].text = "%d   %s" % [slot + 1, Abilities.NAMES[room.abilities.cards[slot]]]
+		var ability_name: String = Abilities.NAMES[room.abilities.cards[slot]].split("\n")[0]
+		ability_buttons[slot].text = "%d   %s" % [slot + 1, ability_name]
 		ability_buttons[slot].text += "  ✓" if room.abilities.used[slot] else ""
 		ability_buttons[slot].disabled = room.abilities.used[slot] or not room.active.has(0) or room.phase in ["vote", "end"]
 	ratio = 0.0

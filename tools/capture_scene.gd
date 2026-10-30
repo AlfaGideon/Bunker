@@ -181,7 +181,7 @@ func capture() -> void:
 			print("::error::Letterboxed logical canvas: " + str(logical))
 			quit(1)
 			return
-	var width := 800 if args.has("--characters") or args.has("--meteor-detail") or args.has("--infection-detail") or shot_prefix.begins_with("CARD") else 640
+	var width := 800 if args.has("--characters") or args.has("--meteor-detail") or args.has("--infection-detail") or shot_prefix.begins_with("CARD") or shot_prefix.begins_with("HUD") else 640
 	image.resize(width, roundi(image.get_height() * float(width) / image.get_width()))
 	DirAccess.make_dir_recursive_absolute("res://builds")
 	var bytes := image.save_jpg_to_buffer(0.6)
