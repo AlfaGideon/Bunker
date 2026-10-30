@@ -44,7 +44,7 @@ func run() -> void:
 	check(not card.visible, "Character card starts hidden")
 	check(card.find_children("*", "ScrollContainer", true, false).is_empty(), "Card never scrolls")
 	check(CardScript.CARD_SIZE.y > CardScript.CARD_SIZE.x, "Card uses a vertical playing-card shape")
-	check(CardScript.CARD_SIZE.y / CardScript.CARD_SIZE.x < 0.75, "Card is clearly portrait, not square")
+	check(CardScript.CARD_SIZE.y / CardScript.CARD_SIZE.x > 1.25, "Card is clearly portrait, not square")
 	var content: Dictionary = Library.base()
 	for profession in content["professions"]:
 		var art: Texture2D = Art.texture_for(str(profession))
