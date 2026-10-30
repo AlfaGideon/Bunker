@@ -112,7 +112,16 @@ const PORTRAITS := {
 	"Микробиолог": "microbiologist",
 	"Повар": "cook",
 	"Пекарь": "baker",
-	"Технолог пищевого производства": "food_technologist"
+	"Технолог пищевого производства": "food_technologist",
+	"Химик": "chemist",
+	"Биолог": "biologist",
+	"Геолог": "geologist",
+	"Метеоролог": "meteorologist",
+	"Эколог": "ecologist",
+	"Картограф": "cartographer",
+	"Строитель": "builder",
+	"Плотник": "carpenter",
+	"Швея": "seamstress"
 }
 
 static var _textures := {}
