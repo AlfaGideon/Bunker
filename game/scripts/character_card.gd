@@ -573,7 +573,7 @@ func _rebuild_tiles(player: Dictionary, accent: Color) -> void:
 
 func _note_for(card: Dictionary, state: String) -> String:
 	if state == "hidden":
-		return "Скроется до раскрытия"
+		return "Скрыто до раскрытия"
 	if state == "own":
 		return "Можно раскрыть сейчас" if room.can_reveal_parameter() else "Скрыто от остальных"
 	if str(card.get("id", "")) == "health":

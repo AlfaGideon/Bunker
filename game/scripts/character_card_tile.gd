@@ -98,23 +98,33 @@ func _build() -> void:
 	value_label.add_theme_font_size_override("font_size", _value_font_size())
 	value_label.add_theme_color_override("font_color", _value_color())
 	body.add_child(value_label)
-	if revealable:
-		var lock = RevealLock.new()
-		lock.is_public = false
-		lock.parameter_id = parameter_id
-		if lock.has_meta("parameter_lock"):
-			lock.remove_meta("parameter_lock")
-		lock.tooltip_text = "Раскрыть «" + title_text + "» всем участникам"
-		lock.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		lock.pressed.connect(func(): reveal_requested.emit(parameter_id))
-		body.add_child(lock)
 	note_label = Label.new()
 	note_label.text = note_text
 	note_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	note_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	note_label.add_theme_font_size_override("font_size", 12)
 	note_label.add_theme_color_override("font_color", Color("a9bec5"))
-	column.add_child(note_label)
+	if not revealable:
+		column.add_child(note_label)
+		return
+	# The lock sits in the footer row, so long values keep the full tile width
+	# instead of breaking words against a lock-sized gutter.
+	var foot := HBoxContainer.new()
+	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	foot.add_theme_constant_override("separation", 8)
+	column.add_child(foot)
+	foot.add_child(note_label)
+	var lock = RevealLock.new()
+	lock.is_public = false
+	lock.parameter_id = parameter_id
+	if lock.has_meta("parameter_lock"):
+		lock.remove_meta("parameter_lock")
+	lock.tooltip_text = "Раскрыть «" + title_text + "» всем участникам"
+	lock.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	lock.pressed.connect(func(): reveal_requested.emit(parameter_id))
+	foot.add_child(lock)
 
 
 func _value_font_size() -> int:
@@ -168,8 +178,10 @@ func _draw() -> void:
 	draw_style_box(box, Rect2(Vector2.ZERO, size))
 	draw_rect(Rect2(16, 0, maxf(0.0, size.x - 32), 2), Color(_state_color(), 0.65), true)
 	draw_rect(Rect2(0, 18, 3, maxf(0.0, size.y - 36)), Color(accent, 0.70), true)
-	# A faint watermark keeps every tile recognisable without reading it.
-	Art.draw_icon(self, Vector2(size.x - 32, size.y - 30), 18.0, icon, Color(accent, 0.12), 1.6)
+	# A faint watermark keeps every tile recognisable without reading it; the
+	# reveal lock replaces it in the footer of an owner's tile.
+	if not revealable:
+		Art.draw_icon(self, Vector2(size.x - 32, size.y - 30), 18.0, icon, Color(accent, 0.12), 1.6)
 	if state == "hidden":
 		var y := 42.0
 		while y < size.y - 30.0:
