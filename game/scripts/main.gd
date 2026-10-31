@@ -234,7 +234,7 @@ func _online_state_changed(state) -> void:
 			"discussion": log_label.text = "Обсуждение: 60 секунд. Голосовой чат в игре пока не реализован."
 			"vote": log_label.text = "Общее голосование: 20 секунд. Пропуск — голос за себя."
 			"result", "end":
-				var removed := state.index_for(str(state.result.get("player", "")))
+				var removed: int = state.index_for(str(state.result.get("player", "")))
 				var name: String = players[removed]["name"] if removed >= 0 else "Участник"
 				log_label.text = name + " покидает бункер." + (" Партия завершена." if phase == "end" else " Следующий раунд начнётся автоматически.")
 	online_last_phase = phase
