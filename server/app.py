@@ -5,6 +5,7 @@ import os
 import re
 import secrets
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from aiohttp import WSMsgType, web
 from pathlib import Path
@@ -53,6 +54,7 @@ class Lobby:
     def __init__(self):
         self.rooms: dict[str, Room] = {}
         self.peers: set[Peer] = set()
+        self.http_sessions: dict[str, HttpSession] = {}
 
     async def send(self, peer, payload):
         if not peer.socket.closed:
@@ -163,6 +165,93 @@ class Lobby:
         await self.error(peer, 'unknown_action')
 
 
+class PollSocket:
+    """WebSocket-like outbound queue for clients behind an HTTP-only proxy."""
+    def __init__(self):
+        self.closed = False
+        self.events = deque(maxlen=256)
+
+    async def send_json(self, payload):
+        if not self.closed:
+            self.events.append(payload)
+
+
+@dataclass
+class HttpSession:
+    peer: Peer
+    last_seen: float = field(default_factory=time.monotonic)
+    tokens: float = 30.0
+    token_time: float = field(default_factory=time.monotonic)
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+
+async def close_http(lobby, token):
+    session = lobby.http_sessions.pop(token, None)
+    if session is not None:
+        session.peer.socket.closed = True
+        await lobby.leave(session.peer)
+        lobby.peers.discard(session.peer)
+
+
+async def sweep_http(app):
+    lobby = app[LOBBY_KEY]
+    while True:
+        await asyncio.sleep(15)
+        expired = [token for token, session in lobby.http_sessions.items()
+                   if time.monotonic() - session.last_seen > 75]
+        for token in expired:
+            await close_http(lobby, token)
+
+
+async def start_sweeper(app):
+    task = asyncio.create_task(sweep_http(app))
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+async def http_open(request):
+    lobby = request.app[LOBBY_KEY]
+    if len(lobby.peers) >= MAX_SOCKETS:
+        raise web.HTTPServiceUnavailable()
+    token = secrets.token_urlsafe(32)
+    peer = Peer(PollSocket())
+    lobby.peers.add(peer)
+    lobby.http_sessions[token] = HttpSession(peer)
+    return web.json_response({'session': token, 'protocol': 1}, headers={'Cache-Control': 'no-store'})
+
+
+async def http_message(request):
+    lobby = request.app[LOBBY_KEY]
+    token = request.headers.get('X-Lobby-Session', '')
+    session = lobby.http_sessions.get(token)
+    if not session:
+        raise web.HTTPUnauthorized()
+    async with session.lock:
+        session.last_seen = time.monotonic()
+        if request.path.endswith('/close'):
+            await close_http(lobby, token)
+            return web.json_response({'closed': True})
+        if request.path.endswith('/send'):
+            now = time.monotonic()
+            session.tokens = min(30.0, session.tokens + (now - session.token_time) * 5)
+            session.token_time = now
+            if session.tokens < 1:
+                raise web.HTTPTooManyRequests()
+            session.tokens -= 1
+            try:
+                data = await request.json()
+            except (ValueError, UnicodeDecodeError):
+                raise web.HTTPBadRequest()
+            await lobby.handle(session.peer, data)
+        events = list(session.peer.socket.events)
+        session.peer.socket.events.clear()
+        return web.json_response({'events': events}, headers={'Cache-Control': 'no-store'})
+
+
 LOBBY_KEY = web.AppKey('lobby', Lobby)
 
 
@@ -217,6 +306,11 @@ async def websocket(request):
 def create_app():
     app = web.Application(client_max_size=MAX_MESSAGE)
     app[LOBBY_KEY] = Lobby()
+    app.cleanup_ctx.append(start_sweeper)
+    app.router.add_post('/transport/open', http_open)
+    app.router.add_post('/transport/send', http_message)
+    app.router.add_post('/transport/poll', http_message)
+    app.router.add_post('/transport/close', http_message)
     app.router.add_get('/healthz', health)
     app.router.add_get('/invite/{room_id}', invite_page)
     app.router.add_get('/ws', websocket)

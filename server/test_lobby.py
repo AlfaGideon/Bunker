@@ -91,6 +91,27 @@ class LobbyTest(unittest.IsolatedAsyncioTestCase):
         await host.send_json({'type': 'add_bot'})
         self.assertEqual((await self.expect(host, 'error'))['code'], 'already_started')
 
+    async def test_http_polling_and_websocket_interoperate(self):
+        opened = await self.client.post('/transport/open', json={})
+        token = (await opened.json())['session']
+        headers = {'X-Lobby-Session': token}
+        response = await self.client.post('/transport/send', headers=headers, json={
+            'type': 'create', 'name': 'HTTP Host', 'title': 'Room', 'capacity': 6})
+        events = (await response.json())['events']
+        room = next(e['room'] for e in events if e['type'] == 'joined')
+        guest = await self.connect()
+        await guest.send_json({'type': 'join', 'room_id': room['id'], 'name': 'WebSocket'})
+        await self.expect(guest, 'joined')
+        response = await self.client.post('/transport/poll', headers=headers, json={})
+        roster = (await response.json())['events']
+        self.assertEqual(roster[-1]['room']['count'], 2)
+        response = await self.client.post('/transport/send', headers=headers, json={'type': 'add_bot'})
+        self.assertEqual((await response.json())['events'][-1]['room']['count'], 3)
+        self.assertEqual((await self.client.post('/transport/poll', json={})).status, 401)
+        await self.client.post('/transport/close', headers=headers, json={})
+        self.assertEqual((await self.expect(guest, 'room_closed'))['reason'], 'host_left')
+        self.assertEqual((await self.client.post('/transport/poll', headers=headers, json={})).status, 401)
+
     async def test_list_leave_validation(self):
         host = await self.connect()
         await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 7})
