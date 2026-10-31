@@ -57,6 +57,8 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_library_gallery.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_table_card.gd
           python3 tools/test_release_config.py
+      - name: Prepare Android TTS service visibility
+        run: python3 tools/prepare_android_build.py
       - name: Export debug APK
         run: |
           set +e
