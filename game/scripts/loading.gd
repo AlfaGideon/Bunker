@@ -43,6 +43,7 @@ func _ready() -> void:
   node.visible = false
  build_journey_environment()
  camp.ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ camp.radio_hotspot.visible = false
  for button in camp.find_children("*", "Button", true, false):
   button.disabled = true
  # Reduced motion affects background effects, not the essential journey.
