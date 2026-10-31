@@ -231,3 +231,26 @@ jobs:
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --skin=male_senior
       - name: Senior woman
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --skin=female_senior
+
+  online-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r server/requirements.txt
+      - run: bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Two actual game scenes over HTTP polling
+        run: |
+          python server/app.py > /tmp/online-server.log 2>&1 &
+          pid=$!
+          trap 'kill $pid' EXIT
+          sleep 2
+          GODOT_TIMEOUT=180 bash tools/check_godot.sh --headless --path . --script tools/check_live_online.gd

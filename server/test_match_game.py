@@ -87,6 +87,26 @@ class MatchTest(unittest.TestCase):
         game.command('2', 'vote', '0', 542)
         self.assertEqual(game.votes['2'], '0')
 
+    def test_bots_reveal_pass_and_vote_on_server(self):
+        members = [SimpleNamespace(id=str(i), name=f'Player {i}', skin='male') for i in range(6)]
+        game = Match(members, now=100, rng=random.Random(13), bot_ids={'1', '2', '3', '4', '5'})
+        game.command('0', 'pass', now=101)
+        self.assertEqual(game.speaker, '1')
+        before = sum(c['revealed'] for c in game.players[1]['cards'])
+        self.assertTrue(game.tick(103))
+        self.assertEqual(sum(c['revealed'] for c in game.players[1]['cards']), before + 1)
+        self.assertEqual(game.speaker, '1')
+        game.tick(106)
+        self.assertEqual(game.speaker, '2')
+        for _ in range(4):
+            game.tick(game.deadline - game.SPEECH_SECONDS + 5)
+        self.assertEqual(game.phase, 'discussion')
+        game.tick(game.deadline)
+        self.assertEqual(game.phase, 'vote')
+        game.tick(game.deadline - game.VOTE_SECONDS + 2)
+        self.assertEqual(set(game.votes), game.bot_ids)
+        self.assertTrue(all(target in game.active for target in game.votes.values()))
+
     def test_vote_validation_and_majority(self):
         g = self.game
         g.tick(520)
