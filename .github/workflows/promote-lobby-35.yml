@@ -1,0 +1,50 @@
+name: Publish lobby 0.35 update
+on:
+  push:
+    branches: [arena/0afa9ec8-bunker]
+    paths: ['.github/workflows/promote-lobby-35.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify existing signed test APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/test_release_config.py
+          test "$(python3 -c 'import configparser; p=configparser.ConfigParser(interpolation=None); p.read("export_presets.cfg"); print(p.getint("preset.0.options", "version/code"))')" = 35
+          if gh release view android-35 >/dev/null 2>&1; then
+            echo '::error::android-35 already exists; refusing to overwrite.'
+            exit 1
+          fi
+          mkdir -p builds previous
+          gh release download android-35-lobby --pattern bunker-lobby-test-35.apk --dir builds
+          gh release download android-34 --pattern bunker-34.apk --dir previous
+          expected=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/android-35-lobby" --jq '.assets[] | select(.name == "bunker-lobby-test-35.apk") | .digest')
+          actual="sha256:$(sha256sum builds/bunker-lobby-test-35.apk | cut -d' ' -f1)"
+          test -n "$expected" && test "$expected" = "$actual"
+          sdk="$ANDROID_HOME/build-tools/35.0.0"
+          if [ ! -x "$sdk/apksigner" ]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;35.0.1'
+            sdk="$ANDROID_HOME/build-tools/35.0.1"
+          fi
+          "$sdk/apksigner" verify --verbose builds/bunker-lobby-test-35.apk
+          old=$("$sdk/apksigner" verify --print-certs previous/bunker-34.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          new=$("$sdk/apksigner" verify --print-certs builds/bunker-lobby-test-35.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          test -n "$old" && test "$old" = "$new"
+          "$sdk/aapt" dump badging builds/bunker-lobby-test-35.apk | grep "^package: name='org.bunker.prototype' versionCode='35'"
+          cp builds/bunker-lobby-test-35.apk builds/bunker-35.apk
+          cp builds/bunker-lobby-test-35.apk builds/Bunker-Posledniy-Shlyuz-35.apk
+          (cd builds && sha256sum bunker-35.apk Bunker-Posledniy-Shlyuz-35.apk > SHA256SUMS)
+      - name: Publish canonical release for the in-app updater
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create android-35 builds/bunker-35.apk builds/Bunker-Posledniy-Shlyuz-35.apk builds/SHA256SUMS --draft --target "$GITHUB_SHA" --title 'Бункер — Последний шлюз • Android 35 (тест лобби)' --notes 'Тест лобби: создание и поиск комнат, участники у костра. Сетевая партия пока не готова, кнопка начала отключена. Адрес бесплатного сервера временный. Локальная игра сохранена.'
+          gh release edit android-35 --draft=false --latest

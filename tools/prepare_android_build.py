@@ -38,4 +38,25 @@ if 'android.intent.action.TTS_SERVICE' not in text:
 java = build / 'src/org/bunker/prototype/InternetRadioPlayer.java'
 java.parent.mkdir(parents=True, exist_ok=True)
 java.write_bytes(Path('android_src/InternetRadioPlayer.java').read_bytes())
+invite_java = build / 'src/org/bunker/prototype/LobbyInvite.java'
+invite_java.write_bytes(Path('android_src/LobbyInvite.java').read_bytes())
+# Godot's generated manifest uses mergeOnlyAttributes for GodotApp, so a
+# distinct activity is required: filters added to GodotApp would be discarded.
+invite_activity = build / 'src/org/bunker/prototype/LobbyInviteActivity.java'
+invite_activity.write_bytes(Path('android_src/LobbyInviteActivity.java').read_bytes())
+text = manifest.read_text()
+if 'LobbyInviteActivity' not in text:
+    activity_xml = '''<activity android:name="org.bunker.prototype.LobbyInviteActivity"
+            android:exported="true" android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bunkerinvite" android:host="join" />
+            </intent-filter>
+        </activity>'''
+    text, count = re.subn(r'(</application>)', lambda m: activity_xml + '\n    ' + m.group(1), text, count=1)
+    if count != 1:
+        raise SystemExit('Cannot register lobby invitation activity')
+    manifest.write_text(text)
 print('Android build prepared with TTS engine visibility:', identifier)

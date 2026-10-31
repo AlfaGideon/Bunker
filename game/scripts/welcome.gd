@@ -43,6 +43,8 @@ var lobby_room: Dictionary = {}
 var lobby_player_id := ""
 var lobby_status := "Подключитесь к временному серверу"
 var lobby_actors: Array[Node3D] = []
+var invite_bridge: Object
+var invite_check_timer := 0.0
 
 func mat(color: Color, glow: bool = false) -> StandardMaterial3D:
  var material := StandardMaterial3D.new()
@@ -68,6 +70,8 @@ func _ready() -> void:
  if OS.has_feature("android"):
   DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  draft_name = profile.nickname
+ if OS.has_feature("android") and Engine.has_singleton("JavaClassWrapper"):
+  invite_bridge = Engine.get_singleton("JavaClassWrapper").wrap("org.bunker.prototype.LobbyInvite")
  lobby_client = preload("res://game/scripts/lobby_client.gd").new()
  add_child(lobby_client)
  lobby_client.event_received.connect(_lobby_event)
@@ -277,6 +281,13 @@ func update_avatar() -> void:
 
 func _process(delta: float) -> void:
  clock += delta
+ if invite_bridge != null:
+  invite_check_timer += delta
+  if invite_check_timer >= 0.5:
+   invite_check_timer = 0.0
+   var invitation := str(invite_bridge.consume())
+   if not invitation.is_empty():
+    _accept_invitation(invitation)
  if is_instance_valid(animator):
   animator.advance(minf(delta, animation_step_limit))
  if is_instance_valid(fire_light):
@@ -524,6 +535,41 @@ func _show_lobby_actors() -> void:
   lobby_actors.append(actor)
   n += 1
 
+# Accept only a 16-character hex room id and a simple secure WebSocket host.
+func _parse_invitation(value: String) -> Dictionary:
+ var pattern := RegEx.new()
+ pattern.compile("^bunkerinvite://join/([0-9a-f]{16})\\?server=(.+)$")
+ var found := pattern.search(value)
+ if found == null:
+  return {}
+ var server := found.get_string(2).uri_decode()
+ var host_pattern := RegEx.new()
+ host_pattern.compile("^wss://[A-Za-z0-9.-]+(:[0-9]{1,5})?/ws$")
+ if host_pattern.search(server) == null:
+  return {}
+ return {"room_id": found.get_string(1), "server": server}
+
+func _accept_invitation(value: String) -> void:
+ var info := _parse_invitation(value)
+ if info.is_empty():
+  _lobby_status("Неверное приглашение.")
+  return
+ if not lobby_room.is_empty():
+  _lobby_status("Сначала выйдите из текущего лобби, затем откройте приглашение снова.")
+  return
+ lobby_url = info.server
+ _lobby_connect_page("list")
+ lobby_client.connect_to(lobby_url, {"type": "join", "room_id": info.room_id, "name": draft_name.strip_edges(), "skin": profile.appearance})
+
+func _copy_lobby_invite() -> void:
+ var room_id := str(lobby_room.get("id", ""))
+ if not lobby_url.begins_with("wss://") or not lobby_url.ends_with("/ws") or room_id.length() != 16:
+  _lobby_status("Не удалось создать ссылку для этого сервера.")
+  return
+ var link := "https://" + lobby_url.trim_prefix("wss://").trim_suffix("/ws") + "/invite/" + room_id
+ DisplayServer.clipboard_set(link)
+ _lobby_status("Ссылка скопирована — отправьте её друзьям.")
+
 func lobby_create() -> void:
  _lobby_connect_page("create")
 
@@ -605,6 +651,16 @@ func _lobby_room_page() -> void:
   names.append(str(person.get("name", "Игрок")))
  label(", ".join(names), 16)
  label("Тест лобби: запуск онлайн-партии ещё не готов.", 16)
+ button("Скопировать ссылку-приглашение", _copy_lobby_invite)
+ if lobby_player_id == str(lobby_room.get("host_id", "")):
+  var add_bot := button("Добавить бота", func(): lobby_client.send({"type": "add_bot"}))
+  add_bot.disabled = count >= capacity
+  var bot_count := 0
+  for person in lobby_room.get("players", []):
+   if bool(person.get("bot", false)):
+    bot_count += 1
+  var remove_bot := button("Убрать последнего бота", func(): lobby_client.send({"type": "remove_bot"}))
+  remove_bot.disabled = bot_count == 0
  var start := button("НАЧАТЬ ИГРУ", func(): pass)
  start.disabled = true
  if lobby_player_id != str(lobby_room.get("host_id", "")):

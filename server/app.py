@@ -7,6 +7,7 @@ import secrets
 import time
 from dataclasses import dataclass, field
 from aiohttp import WSMsgType, web
+from pathlib import Path
 
 MAX_ROOMS = 100
 MAX_SOCKETS = 500
@@ -25,19 +26,26 @@ class Peer:
     room: 'Room | None' = None
 
 
+@dataclass(eq=False)
+class Bot:
+    id: str = field(default_factory=lambda: 'bot-' + secrets.token_hex(8))
+    name: str = 'Бот'
+    skin: str = 'male'
+
+
 @dataclass
 class Room:
     id: str
     host: Peer
     title: str
     capacity: int
-    members: list[Peer] = field(default_factory=list)
+    members: list[Peer | Bot] = field(default_factory=list)
     started: bool = False
 
     def public(self):
         return {'id': self.id, 'title': self.title, 'host_id': self.host.id,
                 'capacity': self.capacity, 'count': len(self.members),
-                'players': [{'id': p.id, 'name': p.name, 'skin': p.skin} for p in self.members],
+                'players': [{'id': p.id, 'name': p.name, 'skin': p.skin, 'bot': isinstance(p, Bot)} for p in self.members],
                 'started': self.started}
 
 
@@ -54,7 +62,7 @@ class Lobby:
                 pass
 
     async def broadcast(self, room, payload):
-        await asyncio.gather(*(self.send(p, payload) for p in list(room.members)))
+        await asyncio.gather(*(self.send(p, payload) for p in list(room.members) if isinstance(p, Peer)))
 
     async def update(self, room):
         await self.broadcast(room, {'type': 'room', 'room': room.public()})
@@ -71,7 +79,7 @@ class Lobby:
             room.members.remove(peer)
         if room.host is peer:
             self.rooms.pop(room.id, None)
-            remaining = list(room.members)
+            remaining = [p for p in room.members if isinstance(p, Peer)]
             room.members.clear()
             for player in remaining:
                 player.room = None
@@ -121,6 +129,25 @@ class Lobby:
             room.members.append(peer)
             await self.send(peer, {'type': 'joined', 'player_id': peer.id, 'room': room.public()})
             return await self.update(room)
+        if action in ('add_bot', 'remove_bot'):
+            room = peer.room
+            if room is None or room.host is not peer:
+                return await self.error(peer, 'host_only')
+            if room.started:
+                return await self.error(peer, 'already_started')
+            if action == 'add_bot':
+                if len(room.members) >= room.capacity:
+                    return await self.error(peer, 'room_full')
+                used = {p.name for p in room.members}
+                index = next(i for i in range(1, 100) if f'Бот {i}' not in used)
+                skins = ('male', 'female', 'male_young', 'female_young', 'male_senior', 'female_senior')
+                room.members.append(Bot(name=f'Бот {index}', skin=skins[(index - 1) % len(skins)]))
+            else:
+                bots = [p for p in room.members if isinstance(p, Bot)]
+                if not bots:
+                    return await self.error(peer, 'no_bots')
+                room.members.remove(bots[-1])
+            return await self.update(room)
         if action == 'start':
             room = peer.room
             if room is None or room.host is not peer:
@@ -141,6 +168,16 @@ LOBBY_KEY = web.AppKey('lobby', Lobby)
 
 async def health(request):
     return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False})
+
+
+async def invite_page(request):
+    room_id = request.match_info['room_id']
+    if not ROOM_ID.fullmatch(room_id):
+        raise web.HTTPNotFound()
+    page = Path(__file__).with_name('invite.html').read_text(encoding='utf-8')
+    return web.Response(text=page, content_type='text/html', headers={
+        'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"})
 
 
 async def websocket(request):
@@ -181,6 +218,7 @@ def create_app():
     app = web.Application(client_max_size=MAX_MESSAGE)
     app[LOBBY_KEY] = Lobby()
     app.router.add_get('/healthz', health)
+    app.router.add_get('/invite/{room_id}', invite_page)
     app.router.add_get('/ws', websocket)
     return app
 

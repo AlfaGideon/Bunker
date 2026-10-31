@@ -2,3 +2,5 @@
 !server/
 !server/app.py
 !server/requirements.txt
+
+!server/invite.html

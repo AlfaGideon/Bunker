@@ -2,13 +2,15 @@ name: Publish signed Android update
 on:
   workflow_dispatch:
   push:
-    branches: [arena/a25f55da-bunker, arena/1e6def97-bunker]
+    branches: [arena/a25f55da-bunker, arena/1e6def97-bunker, arena/0afa9ec8-bunker]
     paths:
       - 'game/**'
       - 'data/**'
       - 'assets/**'
       - 'project.godot'
       - 'export_presets.cfg'
+      - 'android_src/**'
+      - 'tools/prepare_android_build.py'
       - '.github/workflows/android-release.yml'
 permissions:
   contents: write
@@ -88,6 +90,9 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "builds/bunker-$VERSION_CODE.apk" > /tmp/apk-badging.txt
           grep "^package: name='org.bunker.prototype' versionCode='$VERSION_CODE'" /tmp/apk-badging.txt
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree "builds/bunker-$VERSION_CODE.apk" AndroidManifest.xml | grep 'android.intent.action.TTS_SERVICE'
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree "builds/bunker-$VERSION_CODE.apk" AndroidManifest.xml > /tmp/invite-manifest.txt
+          grep -i -E 'intent-filter|scheme|bunkerinvite|android.intent.action.VIEW' /tmp/invite-manifest.txt | python3 -c 'import sys; print("::notice::" + sys.stdin.read().replace("%", "%25").replace("\n", "%0A"))'
+          grep 'bunkerinvite' /tmp/invite-manifest.txt
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump permissions "builds/bunker-$VERSION_CODE.apk" | grep 'android.permission.REQUEST_INSTALL_PACKAGES' 
           cd builds
           cp "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk"
