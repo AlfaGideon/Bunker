@@ -122,6 +122,7 @@ func _ready() -> void:
 	audio = BunkerAudio.new()
 	add_child(audio)
 	audio.setup(self, layout["items"]["radio"]["at"])
+	audio.radio_message.connect(_on_radio_message)
 	_build_ui()
 	original_camera = camera.transform
 	apply_settings()
@@ -348,7 +349,7 @@ func _build_ui() -> void:
 	shell.add_child(status_label)
 	_button("Следующий этап →", _advance, shell)
 	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 15)
-	log_label.max_lines_visible = 2
+	log_label.max_lines_visible = 4
 	shell.add_child(log_label)
 	var hint := _label("Касание — идти; свайп — камера; два пальца — масштаб.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
 	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
@@ -818,6 +819,12 @@ func _narrate_intro() -> void:
 			menu.briefing(false)
 
 
+func _on_radio_message(text: String, status: String) -> void:
+	log_label.text = text
+	if not status.is_empty() and status != "Сообщение озвучивается.":
+		log_label.text += "\n" + status
+
+
 func _active_doctor() -> bool:
 	for id in active:
 		if Professions.profession(players[id]) == "Врач":
@@ -923,7 +930,8 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 				_update_medical_access()
 		"radio":
 			audio.toggle_radio()
-			log_label.text = "Радио: аварийная частота, авторская инструментальная петля." if audio.radio_on else "Радио выключено."
+			if not audio.radio_on:
+				log_label.text = "Радио выключено."
 		"bed", "bed2":
 			if used_actions.get("rest", 0) == round_number:
 				log_label.text = "В этом раунде вы уже отдыхали."
