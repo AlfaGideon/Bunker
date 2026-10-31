@@ -1,0 +1,80 @@
+import time
+import unittest
+from aiohttp.test_utils import TestClient, TestServer
+from app import create_app, LOBBY_KEY
+
+
+class ProtocolTest(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.app = create_app()
+        self.client = TestClient(TestServer(self.app))
+        await self.client.start_server()
+        self.headers = []
+
+    async def asyncTearDown(self):
+        await self.client.close()
+
+    async def open(self):
+        response = await self.client.post('/transport/open', json={})
+        h = {'X-Lobby-Session': (await response.json())['session']}
+        self.headers.append(h)
+        return h
+
+    async def send(self, h, message):
+        response = await self.client.post('/transport/send', headers=h, json=message)
+        self.assertEqual(response.status, 200)
+        return (await response.json())['events']
+
+    async def poll(self, h):
+        return (await (await self.client.post('/transport/poll', headers=h, json={})).json())['events']
+
+    async def test_six_clients_privacy_commands_and_disconnect(self):
+        headers = [await self.open() for _ in range(6)]
+        events = await self.send(headers[0], {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
+        joined = next(e for e in events if e['type'] == 'joined')
+        room_id = joined['room']['id']
+        ids = [joined['player_id']]
+        for index, h in enumerate(headers[1:]):
+            events = await self.send(h, {'type': 'join', 'room_id': room_id, 'name': f'Player {index}'})
+            ids.append(next(e['player_id'] for e in events if e['type'] == 'joined'))
+        self.assertEqual((await self.send(headers[1], {'type': 'online_start'}))[-1]['code'], 'host_only')
+        events = await self.send(headers[0], {'type': 'online_start'})
+        host = next(e['state'] for e in events if e['type'] == 'game_state')
+        views = [host]
+        for h in headers[1:]:
+            events = await self.poll(h)
+            self.assertTrue(any(e['type'] == 'online_game_start' for e in events))
+            views.append(next(e['state'] for e in events if e['type'] == 'game_state'))
+        self.assertEqual({view['seed'] for view in views}, {host['seed']})
+        self.assertEqual({view['speaker'] for view in views}, {ids[0]})
+        hidden = next(c for c in host['players'][0]['cards'] if not c['revealed'])
+        self.assertIn('value', hidden)
+        self.assertNotIn('value', next(c for c in views[1]['players'][0]['cards'] if c['id'] == hidden['id']))
+        error = await self.send(headers[1], {'type': 'game_action', 'action': 'pass'})
+        self.assertEqual(error[-1]['code'], 'not_your_turn')
+        await self.send(headers[0], {'type': 'game_action', 'action': 'reveal', 'value': hidden['id']})
+        state = next(e['state'] for e in await self.poll(headers[1]) if e['type'] == 'game_state')
+        public_card = next(c for c in state['players'][0]['cards'] if c['id'] == hidden['id'])
+        self.assertEqual(public_card['value'], hidden['value'])
+        await self.send(headers[0], {'type': 'game_action', 'action': 'pass'})
+        state = next(e['state'] for e in await self.poll(headers[1]) if e['type'] == 'game_state')
+        self.assertEqual(state['speaker'], ids[1])
+        # Timer expiry is authoritative and observed by every client.
+        game = self.app[LOBBY_KEY].rooms[room_id].game
+        game.deadline = time.monotonic() - 1
+        await self.send(headers[2], {'type': 'game_sync'})
+        states = [e['state'] for e in await self.poll(headers[0]) if e['type'] == 'game_state']
+        self.assertEqual(states[-1]['speaker'], ids[2])
+        await self.client.post('/transport/close', headers=headers[1], json={})
+        events = await self.poll(headers[0])
+        self.assertEqual(next(e for e in events if e['type'] == 'room_closed')['reason'], 'player_disconnected')
+        self.assertNotIn(room_id, self.app[LOBBY_KEY].rooms)
+
+    async def test_online_bots_not_implemented(self):
+        h = await self.open()
+        await self.send(h, {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
+        for _ in range(5):
+            await self.send(h, {'type': 'add_bot'})
+        events = await self.send(h, {'type': 'online_start'})
+        self.assertEqual(events[-1]['code'], 'online_bots_not_ready')
+        self.assertFalse(next(iter(self.app[LOBBY_KEY].rooms.values())).started)

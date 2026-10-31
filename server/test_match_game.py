@@ -1,0 +1,106 @@
+import random
+import unittest
+from types import SimpleNamespace
+
+from match_game import Match, GameError
+
+
+class MatchTest(unittest.TestCase):
+    def setUp(self):
+        members = [SimpleNamespace(id=str(i), name=f'Player {i}', skin='male') for i in range(6)]
+        self.game = Match(members, now=100, rng=random.Random(3))
+
+    def test_private_cards_and_biology(self):
+        own = self.game.snapshot('0', 100)['players'][0]
+        other = self.game.snapshot('1', 100)['players'][0]
+        self.assertEqual(sum(c['revealed'] for c in own['cards']), 2)
+        for own_card, public_card in zip(own['cards'], other['cards']):
+            self.assertIn('value', own_card)
+            if not own_card['revealed']:
+                self.assertNotIn('value', public_card)
+                self.assertNotIn('cost', public_card)
+        biology = next(c for c in other['cards'] if c['id'] == 'biology')
+        self.assertEqual('sex' in other, biology['revealed'])
+        self.assertEqual('age' in other, biology['revealed'])
+
+    def test_turn_permissions_and_timer(self):
+        g = self.game
+        card = next(c for c in g.players[0]['cards'] if not c['revealed'])
+        with self.assertRaisesRegex(GameError, 'not_your_reveal'):
+            g.command('1', 'reveal', card['id'], 120)
+        g.command('0', 'reveal', card['id'], 120)
+        self.assertEqual(g.deadline, 160)
+        self.assertEqual(g.snapshot('1', 120)['players'][0]['cards'][g.players[0]['cards'].index(card)]['value'], card['value'])
+        with self.assertRaisesRegex(GameError, 'not_your_reveal'):
+            g.command('0', 'reveal', card['id'], 121)
+        with self.assertRaisesRegex(GameError, 'not_your_turn'):
+            g.command('1', 'pass', now=121)
+        g.command('0', 'pass', now=125)
+        self.assertEqual(g.speaker, '1')
+        self.assertEqual(g.deadline, 185)
+        self.assertTrue(g.tick(185))
+        self.assertEqual(g.speaker, '2')
+
+    def test_full_game_timeouts_and_self_vote_runoff(self):
+        g = self.game
+        # Every absent vote is a self vote, including the runoff.
+        g.tick(100 + 6 * 60)
+        self.assertEqual(g.phase, 'discussion')
+        g.tick(100 + 6 * 60 + 60)
+        self.assertEqual(g.phase, 'vote')
+        g.tick(100 + 6 * 60 + 60 + 20)
+        self.assertTrue(g.second_ballot)
+        self.assertEqual(g.last_result['status'], 'runoff')
+        g.tick(100 + 6 * 60 + 60 + 40)
+        self.assertEqual(g.phase, 'result')
+        self.assertEqual(len(g.active), 5)
+        self.assertTrue(g.last_result['random'])
+        self.assertTrue(all(k == v for k, v in g.last_result['votes'].items()))
+        g.tick(10000)
+        self.assertEqual(g.phase, 'end')
+        self.assertEqual(len(g.active), 3)
+
+    def test_sizes_and_scenario_are_shared_without_disclosing_cards(self):
+        for size in (6, 8, 10):
+            players = [SimpleNamespace(id=str(i), name=f'P{i}', skin='female') for i in range(size)]
+            game = Match(players, now=0, rng=random.Random(size))
+            self.assertEqual(len(game.players), size)
+            self.assertEqual(len({p['cards'][0]['value'] for p in game.players}), size)
+            self.assertEqual(game.snapshot('0', 0)['scenario'], game.snapshot('1', 0)['scenario'])
+            self.assertIn('weather', game.scenario)
+            self.assertEqual(game.capacity, size // 2)
+
+    def test_runoff_restricts_choices_but_allows_self_vote(self):
+        game = self.game
+        game.tick(520)
+        for voter in ('0', '1', '2'):
+            game.command(voter, 'vote', '0', 521)
+        for voter in ('3', '4', '5'):
+            game.command(voter, 'vote', '1', 521)
+        game.tick(540)
+        self.assertEqual(game.candidates, ['0', '1'])
+        with self.assertRaisesRegex(GameError, 'invalid_vote'):
+            game.command('4', 'vote', '3', 541)
+        game.command('4', 'vote', '4', 541)
+        self.assertEqual(game.votes['4'], '4')
+        game.command('2', 'vote', '1', 541)
+        game.command('2', 'vote', '0', 542)
+        self.assertEqual(game.votes['2'], '0')
+
+    def test_vote_validation_and_majority(self):
+        g = self.game
+        g.tick(520)
+        self.assertEqual(g.phase, 'vote')
+        for player in g.active[:4]:
+            g.command(player, 'vote', '5', 521)
+        with self.assertRaisesRegex(GameError, 'invalid_vote'):
+            g.command('4', 'vote', 'not-a-player', 521)
+        g.tick(540)
+        self.assertEqual(g.last_result['player'], '5')
+        self.assertFalse(g.last_result['random'])
+        with self.assertRaisesRegex(GameError, 'not_active'):
+            g.command('5', 'vote', '0', 541)
+
+
+if __name__ == '__main__':
+    unittest.main()
