@@ -254,3 +254,4 @@ jobs:
           trap 'kill $pid' EXIT
           sleep 2
           GODOT_TIMEOUT=180 bash tools/check_godot.sh --headless --path . --script tools/check_live_online.gd
+          GODOT_TIMEOUT=180 bash tools/check_godot.sh --headless --path . --script tools/check_live_entry.gd

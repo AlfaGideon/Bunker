@@ -720,7 +720,7 @@ func _lobby_room_page() -> void:
  for person in lobby_room.get("players", []):
   names.append(str(person.get("name", "Игрок")))
  label(", ".join(names), 16)
- label("Общие речи и голосование через сервер. Боты действуют случайно; голосового чата нет.", 16)
+ label("Речи и голосование общие. Движение локальное, помещения отключены. Боты случайны; голосового чата нет.", 16)
  button("Скопировать ссылку-приглашение", _copy_lobby_invite)
  if lobby_player_id == str(lobby_room.get("host_id", "")):
   var add_bot := button("Добавить бота", func(): lobby_client.send({"type": "add_bot"}))
