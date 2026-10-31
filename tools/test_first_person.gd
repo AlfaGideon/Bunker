@@ -12,9 +12,9 @@ func run() -> void:
  room.set_physics_process(false)
  for frame in 5: await process_frame
  room.menu.visible = false
- var old_camera: Camera3D = room.camera
+ check(room.first_person and room.camera == room.first_camera, "First-person is default")
+ var old_camera: Camera3D = room.top_camera
  var old_position: Vector3 = room.actors[0].position
- room.toggle_first_person()
  check(room.first_person and room.camera == room.first_camera, "First-person camera is selected")
  check(room.find_children("*", "Control", true, false).all(func(n): return not n.get_script() or not str(n.get_script().resource_path).ends_with("virtual_joystick.gd")), "No visible virtual joysticks")
  check(not room.actors[0].get_child(0).visible, "Own model does not obscure the view")

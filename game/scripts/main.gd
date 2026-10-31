@@ -132,6 +132,12 @@ func _ready() -> void:
 	profile.save()
 	navigation = Navigation.new(layout)
 	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance, profile.custom_parameters)
+	if get_tree().has_meta("bot_test_roster"):
+		var roster: Array = get_tree().get_meta("bot_test_roster")
+		get_tree().remove_meta("bot_test_roster")
+		for i in range(1, mini(players.size(), roster.size())):
+			players[i]["name"] = str(roster[i].get("name", "Бот %d" % i))
+			players[i]["appearance"] = str(roster[i].get("skin", "male"))
 	active.assign(range(players.size()))
 	capacity = players.size() / 2
 	meals = capacity
@@ -148,6 +154,7 @@ func _ready() -> void:
 	if is_instance_valid(table_card):
 		table_card.show_for(selected, false, false)
 	_refresh()
+	toggle_first_person()
 	get_viewport().size_changed.connect(_frame_camera)
 	if get_tree().has_meta("start_game"):
 		get_tree().remove_meta("start_game")

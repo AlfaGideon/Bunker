@@ -112,6 +112,40 @@ class LobbyTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.expect(guest, 'room_closed'))['reason'], 'host_left')
         self.assertEqual((await self.client.post('/transport/poll', headers=headers, json={})).status, 401)
 
+    async def test_start_bot_test_only_for_host_with_bots(self):
+        host = await self.connect()
+        await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
+        room = (await self.expect(host, 'joined'))['room']
+        await host.send_json({'type': 'start_bot_test'})
+        self.assertEqual((await self.expect(host, 'error'))['code'], 'not_enough_players')
+        for _ in range(5):
+            await host.send_json({'type': 'add_bot'})
+        while (await self.expect(host, 'room'))['room']['count'] < 6:
+            pass
+        await host.send_json({'type': 'start_bot_test'})
+        event = await self.expect(host, 'bot_test_start')
+        self.assertEqual(len(event['room']['players']), 6)
+        self.assertTrue(all(p['bot'] for p in event['room']['players'][1:]))
+        response = await self.client.get('/invite-background.jpg')
+        self.assertEqual(response.status, 200)
+        self.assertGreater(len(await response.read()), 10000)
+
+    async def test_bot_test_rejects_other_humans(self):
+        host = await self.connect()
+        guest = await self.connect()
+        await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
+        room = (await self.expect(host, 'joined'))['room']
+        await guest.send_json({'type': 'join', 'room_id': room['id'], 'name': 'Guest'})
+        await self.expect(guest, 'joined')
+        for _ in range(4):
+            await host.send_json({'type': 'add_bot'})
+        while (await self.expect(host, 'room'))['room']['count'] < 6:
+            pass
+        await guest.send_json({'type': 'start_bot_test'})
+        self.assertEqual((await self.expect(guest, 'error'))['code'], 'host_only')
+        await host.send_json({'type': 'start_bot_test'})
+        self.assertEqual((await self.expect(host, 'error'))['code'], 'online_game_not_ready')
+
     async def test_list_leave_validation(self):
         host = await self.connect()
         await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 7})

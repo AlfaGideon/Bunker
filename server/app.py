@@ -7,7 +7,7 @@ import secrets
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from aiohttp import WSMsgType, web
+from aiohttp import WSMsgType, web, ClientSession, ClientTimeout, ClientError
 from pathlib import Path
 
 MAX_ROOMS = 100
@@ -150,6 +150,19 @@ class Lobby:
                     return await self.error(peer, 'no_bots')
                 room.members.remove(bots[-1])
             return await self.update(room)
+        if action == 'start_bot_test':
+            room = peer.room
+            if room is None or room.host is not peer:
+                return await self.error(peer, 'host_only')
+            if room.started:
+                return await self.error(peer, 'already_started')
+            if len(room.members) < room.capacity:
+                return await self.error(peer, 'not_enough_players')
+            if any(p is not peer and not isinstance(p, Bot) for p in room.members):
+                return await self.error(peer, 'online_game_not_ready')
+            room.started = True
+            await self.send(peer, {'type': 'bot_test_start', 'room': room.public()})
+            return
         if action == 'start':
             room = peer.room
             if room is None or room.host is not peer:
@@ -266,7 +279,46 @@ async def invite_page(request):
     page = Path(__file__).with_name('invite.html').read_text(encoding='utf-8')
     return web.Response(text=page, content_type='text/html', headers={
         'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
-        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"})
+        'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"})
+
+
+async def invite_background(request):
+    return web.FileResponse(Path(__file__).with_name('invite-bg.jpg'))
+
+
+async def download_apk(request):
+    # Stream the signed latest APK through this site, never buffer it in RAM.
+    # Restrict both release tag and first download URL to our repository.
+    base = 'https://github.com/AlfaGideon/Bunker/releases'
+    timeout = ClientTimeout(total=600, connect=30, sock_read=60)
+    try:
+        async with ClientSession(timeout=timeout, headers={'User-Agent': 'Bunker-Invite/1.0'}) as client:
+            async with client.get(base + '/latest', allow_redirects=False) as latest:
+                location = latest.headers.get('Location', '')
+                match = re.fullmatch(r'https://github\.com/AlfaGideon/Bunker/releases/tag/android-([0-9]+)', location)
+                if latest.status not in (301, 302) or not match:
+                    raise web.HTTPServiceUnavailable(text='Обновление пока недоступно')
+                version = match.group(1)
+            url = base + '/download/android-' + version + '/bunker-' + version + '.apk'
+            async with client.get(url, allow_redirects=True) as upstream:
+                if upstream.status != 200:
+                    raise web.HTTPServiceUnavailable(text='APK пока недоступен')
+                size = upstream.content_length
+                if size is not None and (size <= 0 or size > 200 * 1024 * 1024):
+                    raise web.HTTPBadGateway(text='Неверный размер APK')
+                headers = {'Content-Type': 'application/vnd.android.package-archive',
+                           'Content-Disposition': 'attachment; filename="bunker-' + version + '.apk"',
+                           'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'}
+                if size is not None:
+                    headers['Content-Length'] = str(size)
+                response = web.StreamResponse(status=200, headers=headers)
+                await response.prepare(request)
+                async for chunk in upstream.content.iter_chunked(65536):
+                    await response.write(chunk)
+                await response.write_eof()
+                return response
+    except (ClientError, asyncio.TimeoutError) as exc:
+        raise web.HTTPServiceUnavailable(text='Не удалось загрузить APK, попробуйте позже') from exc
 
 
 async def websocket(request):
@@ -312,6 +364,8 @@ def create_app():
     app.router.add_post('/transport/poll', http_message)
     app.router.add_post('/transport/close', http_message)
     app.router.add_get('/healthz', health)
+    app.router.add_get('/invite-background.jpg', invite_background)
+    app.router.add_get('/download', download_apk)
     app.router.add_get('/invite/{room_id}', invite_page)
     app.router.add_get('/ws', websocket)
     return app
