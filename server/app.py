@@ -325,7 +325,7 @@ LOBBY_KEY = web.AppKey('lobby', Lobby)
 
 
 async def health(request):
-    return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False})
+    return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False, 'online_turns': True})
 
 
 async def invite_page(request):
