@@ -1,0 +1,30 @@
+name: APK size audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download published APKs and inspect archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/apk29 /tmp/apk30
+          gh release download android-29 --repo "$GITHUB_REPOSITORY" --pattern 'bunker-29.apk' --dir /tmp/apk29
+          gh release download android-30 --repo "$GITHUB_REPOSITORY" --pattern 'bunker-30.apk' --dir /tmp/apk30
+          python3 - <<'PY'
+          import zipfile, collections
+          for n in (29, 30):
+              path=f'/tmp/apk{n}/bunker-{n}.apk'
+              z=zipfile.ZipFile(path)
+              files=sorted(z.infolist(),key=lambda f:f.compress_size,reverse=True)
+              print(f'\nAPK {n}')
+              for f in files[:45]:
+                  print(f'{f.compress_size:>12} packed {f.file_size:>12} bytes: {f.filename}')
+              groups=collections.defaultdict(int)
+              for f in files:
+                  groups[f.filename.split('/')[0]]+=f.compress_size
+              print('GROUPS:', dict(groups))
+          PY
