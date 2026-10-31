@@ -1,0 +1,65 @@
+name: Signed lobby test APK
+on:
+  push:
+    branches: [arena/c496888b-bunker]
+    paths: ['.github/workflows/lobby-test-apk.yml']
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: true
+      - name: Configure existing release signing
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+          BUNKER_KEYSTORE_BASE64: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
+          BUNKER_KEYSTORE_PASSWORD: ${{ secrets.BUNKER_KEYSTORE_PASSWORD }}
+          BUNKER_KEY_ALIAS: ${{ secrets.BUNKER_KEY_ALIAS }}
+          BUNKER_RELEASE: '1'
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;35.0.1" "platforms;android-35"
+          mkdir -p builds
+          python3 tools/configure_android_signing.py
+      - name: Import and test lobby
+        run: |
+          bash tools/check_godot.sh --headless --editor --path . --quit
+          bash tools/check_godot.sh --headless --path . --script tools/test_lobby_ui.gd
+          python3 tools/test_release_config.py
+          python3 tools/prepare_android_build.py
+      - name: Build signed APK
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --export-release Android builds/bunker-lobby-test-35.apk > /tmp/export.log 2>&1 || { echo '::error::Android export failed'; exit 1; }
+          python3 tools/test_apk_packaging.py builds/bunker-lobby-test-35.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs builds/bunker-lobby-test-35.apk
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging builds/bunker-lobby-test-35.apk | grep "^package: name='org.bunker.prototype' versionCode='35'"
+      - name: Verify signer matches previous public version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/previous-bunker
+          gh release download android-34 --pattern bunker-34.apk --dir /tmp/previous-bunker
+          signer="$ANDROID_HOME/build-tools/35.0.1/apksigner"
+          old=$($signer verify --print-certs /tmp/previous-bunker/bunker-34.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          new=$($signer verify --print-certs builds/bunker-lobby-test-35.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          test -n "$old" && test "$old" = "$new"
+      - name: Publish test-only prerelease (not latest)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create android-35-lobby builds/bunker-lobby-test-35.apk --prerelease --target "$GITHUB_SHA" --title 'Бункер — тест лобби 0.35' --notes 'Экспериментальная сборка: создание и поиск лобби; онлайн-партия и кнопка начала игры не реализованы. Ссылка на сервер временная и её можно изменить. Локальная партия сохранена.'
+      - name: Remove private runner files
+        if: always()
+        run: rm -f "$HOME/.android/bunker.keystore" "$HOME/.config/godot/editor_settings-4.5.tres" /tmp/export.log
