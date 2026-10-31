@@ -23,11 +23,11 @@ jobs:
               path=f'/tmp/apk{n}/bunker-{n}.apk'
               z=zipfile.ZipFile(path)
               files=sorted(z.infolist(),key=lambda f:f.compress_size,reverse=True)
-              print(f'\nAPK {n}')
+              print(f'::notice::APK {n}')
               for f in files[:45]:
-                  print(f'{f.compress_size:>12} packed {f.file_size:>12} bytes: {f.filename}')
+                  print(f'::notice::APK {n}: {f.compress_size} packed {f.file_size} bytes: {f.filename}')
               groups=collections.defaultdict(int)
               for f in files:
                   groups[f.filename.split('/')[0]]+=f.compress_size
-              print('GROUPS:', dict(groups))
+              print(f'::notice::APK {n} GROUPS: {dict(groups)}')
           PY
