@@ -93,8 +93,7 @@ var first_person := false
 var view_yaw := 0.0
 var view_pitch := 0.0
 var first_previous_position := Vector3.ZERO
-var move_stick: Control
-var look_stick: Control
+var fp_gestures := preload("res://game/scripts/first_person_gestures.gd").new()
 var view_button: Button
 var status_label: Label
 var log_label: Label
@@ -342,24 +341,6 @@ func _build_ui() -> void:
 	view_button.offset_right = 125
 	view_button.offset_top = 12
 	view_button.offset_bottom = 62
-	move_stick = preload("res://game/scripts/virtual_joystick.gd").new()
-	move_stick.caption = "ДВИЖЕНИЕ"
-	root.add_child(move_stick)
-	move_stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	move_stick.offset_left = 380
-	move_stick.offset_right = 530
-	move_stick.offset_top = -160
-	move_stick.offset_bottom = -10
-	move_stick.visible = false
-	look_stick = preload("res://game/scripts/virtual_joystick.gd").new()
-	look_stick.caption = "ОБЗОР"
-	root.add_child(look_stick)
-	look_stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	look_stick.offset_left = -510
-	look_stick.offset_right = -360
-	look_stick.offset_top = -160
-	look_stick.offset_bottom = -10
-	look_stick.visible = false
 	var header := VBoxContainer.new()
 	header.position = Vector2(24, 18)
 	header.size = Vector2(590, 120)
@@ -709,8 +690,10 @@ func _unhandled_input(event: InputEvent) -> void:
 					character_card.set_side(not character_card.showing_back)
 			get_viewport().set_input_as_handled()
 		camera_gestures.reset()
+		fp_gestures.reset()
 		return
 	if is_instance_valid(vote_panel) and vote_panel.visible:
+		fp_gestures.reset()
 		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if survival_panel.visible:
@@ -722,6 +705,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible):
 		camera_gestures.reset()
+		fp_gestures.reset()
+		return
+	if is_instance_valid(radio_panel) and radio_panel.visible:
+		fp_gestures.reset()
 		return
 	# Native ScreenTouch may reach unhandled input before its emulated mouse
 	# event is consumed by a button. Explicitly exclude visible HUD rectangles.
@@ -737,6 +724,13 @@ func _input(event: InputEvent) -> void:
 		return
 	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible):
 		camera_gestures.reset()
+		fp_gestures.reset()
+		return
+	if is_instance_valid(radio_panel) and radio_panel.visible:
+		fp_gestures.reset()
+		return
+	if first_person and fp_gestures.ongoing(event):
+		_apply_camera_event(event)
 		return
 	# Starts reach us only after GUI handling; continuations remain captured
 	# even when a dragging finger moves over a panel.
@@ -746,11 +740,16 @@ func _input(event: InputEvent) -> void:
 
 func _apply_camera_event(event: InputEvent) -> void:
 	if first_person:
-		# A short tap still selects a survivor or interacts with an item.
-		if event is InputEventScreenTouch and not event.pressed:
-			_tap_world(event.position)
-		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_tap_world(event.position)
+		var gesture: Dictionary = fp_gestures.handle(event, get_viewport().get_visible_rect().size)
+		if gesture["handled"]:
+			get_viewport().set_input_as_handled()
+		if gesture.has("look"):
+			var delta: Vector2 = gesture["look"]
+			view_yaw -= delta.x
+			view_pitch = clampf(view_pitch - delta.y, -1.05, 1.05)
+			_update_first_camera()
+		if gesture.has("tap"):
+			_tap_world(gesture["tap"])
 		return
 	var result: Dictionary = camera_gestures.handle(event)
 	if result["handled"]:
@@ -802,10 +801,7 @@ func toggle_first_person() -> void:
 	route_index = 0
 	pending_inspection = ""
 	marker.visible = false
-	move_stick.reset()
-	look_stick.reset()
-	move_stick.visible = first_person
-	look_stick.visible = first_person
+	fp_gestures.reset()
 	actors[0].get_child(0).visible = not first_person
 	actors[0].get_child(1).visible = not first_person
 	for ceiling in get_children():
@@ -830,10 +826,13 @@ func _update_first_camera() -> void:
 
 func _tick_first_person(delta: float) -> void:
 	first_previous_position = actors[0].position
-	view_yaw -= look_stick.value.x * delta * 2.2
-	view_pitch = clampf(view_pitch - look_stick.value.y * delta * 1.6, -1.05, 1.05)
 	if active.has(0) and rest_remaining <= 0:
-		var input: Vector2 = move_stick.value
+		var input: Vector2 = fp_gestures.movement
+		if input.length_squared() > 0.0:
+			route.clear()
+			route_index = 0
+			pending_inspection = ""
+			marker.visible = false
 		var forward := Vector3(-sin(view_yaw), 0, -cos(view_yaw))
 		var right := Vector3(cos(view_yaw), 0, -sin(view_yaw))
 		var displacement := (right * input.x - forward * input.y) * delta * 1.6
@@ -862,9 +861,8 @@ func _set_route(destination: Vector3) -> void:
 
 func _physics_process(delta: float) -> void:
 	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible) or (is_instance_valid(radio_panel) and radio_panel.visible):
-		if first_person and is_instance_valid(move_stick):
-			move_stick.reset()
-			look_stick.reset()
+		if first_person:
+			fp_gestures.reset()
 		return
 	if first_person:
 		_tick_first_person(delta)
@@ -939,6 +937,7 @@ func _physics_process(delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and camera_gestures != null:
 		camera_gestures.reset()
+		fp_gestures.reset()
 		if is_instance_valid(audio) and is_instance_valid(audio.internet):
 			audio.internet.stop()
 	if what == NOTIFICATION_APPLICATION_FOCUS_IN and is_instance_valid(audio) and radio != null and radio.kind() == "internet":
