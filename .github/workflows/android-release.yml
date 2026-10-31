@@ -83,6 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           godot --headless --editor --path . --export-release Android "builds/bunker-$VERSION_CODE.apk" > /tmp/release-export.log 2>&1 || { echo '::error::Release export failed; inspect runner log without sharing secrets.'; exit 1; }
+          python3 tools/test_apk_packaging.py "builds/bunker-$VERSION_CODE.apk"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "builds/bunker-$VERSION_CODE.apk"
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "builds/bunker-$VERSION_CODE.apk" > /tmp/apk-badging.txt
           grep "^package: name='org.bunker.prototype' versionCode='$VERSION_CODE'" /tmp/apk-badging.txt
