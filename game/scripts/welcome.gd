@@ -37,6 +37,12 @@ var radio_music: AudioStreamPlayer
 var radio_track := 0
 var radio_hotspot: Button
 var radio_caption: Label
+var lobby_client: Node
+var lobby_url := "wss://bunker-3jfgfu2i.back4.app/ws"
+var lobby_room: Dictionary = {}
+var lobby_player_id := ""
+var lobby_status := "Подключитесь к временному серверу"
+var lobby_actors: Array[Node3D] = []
 
 func mat(color: Color, glow: bool = false) -> StandardMaterial3D:
  var material := StandardMaterial3D.new()
@@ -62,6 +68,10 @@ func _ready() -> void:
  if OS.has_feature("android"):
   DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  draft_name = profile.nickname
+ lobby_client = preload("res://game/scripts/lobby_client.gd").new()
+ add_child(lobby_client)
+ lobby_client.event_received.connect(_lobby_event)
+ lobby_client.status_changed.connect(_lobby_status)
  build_camp()
  build_radio()
  build_ui()
@@ -455,6 +465,10 @@ func card(title: String, description: String, action: Callable, target: Containe
  return node
 
 func home() -> void:
+ if page.begins_with("lobby"):
+  lobby_client.disconnect_server()
+  lobby_room.clear()
+  _clear_lobby_actors()
  page = "home"
  clear()
  if column is Deck:
@@ -472,6 +486,8 @@ func home() -> void:
  grid.add_theme_constant_override("h_separation", 12)
  grid.add_theme_constant_override("v_separation", 8)
  column.add_child(grid)
+ card("СОЗДАТЬ ЛОББИ", "Проверка сетевой комнаты", lobby_create, grid)
+ card("ПОИСК ЛОББИ", "Открытые сетевые комнаты", lobby_find, grid)
  card("БИБЛИОТЕКА", "Профессии и параметры", open_library, grid)
  card("ПЕРСОНАЖ", draft_name + " • внешность и профиль", edit_profile, grid)
  card("ПАРАМЕТРЫ ПАРТИИ", "Катастрофа и состав группы", game_options, grid)
@@ -479,7 +495,124 @@ func home() -> void:
  card("ОБНОВЛЕНИЯ", "Проверить новую версию", func(): preload("res://game/scripts/app_updates.gd").show_updates(self), grid)
  card("КАК ИГРАТЬ", "Правила и управление", instructions, grid)
  card("ВЫХОД", "Завершить приложение", func(): get_tree().quit(), grid)
- error_label = label("Локальная партия • " + preload("res://game/scripts/app_updates.gd").VERSION_NAME + " • без сетевого поиска", 15)
+ error_label = label("Локальная партия • " + preload("res://game/scripts/app_updates.gd").VERSION_NAME + " • сетевое лобби в разработке", 15)
+
+func _clear_lobby_actors() -> void:
+ for actor in lobby_actors:
+  if is_instance_valid(actor):
+   actor.queue_free()
+ lobby_actors.clear()
+
+func _show_lobby_actors() -> void:
+ _clear_lobby_actors()
+ var others: Array = lobby_room.get("players", [])
+ var n := 0
+ for person in others:
+  if str(person.get("id", "")) == lobby_player_id:
+   continue
+  var appearance := str(person.get("skin", "male"))
+  var angle := -1.2 + float(n) * 0.45
+  var position := Vector3(cos(angle) * 2.2, 0, 1.0 + sin(angle) * 2.2)
+  var actor: Node3D = Art.spawn(self, Catalog.model(appearance, n), position, Vector3(1, 1.8, 1), true)
+  actor.look_at(Vector3(0, 0, 1), Vector3.UP)
+  var name_tag := Label3D.new()
+  name_tag.text = str(person.get("name", "Игрок"))
+  name_tag.position = Vector3(0, 1.9, 0)
+  name_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+  name_tag.font_size = 36
+  actor.add_child(name_tag)
+  lobby_actors.append(actor)
+  n += 1
+
+func lobby_create() -> void:
+ _lobby_connect_page("create")
+
+func lobby_find() -> void:
+ _lobby_connect_page("list")
+
+func _lobby_connect_page(mode: String) -> void:
+ page = "lobby_connect"
+ subpage()
+ label("СОЗДАТЬ ЛОББИ" if mode == "create" else "ПОИСК ЛОББИ", 26)
+ label("Тест сетевого лобби. Партия пока не синхронизирована.", 16)
+ label("Адрес сервера", 16)
+ var address := LineEdit.new()
+ address.text = lobby_url
+ address.custom_minimum_size.y = 48
+ address.text_changed.connect(func(value): lobby_url = value.strip_edges())
+ add_control(address)
+ if mode == "create":
+  label("Размер лобби: %d. Меняется в параметрах партии." % profile.player_count, 16)
+ button("Создать" if mode == "create" else "Найти", func():
+  var message := {"type": mode}
+  if mode == "create":
+   message = {"type": "create", "name": draft_name.strip_edges(), "title": "Лобби", "capacity": profile.player_count, "skin": profile.appearance}
+  lobby_client.connect_to(lobby_url, message)
+ )
+ button("Назад", home)
+ error_label = label(lobby_status, 15)
+
+func _lobby_status(value: String) -> void:
+ lobby_status = value
+ if page.begins_with("lobby") and is_instance_valid(error_label):
+  error_label.text = value
+ if value.begins_with("Соединение потеряно"):
+  lobby_room.clear()
+  _clear_lobby_actors()
+
+func _lobby_event(data: Dictionary) -> void:
+ match str(data.get("type", "")):
+  "rooms":
+   page = "lobby_list"
+   subpage()
+   label("ОТКРЫТЫЕ ЛОББИ", 26)
+   var rooms: Array = data.get("rooms", [])
+   if rooms.is_empty():
+    label("Открытых комнат пока нет.", 17)
+   for item in rooms:
+    var room: Dictionary = item
+    var room_id := str(room.get("id", ""))
+    button("%s  •  %d / %d" % [str(room.get("title", "Лобби")), int(room.get("count", 0)), int(room.get("capacity", 0))], func():
+     lobby_client.send({"type": "join", "room_id": room_id, "name": draft_name.strip_edges(), "skin": profile.appearance}))
+   button("Обновить список", func(): lobby_client.send({"type": "list"}))
+   button("Назад", home)
+   error_label = label(lobby_status, 15)
+  "joined":
+   lobby_player_id = str(data.get("player_id", ""))
+   lobby_room = data.get("room", {})
+   _lobby_room_page()
+  "room":
+   lobby_room = data.get("room", {})
+   if page == "lobby_room":
+    _lobby_room_page()
+  "room_closed":
+   lobby_room.clear()
+   _clear_lobby_actors()
+   lobby_status = "Ведущий вышел — лобби закрыто."
+   _lobby_connect_page("list")
+  "error":
+   _lobby_status("Ошибка сервера: " + str(data.get("code", "unknown")))
+
+func _lobby_room_page() -> void:
+ page = "lobby_room"
+ _show_lobby_actors()
+ subpage()
+ var count := int(lobby_room.get("count", 0))
+ var capacity := int(lobby_room.get("capacity", 0))
+ label("У КОСТРА  •  %d / %d" % [count, capacity], 25)
+ var names := PackedStringArray()
+ for person in lobby_room.get("players", []):
+  names.append(str(person.get("name", "Игрок")))
+ label(", ".join(names), 16)
+ label("Тест лобби: запуск онлайн-партии ещё не готов.", 16)
+ var start := button("НАЧАТЬ ИГРУ", func(): pass)
+ start.disabled = true
+ if lobby_player_id != str(lobby_room.get("host_id", "")):
+  label("Начать партию сможет только ведущий.", 15)
+ elif count < capacity:
+  label("Ожидаем ещё %d игроков." % (capacity - count), 15)
+ button("Выйти из лобби", home)
+ error_label = label(lobby_status, 15)
 
 func edit_profile() -> void:
  page = "profile"
