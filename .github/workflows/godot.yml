@@ -44,6 +44,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_first_person.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_online_match_state.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_online_session.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_online_scene.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_first_person_gestures.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_welcome.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_lobby_ui.gd

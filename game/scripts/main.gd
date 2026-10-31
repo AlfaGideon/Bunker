@@ -666,6 +666,8 @@ func _change_appearance(index: int, appearance: String) -> void:
 	visual.set_script(SurvivorVisual)
 	visual._collect(visual)
 	actor.move_child(visual, 0)
+	if index == 0 and first_person:
+		visual.visible = false
 	actor.set_meta("appearance", appearance)
 	players[index]["appearance"] = appearance
 	if index == 0 and rest_remaining > 0:
