@@ -1,4 +1,4 @@
-name: Live lobby smoke test
+name: Live lobby HTTPS smoke test
 on:
   push:
     paths:
