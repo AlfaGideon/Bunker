@@ -15,6 +15,7 @@ func run() -> void:
  check(invite.get("room_id", "") == "0123456789abcdef" and invite.get("server", "") == "wss://bunker.back4.app/ws", "Invite decoded")
  check(welcome._parse_invitation("bunkerinvite://join/xyz?server=wss%3A%2F%2Fx%2Fws").is_empty(), "Invalid room rejected")
  check(welcome._parse_invitation("bunkerinvite://join/0123456789abcdef?server=http%3A%2F%2Fx%2Fws").is_empty(), "Insecure server rejected")
+ check(welcome.lobby_url == "wss://bunker-154de.containers.snapdeploy.app/ws", "Default lobby uses SnapDeploy")
  welcome.lobby_create()
  check(welcome.page == "lobby_connect", "Create lobby page opens")
  welcome._lobby_event({"type": "joined", "player_id": "one", "room": {"host_id": "one", "count": 2, "capacity": 6, "players": [{"id": "one", "name": "Me"}, {"id": "two", "name": "Friend", "skin": "male"}]}})

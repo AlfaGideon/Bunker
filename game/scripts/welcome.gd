@@ -38,7 +38,7 @@ var radio_track := 0
 var radio_hotspot: Button
 var radio_caption: Label
 var lobby_client: Node
-var lobby_url := "wss://bunker-3jfgfu2i.back4.app/ws"
+var lobby_url := "wss://bunker-154de.containers.snapdeploy.app/ws"
 var lobby_room: Dictionary = {}
 var lobby_player_id := ""
 var lobby_status := "Подключитесь к временному серверу"
