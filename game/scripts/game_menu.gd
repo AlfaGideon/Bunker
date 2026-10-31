@@ -196,11 +196,11 @@ func settings() -> void:
 	volume.custom_minimum_size.y = 48
 	column.add_card(volume)
 	var narration_toggle := CheckButton.new()
-	narration_toggle.text = "Зачитывать катастрофу системным голосом"
+	narration_toggle.text = "Озвучивать катастрофу и радио"
 	narration_toggle.button_pressed = profile.narration
 	Cards.button(narration_toggle)
 	column.add_card(narration_toggle)
-	text("Для русской озвучки нужен установленный голос синтеза речи Android. Радио работает без интернета.", 16)
+	text("Для русской озвучки нужен установленный русский системный голос Android. Радио и текст работают без интернета.", 16)
 	text("Масштаб камеры: стрелки или жест двумя пальцами в игре", 18)
 	var zoom := Choice.new()
 	zoom.wrap = false

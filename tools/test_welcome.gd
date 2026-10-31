@@ -110,6 +110,12 @@ func run() -> void:
  check(loading.camp.camp_assets.trees.size() == 13, "Preparation reuses forest and camp")
  check(loading.runner == loading.camp.avatar, "Actual seated avatar makes the journey")
  check(loading.runner.position.distance_to(loading.RUN_START) < 0.01, "Character starts on the stump")
+ # Reduced effects must not teleport the character, including after a slow frame.
+ loading.profile.reduced_motion = true
+ var prior_elapsed: float = loading.elapsed
+ loading._process(20.0)
+ check(loading.elapsed - prior_elapsed <= 0.101 and not loading.arrived, "Slow load and reduced effects cannot skip the journey")
+ loading.profile.reduced_motion = false
  loading.elapsed = 1.1
  loading.advance_cinematic()
  check(loading.animator.current_animation == "Running_A", "Authored run follows stand-up")

@@ -1,0 +1,31 @@
+name: APK size audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [arena/1e6def97-bunker]
+    paths: [.github/workflows/apk-size.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download published APKs and inspect archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/apk29 /tmp/apk30
+          gh release download android-29 --repo "$GITHUB_REPOSITORY" --pattern 'bunker-29.apk' --dir /tmp/apk29
+          gh release download android-30 --repo "$GITHUB_REPOSITORY" --pattern 'bunker-30.apk' --dir /tmp/apk30
+          python3 - <<'PY'
+          import zipfile, collections
+          n=30
+          z=zipfile.ZipFile(f'/tmp/apk{n}/bunker-{n}.apk')
+          files=sorted((f for f in z.infolist() if f.filename.startswith('assets/')),key=lambda f:f.compress_size,reverse=True)
+          groups=collections.defaultdict(int)
+          for f in files:
+              groups['/'.join(f.filename.split('/')[:3])]+=f.compress_size
+          for name,size in sorted(groups.items(),key=lambda x:-x[1])[:8]:
+              print(f'::notice::ASSETS group {name}: {size} bytes')
+          for f in files[:2]:
+              print(f'::notice::ASSET {f.filename}: {f.compress_size} packed / {f.file_size} bytes')

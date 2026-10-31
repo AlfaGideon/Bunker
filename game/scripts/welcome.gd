@@ -23,6 +23,7 @@ var cards: Array[Button] = []
 var column: Container
 var page := ""
 var clock := 0.0
+var animation_step_limit := INF
 var error_label: Label
 var entrance_nodes: Array[Node] = []
 var start_button: Button
@@ -267,7 +268,7 @@ func update_avatar() -> void:
 func _process(delta: float) -> void:
  clock += delta
  if is_instance_valid(animator):
-  animator.advance(delta)
+  animator.advance(minf(delta, animation_step_limit))
  if is_instance_valid(fire_light):
   fire_light.light_energy = 2.1 if profile.reduced_motion else 2.1 + sin(clock * 9) * 0.20 + sin(clock * 17) * 0.1
  if is_instance_valid(camp_assets):
@@ -577,7 +578,7 @@ func settings() -> void:
   _apply_audio_settings())
  add_control(volume)
  var narration := CheckButton.new()
- narration.text = "Озвучивать сводку катастрофы"
+ narration.text = "Озвучивать катастрофу и радио"
  Cards.button(narration)
  narration.button_pressed = profile.narration
  narration.toggled.connect(func(value): profile.narration = value)

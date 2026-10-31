@@ -2,7 +2,7 @@ name: Publish signed Android update
 on:
   workflow_dispatch:
   push:
-    branches: [arena/a25f55da-bunker]
+    branches: [arena/a25f55da-bunker, arena/1e6def97-bunker]
     paths:
       - 'game/**'
       - 'data/**'
@@ -59,6 +59,8 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;35.0.1" "platforms;android-35"
           mkdir -p builds
           python3 tools/configure_android_signing.py
+      - name: Prepare Android TTS service visibility
+        run: python3 tools/prepare_android_build.py
       - name: Validate immutable update version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,9 +83,11 @@ jobs:
         run: |
           set -euo pipefail
           godot --headless --editor --path . --export-release Android "builds/bunker-$VERSION_CODE.apk" > /tmp/release-export.log 2>&1 || { echo '::error::Release export failed; inspect runner log without sharing secrets.'; exit 1; }
+          python3 tools/test_apk_packaging.py "builds/bunker-$VERSION_CODE.apk"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "builds/bunker-$VERSION_CODE.apk"
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "builds/bunker-$VERSION_CODE.apk" > /tmp/apk-badging.txt
           grep "^package: name='org.bunker.prototype' versionCode='$VERSION_CODE'" /tmp/apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree "builds/bunker-$VERSION_CODE.apk" AndroidManifest.xml | grep 'android.intent.action.TTS_SERVICE'
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump permissions "builds/bunker-$VERSION_CODE.apk" | grep 'android.permission.REQUEST_INSTALL_PACKAGES' 
           cd builds
           cp "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk"

@@ -11,6 +11,7 @@ name = re.search(r'const VERSION_NAME := "([^"]+)"', script)[1]
 assert options.getint('version/code') == code
 assert options['version/name'].strip('"') == name
 assert options['permissions/internet'] == 'true'
+assert options['gradle_build/compress_native_libraries'] == 'true'
 assert 'android.permission.REQUEST_INSTALL_PACKAGES' in options['permissions/custom_permissions']
 assert options['package/unique_name'] == '"org.bunker.prototype"'
 print('Release version, package ID and Internet permission verified')

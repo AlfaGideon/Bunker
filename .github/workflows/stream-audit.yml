@@ -1,0 +1,31 @@
+name: Internet radio stream audit
+on:
+  push:
+    branches: [arena/1e6def97-bunker]
+    paths: [.github/workflows/stream-audit.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Test published stream endpoints
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          source=json.load(open('data/radio.json', encoding='utf-8'))
+          streams=next(e['streams'] for e in source['stations'] if e['id']=='internet')
+          for s in streams:
+              try:
+                  req=urllib.request.Request(s['url'],headers={'User-Agent':'Bunker-radio/1.0','Icy-MetaData':'0'})
+                  with urllib.request.urlopen(req,timeout=15) as r:
+                      chunk=r.read(4096)
+                      status=f'HTTP {r.status}, {r.headers.get("content-type")}, {len(chunk)} bytes'
+                      if r.status != 200 or not chunk:
+                          raise RuntimeError(status)
+                      print(f'::notice::{s["name"]}: {status}')
+              except Exception as e:
+                  print(f'::warning::{s["name"]}: {type(e).__name__}: {e}')
+          PY

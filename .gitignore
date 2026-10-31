@@ -14,3 +14,6 @@ __pycache__/
 *.pfx
 *signing-secrets*.zip
 BUNKER_*.txt
+
+# Generated Godot Android Gradle template
+android/

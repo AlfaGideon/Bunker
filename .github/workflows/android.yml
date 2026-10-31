@@ -1,7 +1,7 @@
 name: Android debug APK
 on:
   push:
-    branches: [arena/a25f55da-bunker]
+    branches: [arena/a25f55da-bunker, arena/1e6def97-bunker]
   workflow_dispatch:
 permissions:
   contents: read
@@ -57,6 +57,8 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_library_gallery.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_table_card.gd
           python3 tools/test_release_config.py
+      - name: Prepare Android TTS service visibility
+        run: python3 tools/prepare_android_build.py
       - name: Export debug APK
         run: |
           set +e
@@ -68,6 +70,8 @@ jobs:
             exit "$result"
           fi
           test -s builds/bunker-debug.apk
+          python3 tools/test_apk_packaging.py builds/bunker-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree builds/bunker-debug.apk AndroidManifest.xml | grep 'android.intent.action.TTS_SERVICE'
       - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

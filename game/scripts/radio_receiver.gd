@@ -1,10 +1,10 @@
 extends RefCounted
-## Radio receiver state: three stations, live transmissions from other
+## Radio receiver state: local stations, an internet stream, transmissions from other
 ## bunkers and a hidden beacon that only a radio specialist can read.
 ##
 ## The music station is an original procedural loop, the bunker feed is
 ## fictional flavour text, and the beacon hands out small finds. Nothing here
-## touches the network: the whole ether is local content.
+## touches the network for the fictional feeds or beacon.
 
 const PATH := "res://data/radio.json"
 const FEED_LIMIT := 24
@@ -21,6 +21,7 @@ var next_broadcast := 10.0
 var scan_round := 0
 var signal_index := 0
 var track_index := 0
+var internet_index := 0
 
 
 func _init() -> void:
@@ -101,6 +102,16 @@ func track_count() -> int:
 	return Music.count()
 
 
+func internet_stream() -> Dictionary:
+	var streams: Array = info("internet").get("streams", [])
+	return streams[posmod(internet_index, streams.size())] if not streams.is_empty() else {}
+
+func next_internet() -> void:
+	var streams: Array = info("internet").get("streams", [])
+	if not streams.is_empty():
+		internet_index = posmod(internet_index + 1, streams.size())
+
+
 func status_text() -> String:
 	if not powered:
 		return "ВЫКЛЮЧЕНО"
@@ -160,6 +171,8 @@ func feed_lines(count: int) -> Array:
 
 func signal_strength() -> int:
 	match kind():
+		"internet":
+			return 5
 		"music":
 			return 5
 		"broadcast":

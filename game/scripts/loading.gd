@@ -43,21 +43,18 @@ func _ready() -> void:
   node.visible = false
  build_journey_environment()
  camp.ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ camp.radio_hotspot.visible = false
  for button in camp.find_children("*", "Button", true, false):
   button.disabled = true
- if profile.reduced_motion:
-  camp.panel.visible = false
-  runner.position = RUN_END
-  place_camera(1.0, 1.0)
-  animator.play("Idle")
-  arrived = true
- else:
-  animator.get_animation("Sit_Chair_StandUp").loop_mode = Animation.LOOP_NONE
-  animator.play("Sit_Chair_StandUp", 0.18)
-  var slide: Tween = camp.panel.create_tween().set_parallel(true)
-  slide.tween_property(camp.panel, "offset_left", camp.panel.offset_left + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-  slide.tween_property(camp.panel, "offset_right", camp.panel.offset_right + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-  slide.tween_property(camp.ui.get_child(0), "modulate:a", 0.0, 0.65)
+ # Reduced motion affects background effects, not the essential journey.
+ # Cap the animation clock as well as travel after a slow scene load.
+ camp.animation_step_limit = 0.1
+ animator.get_animation("Sit_Chair_StandUp").loop_mode = Animation.LOOP_NONE
+ animator.play("Sit_Chair_StandUp", 0.18)
+ var slide: Tween = camp.panel.create_tween().set_parallel(true)
+ slide.tween_property(camp.panel, "offset_left", camp.panel.offset_left + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+ slide.tween_property(camp.panel, "offset_right", camp.panel.offset_right + 750, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+ slide.tween_property(camp.ui.get_child(0), "modulate:a", 0.0, 0.65)
  build_ui()
  var assets: Array = JSON.parse_string(FileAccess.get_file_as_string("res://data/loading_assets.json"))
  pending.append(MAIN)
@@ -155,8 +152,6 @@ func place_camera(stage: float, travel: float) -> void:
  camp.camera.look_at(camera_target_from.lerp(target_track, stage))
 
 func advance_cinematic() -> void:
- if profile.reduced_motion:
-  return
  var stage := smoothstep(0.0, 0.85, elapsed)
  var travel := clampf((elapsed - STAND_TIME) / RUN_TIME, 0.0, 1.0)
  place_camera(stage, travel)
@@ -172,7 +167,7 @@ func advance_cinematic() -> void:
    animator.play("Idle", 0.2)
 
 func _process(delta: float) -> void:
- elapsed += delta
+ elapsed += clampf(delta, 0.0, 0.1)
  advance_cinematic()
  if failed or transitioning:
   return
@@ -191,9 +186,9 @@ func _process(delta: float) -> void:
   transitioning = true
   get_tree().change_scene_to_file("res://game/welcome.tscn")
   return
- enter.disabled = not ready_to_enter
+ enter.disabled = not ready_to_enter or not arrived
  status.text = "Убежище готово" if ready_to_enter else "Готовим убежище: %d / %d" % [total - pending.size(), total]
- if ready_to_enter and (profile.reduced_motion or elapsed >= ARRIVAL_TIME):
+ if ready_to_enter and arrived and elapsed >= ARRIVAL_TIME:
   finish()
 
 func fail(message: String) -> void:
