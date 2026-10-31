@@ -1,5 +1,9 @@
 name: Live lobby smoke test
 on:
+  push:
+    paths:
+      - '.github/workflows/live-lobby-test.yml'
+      - 'tools/test_live_lobby.py'
   workflow_dispatch:
     inputs:
       lobby_url:
@@ -20,4 +24,4 @@ jobs:
       - run: pip install -r server/requirements.txt
       - run: python tools/test_live_lobby.py
         env:
-          LOBBY_URL: ${{ inputs.lobby_url }}
+          LOBBY_URL: ${{ inputs.lobby_url || 'https://bunker-3jfgfu2i.back4.app' }}
