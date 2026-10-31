@@ -27,6 +27,14 @@ class LobbyTest(unittest.IsolatedAsyncioTestCase):
                 return message
         self.fail(f'No {event} event')
 
+    async def test_browser_wake_page(self):
+        response = await self.client.get('/')
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.content_type, 'text/html')
+        self.assertIn('Сервер лобби работает', await response.text())
+        response = await self.client.get('/healthz')
+        self.assertTrue((await response.json())['online_turns'])
+
     async def test_rooms_start_and_disconnect(self):
         response = await self.client.get('/healthz')
         health = await response.json()

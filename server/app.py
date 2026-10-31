@@ -324,6 +324,14 @@ async def http_message(request):
 LOBBY_KEY = web.AppKey('lobby', Lobby)
 
 
+async def index(request):
+    return web.Response(
+        text='<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Бункер — сервер</title><body><h1>Бункер — Последний шлюз</h1><p>Сервер лобби работает. Теперь можно подключиться из игры.</p><p><a href="/healthz">Проверить состояние сервера</a></p></body></html>',
+        content_type='text/html',
+        headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'},
+    )
+
+
 async def health(request):
     return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False, 'online_turns': True})
 
@@ -415,6 +423,7 @@ def create_app():
     app = web.Application(client_max_size=MAX_MESSAGE)
     app[LOBBY_KEY] = Lobby()
     app.cleanup_ctx.append(start_sweeper)
+    app.router.add_get('/', index)
     app.router.add_post('/transport/open', http_open)
     app.router.add_post('/transport/send', http_message)
     app.router.add_post('/transport/poll', http_message)
