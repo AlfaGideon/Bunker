@@ -9,6 +9,8 @@ on:
       - 'assets/**'
       - 'project.godot'
       - 'export_presets.cfg'
+      - 'android_src/**'
+      - 'tools/prepare_android_build.py'
       - '.github/workflows/android-release.yml'
 permissions:
   contents: write
