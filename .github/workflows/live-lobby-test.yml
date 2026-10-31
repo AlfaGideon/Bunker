@@ -22,6 +22,11 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r server/requirements.txt
-      - run: python tools/test_live_lobby.py
+      - run: |
+          python tools/test_live_lobby.py > /tmp/snap-test.log 2>&1 || {
+            python -c 'from pathlib import Path; print("::error::" + Path("/tmp/snap-test.log").read_text()[-7000:].replace("%", "%25").replace("\n", "%0A"))'
+            exit 1
+          }
+          cat /tmp/snap-test.log
         env:
           LOBBY_URL: ${{ inputs.lobby_url || 'https://bunker-154de.containers.snapdeploy.app' }}
