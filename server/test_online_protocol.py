@@ -1,3 +1,4 @@
+import asyncio
 import time
 import unittest
 from aiohttp.test_utils import TestClient, TestServer
@@ -65,10 +66,51 @@ class ProtocolTest(unittest.IsolatedAsyncioTestCase):
         await self.send(headers[2], {'type': 'game_sync'})
         states = [e['state'] for e in await self.poll(headers[0]) if e['type'] == 'game_state']
         self.assertEqual(states[-1]['speaker'], ids[2])
+        # Drive the rest of the speeches and discussion by server deadlines.
+        while game.phase != 'vote':
+            game.deadline = time.monotonic() - 0.01
+            await self.send(headers[0], {'type': 'game_sync'})
+        for h in headers:
+            await self.poll(h)
+        for h in headers[:4]:
+            await self.send(h, {'type': 'game_action', 'action': 'vote', 'value': ids[5]})
+        view = next(e['state'] for e in reversed(await self.poll(headers[4])) if e['type'] == 'game_state')
+        self.assertNotIn('votes', view)
+        self.assertIsNone(view['my_vote'])
+        game.deadline = time.monotonic() - 0.01
+        await self.send(headers[0], {'type': 'game_sync'})
+        views = []
+        for h in headers[1:]:
+            views.append(next(e['state'] for e in reversed(await self.poll(h)) if e['type'] == 'game_state'))
+        self.assertTrue(all(view['phase'] == 'result' for view in views))
+        self.assertTrue(all(view['result']['player'] == ids[5] for view in views))
+        self.assertTrue(all(ids[5] not in view['active'] for view in views))
         await self.client.post('/transport/close', headers=headers[1], json={})
         events = await self.poll(headers[0])
         self.assertEqual(next(e for e in events if e['type'] == 'room_closed')['reason'], 'player_disconnected')
         self.assertNotIn(room_id, self.app[LOBBY_KEY].rooms)
+
+    async def test_concurrent_commands_have_one_winner(self):
+        headers = [await self.open() for _ in range(6)]
+        events = await self.send(headers[0], {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
+        room = next(e['room'] for e in events if e['type'] == 'joined')
+        for i, h in enumerate(headers[1:]):
+            await self.send(h, {'type': 'join', 'room_id': room['id'], 'name': f'P{i}'})
+        await self.send(headers[0], {'type': 'online_start'})
+        game = self.app[LOBBY_KEY].rooms[room['id']].game
+        # Both requests race with a host pass: only the next speaker's pass can
+        # become valid, and each request is applied at most once.
+        results = await asyncio.gather(
+            self.send(headers[1], {'type': 'game_action', 'action': 'pass'}),
+            self.send(headers[1], {'type': 'game_action', 'action': 'pass'}))
+        self.assertTrue(all(any(e.get('code') == 'not_your_turn' for e in batch) for batch in results))
+        self.assertEqual(game.speaker, game.active[0])
+        results = await asyncio.gather(
+            self.send(headers[0], {'type': 'game_action', 'action': 'pass'}),
+            self.send(headers[0], {'type': 'game_action', 'action': 'pass'}))
+        errors = [e for batch in results for e in batch if e.get('code') == 'not_your_turn']
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(game.speaker, game.active[1])
 
     async def test_online_bots_not_implemented(self):
         h = await self.open()
