@@ -1,6 +1,9 @@
 name: APK size audit
 on:
   workflow_dispatch:
+  push:
+    branches: [arena/1e6def97-bunker]
+    paths: [.github/workflows/apk-size.yml]
 permissions:
   contents: read
 jobs:
