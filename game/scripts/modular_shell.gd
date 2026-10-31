@@ -9,21 +9,43 @@ static func inside(plan: Dictionary, point: Vector2) -> bool:
    return true
  return false
 
+# Split edges exactly at room/corridor boundaries instead of sampling a 0.4 m
+# grid, which enlarged openings and left visible gaps at the junctions.
+static func exposed_spans(plan: Dictionary, start: Vector2, direction: Vector2, outside: Vector2, length: float) -> Array:
+ var cuts: Array[float] = [0.0, length]
+ var footprints: Array = plan["floors"].duplicate()
+ footprints.append(Rect2(3.05, 4.85, 1.5, 2.4))
+ for footprint in footprints:
+  var rect: Rect2 = footprint
+  var low := rect.position.x if direction.x != 0 else rect.position.y
+  var high := rect.end.x if direction.x != 0 else rect.end.y
+  var base := start.x if direction.x != 0 else start.y
+  for value in [low - base, high - base]:
+   if value > 0.001 and value < length - 0.001:
+    cuts.append(value)
+ cuts.sort()
+ var spans: Array = []
+ var run := -1.0
+ for i in range(cuts.size() - 1):
+  var begin: float = cuts[i]
+  var end: float = cuts[i + 1]
+  if end - begin < 0.0001:
+   continue
+  var exposed := not inside(plan, start + direction * ((begin + end) * 0.5) + outside * 0.08)
+  if exposed and run < 0:
+   run = begin
+  if not exposed and run >= 0:
+   spans.append(Vector2(run, begin))
+   run = -1.0
+ if run >= 0:
+  spans.append(Vector2(run, length))
+ return spans
+
 static func edge(room: Node3D, start: Vector2, direction: Vector2, outside: Vector2, length: float) -> void:
- var count := ceili(length / 0.4)
- var stride := length / count
- var run := -1
- for index in range(count + 1):
-  var exposed := false
-  if index < count:
-   exposed = not inside(room.layout, start + direction * ((index + 0.5) * stride) + outside * 0.08)
-  if exposed and run == -1:
-   run = index
-  if not exposed and run != -1:
-   var span := (index - run) * stride
-   var at := start + direction * ((run + index) * stride * 0.5)
-   Finish.wall(room, at, Vector2(span, 0.16) if direction.x != 0 else Vector2(0.16, span))
-   run = -1
+ for span in exposed_spans(room.layout, start, direction, outside, length):
+  var at: Vector2 = start + direction * ((span.x + span.y) * 0.5)
+  var width: float = span.y - span.x
+  Finish.wall(room, at, Vector2(width, 0.16) if direction.x != 0 else Vector2(0.16, width))
 
 static func build(room: Node3D) -> void:
  for footprint in room.layout["floors"]:

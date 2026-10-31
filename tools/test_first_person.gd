@@ -37,6 +37,10 @@ func run() -> void:
  for node in room.find_children("*", "MeshInstance3D", true, false):
   if node.has_meta("rounded_passage"): count += 1
  check(count == room.layout["modules"].size(), "Every module has a rounded passage frame")
+ var shell = preload("res://game/scripts/modular_shell.gd")
+ var plan := {"floors": [Rect2(0, 0, 10, 5), Rect2(3, -2, 2, 2.1)]}
+ var spans: Array = shell.exposed_spans(plan, Vector2(0, 0), Vector2.RIGHT, Vector2.UP, 10.0)
+ check(spans.size() == 2 and spans[0].is_equal_approx(Vector2(0, 3)) and spans[1].is_equal_approx(Vector2(5, 10)), "Door openings follow exact corridor edges")
  room.queue_free()
  await process_frame
  print("First-person failures: ", failures)
