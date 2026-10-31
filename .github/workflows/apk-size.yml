@@ -19,13 +19,13 @@ jobs:
           gh release download android-30 --repo "$GITHUB_REPOSITORY" --pattern 'bunker-30.apk' --dir /tmp/apk30
           python3 - <<'PY'
           import zipfile, collections
-          for n in (29, 30):
-              path=f'/tmp/apk{n}/bunker-{n}.apk'
-              z=zipfile.ZipFile(path)
-              files=sorted(z.infolist(),key=lambda f:f.compress_size,reverse=True)
-              groups=collections.defaultdict(int)
-              for f in files:
-                  groups[f.filename.split('/')[0]]+=f.compress_size
-              print(f'::notice::APK {n} GROUPS: {dict(groups)}')
-              for f in files[:3]:
-                  print(f'::notice::APK {n}: {f.compress_size} packed {f.file_size} bytes: {f.filename}')
+          n=30
+          z=zipfile.ZipFile(f'/tmp/apk{n}/bunker-{n}.apk')
+          files=sorted((f for f in z.infolist() if f.filename.startswith('assets/')),key=lambda f:f.compress_size,reverse=True)
+          groups=collections.defaultdict(int)
+          for f in files:
+              groups['/'.join(f.filename.split('/')[:3])]+=f.compress_size
+          for name,size in sorted(groups.items(),key=lambda x:-x[1])[:8]:
+              print(f'::notice::ASSETS group {name}: {size} bytes')
+          for f in files[:2]:
+              print(f'::notice::ASSET {f.filename}: {f.compress_size} packed / {f.file_size} bytes')
