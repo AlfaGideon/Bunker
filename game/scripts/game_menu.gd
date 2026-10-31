@@ -68,6 +68,11 @@ func home() -> void:
 	clear()
 	text("МЕНЮ ПАРТИИ • " + profile.nickname + " • " + preload("res://game/scripts/app_updates.gd").VERSION_NAME, 26)
 	button("Продолжить партию", room.begin_game)
+	if room.online_active:
+		text("Онлайн: общие характеристики, речи и голосование. Передвижение видно только вам; действия с помещениями и способности пока отключены. Голосового чата нет.", 17)
+		button("Настройки", settings)
+		button("Выйти из партии", func(): get_tree().change_scene_to_file("res://game/welcome.tscn"))
+		return
 	button("Новая партия", new_game)
 	button("Переролл участника • локальный тест", show_reroll)
 	button("Помещения и предметы", show_facility)

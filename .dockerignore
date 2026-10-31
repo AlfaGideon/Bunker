@@ -6,3 +6,7 @@
 !server/invite.html
 
 !server/invite-bg.jpg
+!server/match_game.py
+!data/
+!data/content.json
+!data/scenarios.json

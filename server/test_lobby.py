@@ -29,7 +29,9 @@ class LobbyTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_rooms_start_and_disconnect(self):
         response = await self.client.get('/healthz')
-        self.assertFalse((await response.json())['gameplay_sync'])
+        health = await response.json()
+        self.assertFalse(health['gameplay_sync'])
+        self.assertTrue(health['online_turns'])
         host = await self.connect()
         await host.send_json({'type': 'create', 'name': 'Ведущий', 'title': 'Костёр', 'capacity': 6, 'skin': 'young'})
         room = (await self.expect(host, 'joined'))['room']

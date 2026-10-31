@@ -9,6 +9,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from aiohttp import WSMsgType, web, ClientSession, ClientTimeout, ClientError
 from pathlib import Path
+from match_game import Match, GameError
 
 MAX_ROOMS = 100
 MAX_SOCKETS = 500
@@ -42,6 +43,7 @@ class Room:
     capacity: int
     members: list[Peer | Bot] = field(default_factory=list)
     started: bool = False
+    game: Match | None = None
 
     def public(self):
         return {'id': self.id, 'title': self.title, 'host_id': self.host.id,
@@ -55,6 +57,7 @@ class Lobby:
         self.rooms: dict[str, Room] = {}
         self.peers: set[Peer] = set()
         self.http_sessions: dict[str, HttpSession] = {}
+        self.game_lock = asyncio.Lock()
 
     async def send(self, peer, payload):
         if not peer.socket.closed:
@@ -72,20 +75,58 @@ class Lobby:
     async def error(self, peer, code):
         await self.send(peer, {'type': 'error', 'code': code})
 
+    async def game_update(self, room):
+        game = room.game
+        if game is not None:
+            await asyncio.gather(*(self.send(p, {'type': 'game_state', 'state': game.snapshot(p.id)})
+                                   for p in list(room.members) if isinstance(p, Peer)))
+
+    async def game_command(self, peer, message):
+        async with self.game_lock:
+            room = peer.room
+            if room is None or room.game is None:
+                return await self.error(peer, 'no_game')
+            changed = room.game.tick()
+            try:
+                room.game.command(peer.id, message.get('action'), message.get('value'))
+            except GameError as exc:
+                if changed:
+                    await self.game_update(room)
+                return await self.error(peer, str(exc))
+            await self.game_update(room)
+
+    async def game_start(self, peer):
+        async with self.game_lock:
+            room = peer.room
+            if room is None or room.host is not peer:
+                return await self.error(peer, 'host_only')
+            if room.started:
+                return await self.error(peer, 'already_started')
+            if len(room.members) != room.capacity:
+                return await self.error(peer, 'not_enough_players')
+            room.game = Match(room.members, bot_ids=[p.id for p in room.members if isinstance(p, Bot)])
+            room.started = True
+            await self.broadcast(room, {'type': 'online_game_start', 'room': room.public()})
+            await self.game_update(room)
+
     async def leave(self, peer):
+        async with self.game_lock:
+            await self._leave_locked(peer)
+
+    async def _leave_locked(self, peer):
         room = peer.room
         if room is None:
             return
         peer.room = None
         if peer in room.members:
             room.members.remove(peer)
-        if room.host is peer:
+        if room.host is peer or room.game is not None:
             self.rooms.pop(room.id, None)
             remaining = [p for p in room.members if isinstance(p, Peer)]
             room.members.clear()
             for player in remaining:
                 player.room = None
-            await asyncio.gather(*(self.send(player, {'type': 'room_closed', 'reason': 'host_left'}) for player in remaining))
+            await asyncio.gather(*(self.send(player, {'type': 'room_closed', 'reason': 'player_disconnected' if room.game is not None and room.host is not peer else 'host_left'}) for player in remaining))
         else:
             await self.update(room)
 
@@ -93,6 +134,17 @@ class Lobby:
         if not isinstance(message, dict):
             return await self.error(peer, 'invalid_message')
         action = message.get('type')
+        if action == 'online_start':
+            return await self.game_start(peer)
+        if action == 'game_action':
+            return await self.game_command(peer, message)
+        if action == 'game_sync':
+            async with self.game_lock:
+                if peer.room is None or peer.room.game is None:
+                    return await self.error(peer, 'no_game')
+                if peer.room.game.tick():
+                    return await self.game_update(peer.room)
+                return await self.send(peer, {'type': 'game_state', 'state': peer.room.game.snapshot(peer.id)})
         if action == 'ping':
             return await self.send(peer, {'type': 'pong'})
         if action == 'list':
@@ -209,7 +261,11 @@ async def close_http(lobby, token):
 async def sweep_http(app):
     lobby = app[LOBBY_KEY]
     while True:
-        await asyncio.sleep(15)
+        await asyncio.sleep(1)
+        async with lobby.game_lock:
+            for room in list(lobby.rooms.values()):
+                if room.game is not None and room.game.tick():
+                    await lobby.game_update(room)
         expired = [token for token, session in lobby.http_sessions.items()
                    if time.monotonic() - session.last_seen > 75]
         for token in expired:
@@ -269,7 +325,7 @@ LOBBY_KEY = web.AppKey('lobby', Lobby)
 
 
 async def health(request):
-    return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False})
+    return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False, 'online_turns': True})
 
 
 async def invite_page(request):

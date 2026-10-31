@@ -43,6 +43,8 @@ var lobby_room: Dictionary = {}
 var lobby_player_id := ""
 var lobby_status := "Подключитесь к временному серверу"
 var lobby_actors: Array[Node3D] = []
+var pending_online_state: Dictionary = {}
+var online_starting := false
 var invite_bridge: Object
 var invite_check_timer := 0.0
 
@@ -481,6 +483,7 @@ func home() -> void:
   lobby_room.clear()
   _clear_lobby_actors()
   camera.size = 5.2
+  camera.position = Vector3(6, 4.2, 10)
   radio_hotspot.visible = true
   camera.look_at(Vector3(0.7, 1.2, 0))
   update_avatar()
@@ -521,23 +524,26 @@ func _clear_lobby_actors() -> void:
 func _show_lobby_actors() -> void:
  _clear_lobby_actors()
  var players: Array = lobby_room.get("players", [])
- var total := maxi(players.size(), 1)
+ var others := players.filter(func(person): return str(person.get("id", "")) != lobby_player_id)
  camera.size = 8.5
+ # Reset the camera before framing: never accumulate a translation on updates.
+ camera.position = Vector3(6, 4.2, 10)
  camera.look_at(Vector3(0, 0.9, 1))
  camera.position += camera.basis.x * camera.size * get_viewport().get_visible_rect().size.aspect() * 0.24
  radio_hotspot.visible = false
- for i in players.size():
-  var person: Dictionary = players[i]
-  var angle := TAU * float(i) / float(total) + PI * 0.75
-  var position := Vector3(cos(angle) * 3.2, 0, 1.0 + sin(angle) * 3.2)
-  if str(person.get("id", "")) == lobby_player_id:
-   avatar.position = position
-   avatar.look_at(Vector3(0, 0, 1), Vector3.UP)
-   animator.play("Idle")
-   continue
+ # The local avatar stays seated on the original bench. Other survivors form
+ # an arc on the far side of the fire, never between the fire and the camera.
+ var fire := Vector3(0, 0, 1)
+ var toward_camera := Vector3(6, 0, 9).normalized()
+ var across := Vector3(toward_camera.z, 0, -toward_camera.x)
+ for i in others.size():
+  var person: Dictionary = others[i]
+  var angle := 0.0 if others.size() == 1 else lerpf(-1.25, 1.25, float(i) / float(others.size() - 1))
+  var position := fire - toward_camera * cos(angle) * 3.4 + across * sin(angle) * 3.4
   var appearance := str(person.get("skin", "male"))
   var actor: Node3D = Art.spawn(self, Catalog.model(appearance, i), position, Vector3(1, 1.8, 1), true)
   actor.look_at(Vector3(0, 0, 1), Vector3.UP)
+  actor.rotate_y(PI) # Imported models face +Z; Godot look_at points -Z.
   var animators := actor.find_children("*", "AnimationPlayer", true, false)
   if not animators.is_empty():
    var motion: AnimationPlayer = animators[0]
@@ -648,6 +654,15 @@ func _lobby_event(data: Dictionary) -> void:
    lobby_room = data.get("room", {})
    if page == "lobby_room":
     _lobby_room_page()
+  "online_game_start":
+   if page != "lobby_room" or online_starting:
+    return
+   online_starting = true
+   lobby_room = data.get("room", {})
+   call_deferred("_enter_online_game")
+  "game_state":
+   if online_starting and data.get("state") is Dictionary:
+    pending_online_state = data["state"].duplicate(true)
   "bot_test_start":
    var room: Dictionary = data.get("room", {})
    if page != "lobby_room" or lobby_player_id != str(room.get("host_id", "")):
@@ -675,6 +690,25 @@ func _lobby_event(data: Dictionary) -> void:
   "error":
    _lobby_status("Ошибка сервера: " + str(data.get("code", "unknown")))
 
+func _enter_online_game() -> void:
+ if not online_starting or not is_instance_valid(lobby_client):
+  return
+ var session := preload("res://game/scripts/online_session.gd").new()
+ get_tree().root.add_child(session)
+ lobby_client.event_received.disconnect(_lobby_event)
+ lobby_client.status_changed.disconnect(_lobby_status)
+ session.adopt(lobby_client, lobby_player_id)
+ if not pending_online_state.is_empty():
+  session.state.apply_snapshot(pending_online_state)
+ session.request_state()
+ get_tree().set_meta("online_session", session)
+ var result := get_tree().change_scene_to_file("res://game/loading.tscn")
+ if result != OK:
+  get_tree().remove_meta("online_session")
+  session.close_session()
+  _lobby_status("Не удалось открыть сетевую партию.")
+
+
 func _lobby_room_page() -> void:
  page = "lobby_room"
  _show_lobby_actors()
@@ -686,7 +720,7 @@ func _lobby_room_page() -> void:
  for person in lobby_room.get("players", []):
   names.append(str(person.get("name", "Игрок")))
  label(", ".join(names), 16)
- label("Локальный тест: персонажи без полноценного ИИ. Сетевая партия ещё не готова.", 16)
+ label("Речи и голосование общие. Движение локальное, помещения отключены. Боты случайны; голосового чата нет.", 16)
  button("Скопировать ссылку-приглашение", _copy_lobby_invite)
  if lobby_player_id == str(lobby_room.get("host_id", "")):
   var add_bot := button("Добавить бота", func(): lobby_client.send({"type": "add_bot"}))
@@ -697,18 +731,12 @@ func _lobby_room_page() -> void:
     bot_count += 1
   var remove_bot := button("Убрать последнего бота", func(): lobby_client.send({"type": "remove_bot"}))
   remove_bot.disabled = bot_count == 0
- var only_bots := true
- for person in lobby_room.get("players", []):
-  if str(person.get("id", "")) != lobby_player_id and not bool(person.get("bot", false)):
-   only_bots = false
- var start := button("НАЧАТЬ ИГРУ", func(): lobby_client.send({"type": "start_bot_test"}))
- start.disabled = lobby_player_id != str(lobby_room.get("host_id", "")) or count < capacity or not only_bots
+ var start := button("НАЧАТЬ ИГРУ", func(): lobby_client.send({"type": "online_start"}))
+ start.disabled = lobby_player_id != str(lobby_room.get("host_id", "")) or count < capacity
  if lobby_player_id != str(lobby_room.get("host_id", "")):
   label("Начать партию сможет только ведущий.", 15)
  elif count < capacity:
   label("Ожидаем ещё %d игроков." % (capacity - count), 15)
- elif not only_bots:
-  label("Для других игроков запуск онлайн-партии ещё не готов.", 15)
  button("Выйти из лобби", home)
  error_label = label(lobby_status, 15)
 
