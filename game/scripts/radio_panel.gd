@@ -145,6 +145,7 @@ func _build() -> void:
 func _process(_delta: float) -> void:
 	if visible and room != null and room.radio.kind() == "internet":
 		status_label.text = room.audio.internet.status_text()
+		status_label.add_theme_color_override("font_color", Color("e5a66b") if room.audio.internet.status in ["error", "unsupported"] else Color("7fe3b0"))
 
 
 func _label(text: String, size: int, color: Color) -> Label:
@@ -250,7 +251,10 @@ func refresh() -> void:
 	status_label.text = receiver.status_text()
 	if receiver.kind() == "internet":
 		status_label.text = room.audio.internet.status_text()
-	status_label.add_theme_color_override("font_color", Color("7fe3b0") if receiver.powered else Color("8ea3a8"))
+	var status_color := Color("7fe3b0") if receiver.powered else Color("8ea3a8")
+	if receiver.kind() == "internet" and room.audio.internet.status in ["error", "unsupported"]:
+		status_color = Color("e5a66b")
+	status_label.add_theme_color_override("font_color", status_color)
 	power_button.text = "ВЫКЛЮЧИТЬ РАДИО" if receiver.powered else "ВКЛЮЧИТЬ РАДИО"
 
 	frequency_label.text = receiver.frequency
