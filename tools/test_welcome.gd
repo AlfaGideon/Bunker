@@ -38,7 +38,7 @@ func run() -> void:
   welcome.cycle_track()
  check(welcome.radio_track == first_track, "Four records cycle back to the first one")
  check(welcome.find_children("*", "ScrollContainer", true, false).is_empty(), "Welcome has no scrolling menu")
- check(welcome.cards.size() == 8, "Hero and seven animated cards")
+ check(welcome.cards.size() == 10, "Hero, lobby controls and seven animated cards")
  for card in welcome.cards:
   check(card.get_global_rect().end.y <= root.get_visible_rect().size.y, "All cards fit vertically")
  welcome.edit_profile()

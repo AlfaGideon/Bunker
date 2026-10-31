@@ -11,7 +11,7 @@ func run() -> void:
  var welcome := (load("res://game/welcome.tscn") as PackedScene).instantiate()
  root.add_child(welcome)
  await process_frame
- check(welcome.cards.size() == 8, "Library card appears in main menu")
+ check(welcome.cards.size() == 10, "Library card appears in main menu")
  welcome.cards[1].pressed.emit()
  await process_frame
  check(welcome.page == "library", "Main menu opens library directly")
