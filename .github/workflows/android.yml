@@ -70,6 +70,7 @@ jobs:
             exit "$result"
           fi
           test -s builds/bunker-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree builds/bunker-debug.apk AndroidManifest.xml | grep 'android.intent.action.TTS_SERVICE'
       - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

@@ -1055,7 +1055,9 @@ func _tick_radio(delta: float) -> void:
 	if arrival.is_empty():
 		return
 	log_label.text = "ЭФИР · " + str(arrival["from"]) + ": " + str(arrival["text"])
-	audio.say_radio(str(arrival["from"]) + ". " + str(arrival["text"]))
+	var queued: bool = audio.say_radio(str(arrival["from"]) + ". " + str(arrival["text"]))
+	if not queued and not audio.narration_status.is_empty() and not log_label.text.contains(audio.narration_status):
+		log_label.text += "\n" + audio.narration_status
 	if is_instance_valid(radio_panel) and radio_panel.visible:
 		radio_panel.refresh()
 

@@ -171,6 +171,8 @@ func pump_voice() -> void:
 	speak(str(item["text"]), available[0])
 	narration_status = "Сообщение озвучивается."
 	voice_wait = VOICE_WAIT
+	if active_speech_kind == "briefing" and is_instance_valid(room.menu) and room.menu.visible and room.menu.page == "briefing":
+		room.menu.briefing(false)
 
 func cancel_radio_speech() -> void:
 	for i in range(speech_queue.size() - 1, -1, -1):
