@@ -70,4 +70,5 @@ static func build(room: Node3D) -> void:
   ring.rotation.x = 0.0 if horizontal else PI / 2
   ring.material_override = room._material(Color("91aeb7"))
   ring.name = "RoundedPassageFrame"
+  ring.set_meta("rounded_passage", true)
   room.add_child(ring)

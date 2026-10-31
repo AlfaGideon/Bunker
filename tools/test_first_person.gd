@@ -30,8 +30,10 @@ func run() -> void:
  check(not room.first_person and room.camera == old_camera, "Overhead camera restored")
  check(not room.move_stick.visible and not room.look_stick.visible, "Touch sticks hidden overhead")
  check(room.actors[0].get_child(0).visible, "Own model is visible overhead")
- var frames := room.find_children("RoundedPassageFrame*", "MeshInstance3D", true, false)
- check(frames.size() == room.layout["modules"].size(), "Every module has a rounded passage frame")
+ var count := 0
+ for node in room.find_children("*", "MeshInstance3D", true, false):
+  if node.has_meta("rounded_passage"): count += 1
+ check(count == room.layout["modules"].size(), "Every module has a rounded passage frame")
  room.queue_free()
  await process_frame
  print("First-person failures: ", failures)
