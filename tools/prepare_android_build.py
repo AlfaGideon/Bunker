@@ -38,4 +38,30 @@ if 'android.intent.action.TTS_SERVICE' not in text:
 java = build / 'src/org/bunker/prototype/InternetRadioPlayer.java'
 java.parent.mkdir(parents=True, exist_ok=True)
 java.write_bytes(Path('android_src/InternetRadioPlayer.java').read_bytes())
+invite_java = build / 'src/org/bunker/prototype/LobbyInvite.java'
+invite_java.write_bytes(Path('android_src/LobbyInvite.java').read_bytes())
+# Register a custom scheme. The landing page requires a second tap after install.
+text = manifest.read_text()
+if 'bunkerinvite' not in text:
+    invite_filter = '''<intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bunkerinvite" android:host="join" />
+            </intent-filter>'''
+    text, count = re.subn(r'(</activity>)', lambda m: invite_filter + '\n        ' + m.group(1), text, count=1)
+    if count != 1:
+        raise SystemExit('Cannot register lobby deep link in manifest')
+    manifest.write_text(text)
+activity = build / 'src/com/godot/game/GodotApp.java'
+activity_text = activity.read_text()
+if 'LobbyInvite.capture' not in activity_text:
+    activity_text, count = re.subn(r'(public void onCreate\(Bundle savedInstanceState\) \{)', r'\1\n        org.bunker.prototype.LobbyInvite.capture(getIntent());', activity_text, count=1)
+    if count != 1:
+        raise SystemExit('Cannot install invitation handler in Android activity')
+    marker = '\n\t@Override\n\tpublic void onResume()'
+    if marker not in activity_text:
+        raise SystemExit('Cannot find Android activity onResume')
+    activity_text = activity_text.replace(marker, "\n\t@Override\n\tpublic void onNewIntent(android.content.Intent intent) {\n\t\tsuper.onNewIntent(intent);\n\t\torg.bunker.prototype.LobbyInvite.capture(intent);\n\t}\n" + marker, 1)
+    activity.write_text(activity_text)
 print('Android build prepared with TTS engine visibility:', identifier)

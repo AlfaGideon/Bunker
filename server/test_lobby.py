@@ -58,6 +58,39 @@ class LobbyTest(unittest.IsolatedAsyncioTestCase):
         for ws in members:
             self.assertEqual((await self.expect(ws, 'room_closed'))['reason'], 'host_left')
 
+    async def test_bots_and_invitation(self):
+        host = await self.connect()
+        guest = await self.connect()
+        await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
+        room = (await self.expect(host, 'joined'))['room']
+        response = await self.client.get('/invite/' + room['id'])
+        self.assertEqual(response.status, 200)
+        self.assertIn('bunkerinvite://join/', await response.text())
+        self.assertEqual((await self.client.get('/invite/not-valid')).status, 404)
+        await guest.send_json({'type': 'join', 'room_id': room['id'], 'name': 'Guest'})
+        await self.expect(guest, 'joined')
+        await guest.send_json({'type': 'add_bot'})
+        self.assertEqual((await self.expect(guest, 'error'))['code'], 'host_only')
+        for n in range(4):
+            await host.send_json({'type': 'add_bot'})
+            while True:
+                snapshot = (await self.expect(host, 'room'))['room']
+                if snapshot['count'] == n + 3:
+                    break
+            self.assertEqual(sum(p['bot'] for p in snapshot['players']), n + 1)
+        await host.send_json({'type': 'add_bot'})
+        self.assertEqual((await self.expect(host, 'error'))['code'], 'room_full')
+        await host.send_json({'type': 'remove_bot'})
+        while (await self.expect(host, 'room'))['room']['count'] != 5:
+            pass
+        await host.send_json({'type': 'start'})
+        self.assertEqual((await self.expect(host, 'error'))['code'], 'not_enough_players')
+        await host.send_json({'type': 'add_bot'})
+        await host.send_json({'type': 'start'})
+        self.assertEqual((await self.expect(host, 'game_start'))['room']['count'], 6)
+        await host.send_json({'type': 'add_bot'})
+        self.assertEqual((await self.expect(host, 'error'))['code'], 'already_started')
+
     async def test_list_leave_validation(self):
         host = await self.connect()
         await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 7})
