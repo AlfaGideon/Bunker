@@ -346,8 +346,8 @@ func _build_ui() -> void:
 	move_stick.caption = "ДВИЖЕНИЕ"
 	root.add_child(move_stick)
 	move_stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	move_stick.offset_left = 332
-	move_stick.offset_right = 482
+	move_stick.offset_left = 380
+	move_stick.offset_right = 530
 	move_stick.offset_top = -160
 	move_stick.offset_bottom = -10
 	move_stick.visible = false
@@ -808,6 +808,9 @@ func toggle_first_person() -> void:
 	look_stick.visible = first_person
 	actors[0].get_child(0).visible = not first_person
 	actors[0].get_child(1).visible = not first_person
+	for ceiling in get_children():
+		if ceiling.has_meta("first_person_ceiling"):
+			ceiling.visible = first_person
 	if first_person:
 		if is_instance_valid(camera_tween): camera_tween.kill()
 		view_yaw = actors[0].rotation.y + PI

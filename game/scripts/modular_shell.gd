@@ -35,6 +35,11 @@ static func build(room: Node3D) -> void:
     color = {"medical": Color("4d8885"), "kitchen": Color("8b8068"), "supply": Color("70624e"), "gym": Color("536e86"), "workshop": Color("657076"), "greenhouse": Color("5d7856")}[kind]
   var floor: MeshInstance3D = room._box(Vector3(center.x, -0.2, center.y), Vector3(rect.size.x, 0.4, rect.size.y), color)
   floor.material_override = Finish.metal(color)
+  # Hidden from the overhead tactical view but encloses the first-person view.
+  var ceiling: MeshInstance3D = room._box(Vector3(center.x, 2.72, center.y), Vector3(rect.size.x, 0.14, rect.size.y), Color("273c44"))
+  ceiling.material_override = Finish.metal(Color("273c44"))
+  ceiling.visible = false
+  ceiling.set_meta("first_person_ceiling", true)
   edge(room, rect.position, Vector2.RIGHT, Vector2.UP, rect.size.x)
   edge(room, Vector2(rect.position.x, rect.end.y), Vector2.RIGHT, Vector2.DOWN, rect.size.x)
   edge(room, rect.position, Vector2.DOWN, Vector2.LEFT, rect.size.y)

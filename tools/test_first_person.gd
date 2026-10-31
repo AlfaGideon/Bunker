@@ -18,6 +18,8 @@ func run() -> void:
  check(room.first_person and room.camera == room.first_camera, "First-person camera is selected")
  check(room.move_stick.visible and room.look_stick.visible, "Both touch sticks are visible")
  check(not room.actors[0].get_child(0).visible, "Own model does not obscure the view")
+ var ceilings: Array = room.get_children().filter(func(n): return n.has_meta("first_person_ceiling"))
+ check(ceilings.size() == room.layout["floors"].size() and ceilings.all(func(n): return n.visible), "Ceilings enclose the first-person view")
  room.look_stick.value = Vector2(0.5, -0.5)
  room._tick_first_person(0.5)
  check(absf(room.view_pitch) > 0.1, "Look stick rotates perspective camera")
@@ -30,6 +32,7 @@ func run() -> void:
  check(not room.first_person and room.camera == old_camera, "Overhead camera restored")
  check(not room.move_stick.visible and not room.look_stick.visible, "Touch sticks hidden overhead")
  check(room.actors[0].get_child(0).visible, "Own model is visible overhead")
+ check(ceilings.all(func(n): return not n.visible), "Ceilings do not obstruct the overhead view")
  var count := 0
  for node in room.find_children("*", "MeshInstance3D", true, false):
   if node.has_meta("rounded_passage"): count += 1

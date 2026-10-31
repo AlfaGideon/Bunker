@@ -43,7 +43,7 @@ static func wall(room: Node3D, center: Vector2, size: Vector2) -> void:
 	var vertical := size.x < 1
 	var length: float = size.y if vertical else size.x
 	# Solid continuous backing joins the panel edges and closes visible cracks.
-	var backing: MeshInstance3D = room._box(Vector3(center.x, 1.05, center.y), Vector3(size.x + (0.12 if not vertical else 0.0), 2.1, size.y + (0.12 if vertical else 0.0)), Color("344c55"))
+	var backing: MeshInstance3D = room._box(Vector3(center.x, 1.325, center.y), Vector3(size.x + (0.12 if not vertical else 0.0), 2.65, size.y + (0.12 if vertical else 0.0)), Color("344c55"))
 	backing.material_override = metal(Color("344c55"))
 	var count := ceili(length / 1.4)
 	for i in count:
