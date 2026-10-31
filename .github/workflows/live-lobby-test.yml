@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       lobby_url:
-        description: 'Temporary public lobby HTTPS URL'
+        description: 'Public lobby HTTPS URL'
         required: true
         type: string
 permissions:
@@ -24,4 +24,4 @@ jobs:
       - run: pip install -r server/requirements.txt
       - run: python tools/test_live_lobby.py
         env:
-          LOBBY_URL: ${{ inputs.lobby_url || 'https://bunker-3jfgfu2i.back4.app' }}
+          LOBBY_URL: ${{ inputs.lobby_url || 'https://bunker-154de.containers.snapdeploy.app' }}
