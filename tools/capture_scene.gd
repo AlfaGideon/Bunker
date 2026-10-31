@@ -1,5 +1,7 @@
 extends SceneTree
 
+const Art = preload("res://game/scripts/profession_art.gd")
+
 
 func _initialize() -> void:
 	call_deferred("capture")
@@ -113,10 +115,60 @@ func capture() -> void:
 		room.camera.position = focus + Vector3(7, 9, 13)
 		room.camera.look_at(focus)
 		shot_prefix = "METEORDETAILSHOT"
+	if args.has("--hud-front"):
+		room.table_card.set_side(false, false)
+		shot_prefix = "HUDFRONTSHOT"
 	if args.has("--negative-actions"):
 		room.NegativeActions.quality_card(room.players[0])["value"] = "Вспыльчивый"
 		room.menu.show_negative_actions()
 		shot_prefix = "NEGATIVEACTIONSHOT"
+	if args.has("--card-front") or args.has("--card-back") or args.has("--card-own"):
+		room.menu.visible = false
+		room.phase = "discussion"
+		room._refresh()
+		var look_index := 1
+		# Prefer a character whose profession already has an individual portrait,
+		# so the documentation shows the current art rather than only fallbacks.
+		var illustrated := false
+		for i in range(1, room.players.size()):
+			for card in room.players[i]["cards"]:
+				if str(card.get("id", "")) == "profession" and Art.PORTRAITS.has(str(card["value"])):
+					look_index = i
+					illustrated = true
+					break
+			if illustrated:
+				break
+		var published = room.Content.random_hidden_card(room.players[look_index])
+		if not published.is_empty():
+			room._reveal_card(look_index, published)
+		room.open_character_card(look_index)
+		room.character_card.show_for(look_index, false)
+		if args.has("--card-own"):
+			room.phase = "reveal"
+			room.speech.start(room.active)
+			room.speech.index = 0
+			room.speech.revealed = false
+			room.open_character_card(0)
+			room.character_card.show_for(0, false)
+			shot_prefix = "CARDOWNSHOT"
+		elif args.has("--card-back"):
+			room.character_card.set_side(true, false)
+			shot_prefix = "CARDBACKSHOT"
+		else:
+			shot_prefix = "CARDFRONTSHOT"
+	if args.has("--radio"):
+		room.menu.visible = false
+		# A specialist on duty so the beacon is unlocked in the documentation.
+		room.players[0]["cards"][0]["value"] = "Связист"
+		room.radio.power(true)
+		room.radio.tune("bunkers")
+		room.apply_radio_audio()
+		for step in 3:
+			room.radio.tick(60.0)
+		room.radio.tune("aurora")
+		room.apply_radio_audio()
+		room.radio_panel.open()
+		shot_prefix = "RADIOSHOT"
 	for i in 15:
 		await process_frame
 	if is_instance_valid(room.weather.meteor_field):
@@ -142,7 +194,7 @@ func capture() -> void:
 			print("::error::Letterboxed logical canvas: " + str(logical))
 			quit(1)
 			return
-	var width := 800 if args.has("--characters") or args.has("--meteor-detail") or args.has("--infection-detail") else 640
+	var width := 800 if args.has("--characters") or args.has("--meteor-detail") or args.has("--infection-detail") or shot_prefix.begins_with("CARD") or shot_prefix.begins_with("HUD") or shot_prefix.begins_with("RADIO") or args.has("--hud") else 640
 	image.resize(width, roundi(image.get_height() * float(width) / image.get_width()))
 	DirAccess.make_dir_recursive_absolute("res://builds")
 	var bytes := image.save_jpg_to_buffer(0.6)
@@ -164,7 +216,7 @@ func capture() -> void:
 	var encoded := Marshalls.raw_to_base64(bytes)
 	var chunks := ceili(encoded.length() / 3500.0)
 	for index in chunks:
-		var prefix := "MENUSHOT" if show_menu else ("SURVIVALSHOT" if show_survival else ("WIDESHOT" if OS.get_cmdline_user_args().has("--wide") else "SCREENSHOT"))
+		var prefix := "MENUSHOT" if show_menu else ("SURVIVALSHOT" if show_survival else ("HUDSHOT" if OS.get_cmdline_user_args().has("--hud") else ("WIDESHOT" if OS.get_cmdline_user_args().has("--wide") else "SCREENSHOT")))
 		if not shot_prefix.is_empty():
 			prefix = shot_prefix
 		print("::notice::" + prefix + "_%02d:" % index + encoded.substr(index * 3500, 3500))

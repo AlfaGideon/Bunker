@@ -21,9 +21,15 @@ const Navigation = preload("res://game/scripts/room_navigation.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const SurvivorVisual = preload("res://game/scripts/survivor_visual.gd")
 const VoteRules = preload("res://game/scripts/vote_rules.gd")
+const CharacterCard = preload("res://game/scripts/character_card.gd")
+const TableCard = preload("res://game/scripts/table_card.gd")
+const TurnPanel = preload("res://game/scripts/turn_panel.gd")
+const Radio = preload("res://game/scripts/radio_receiver.gd")
+const RadioPanel = preload("res://game/scripts/radio_panel.gd")
 ## Local visual prototype. All dossier data is local; no online privacy is provided.
 
 var speech := Speech.new()
+var radio := Radio.new()
 var discussion_remaining := 0.0
 var vote_remaining := 0.0
 var vote_second := false
@@ -70,13 +76,17 @@ var active: Array[int] = []
 var capacity := 4
 var profile := Profile.new()
 var menu: Control
+var character_card
+var table_card
+var turn_panel: Control
+var speaker_ring: MeshInstance3D
+var radio_panel: Control
 var sun: DirectionalLight3D
 var departures: Dictionary = {}
 var selected := 0
 var round_number := 1
 var phase := "reveal"
 var camera: Camera3D
-var detail: Deck
 var status_label: Label
 var log_label: Label
 var phase_label: Label
@@ -122,10 +132,13 @@ func _ready() -> void:
 	audio = BunkerAudio.new()
 	add_child(audio)
 	audio.setup(self, layout["items"]["radio"]["at"])
-	audio.radio_message.connect(_on_radio_message)
+	audio.speech_unavailable.connect(_on_speech_unavailable)
 	_build_ui()
 	original_camera = camera.transform
 	apply_settings()
+	selected = maxi(0, speech.speaker())
+	if is_instance_valid(table_card):
+		table_card.show_for(selected, false, false)
 	_refresh()
 	get_viewport().size_changed.connect(_frame_camera)
 	if get_tree().has_meta("start_game"):
@@ -215,6 +228,19 @@ func _build_world() -> void:
 	marker.material_override = _material(Color("73dfc5"))
 	marker.visible = false
 	add_child(marker)
+	speaker_ring = MeshInstance3D.new()
+	var halo := TorusMesh.new()
+	halo.inner_radius = 0.52
+	halo.outer_radius = 0.62
+	speaker_ring.mesh = halo
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = Color("f6e0b4")
+	glow.emission_enabled = true
+	glow.emission = Color("f7d9a0")
+	glow.emission_energy_multiplier = 1.8
+	speaker_ring.material_override = glow
+	speaker_ring.visible = false
+	add_child(speaker_ring)
 	var positions := [Vector3(-2.5, 0, 1.8), Vector3(2.5, 0, 1.8),
 		Vector3(-2.5, 0, -1.5), Vector3(2.5, 0, -1.5),
 		Vector3(-3.8, 0, 0), Vector3(3.8, 0, 0), Vector3(0, 0, 2.7),
@@ -298,82 +324,48 @@ func _build_ui() -> void:
 	root.theme = theme
 	var header := VBoxContainer.new()
 	header.position = Vector2(24, 18)
-	header.size = Vector2(590, 140)
+	header.size = Vector2(590, 120)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(header)
 	header.add_child(_label("Б У Н К Е Р  /  ПОСЛЕДНИЙ ШЛЮЗ", 25))
 	header.add_child(_label("ЛОКАЛЬНЫЙ ПРОТОТИП • НЕ СЕТЕВАЯ ИГРА", 15))
 	phase_label = _label("", 20)
 	header.add_child(phase_label)
-	menu_button = _button("☰", func(): menu.home(), root)
-	menu_button.tooltip_text = "Меню / пауза"
-	menu_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	menu_button.offset_left = -438
-	menu_button.offset_right = -382
-	menu_button.offset_top = 16
-	menu_button.offset_bottom = 68
-	var panel := PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
-	panel.offset_left = -370
-	panel.offset_top = 16
-	panel.offset_right = -16
-	panel.offset_bottom = -16
-	root.add_child(panel)
-	var margin := MarginContainer.new()
-	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 16)
-	panel.add_child(margin)
-	var shell := VBoxContainer.new()
-	shell.add_theme_constant_override("separation", 7)
-	margin.add_child(shell)
-	shell.add_child(_label(scenario["title"], 21))
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 8)
-	shell.add_child(actions)
-	var facilities := _button("Помещения", func(): menu.show_facility(), actions)
-	facilities.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var negative := _button("Действия", func(): menu.show_negative_actions(), actions)
-	negative.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var roster := Choice.new()
-	for i in players.size():
-		roster.add_item(players[i]["name"] + (" — вы" if i == 0 else ""), i)
-	roster.item_selected.connect(func(index: int):
-		selected = index
-		detail.page_index = 0
-		_refresh())
-	shell.add_child(roster)
-	detail = Deck.new()
-	detail.columns = 1
-	detail.page_height = 170
-	shell.add_child(detail)
-	status_label = _label("", 16)
-	shell.add_child(status_label)
-	_button("Следующий этап →", _advance, shell)
-	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 15)
+
+	# The whole right-hand menu is replaced by one card on the table.
+	table_card = TableCard.new()
+	root.add_child(table_card)
+	table_card.setup(self)
+	table_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	table_card.offset_left = -356
+	table_card.offset_right = -16
+	table_card.offset_top = -250
+	table_card.offset_bottom = 250
+	table_card.expand_requested.connect(func(): open_character_card(selected))
+
+	turn_panel = TurnPanel.new()
+	root.add_child(turn_panel)
+	turn_panel.setup(self)
+	turn_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	turn_panel.offset_left = 16
+	turn_panel.offset_right = 16 + TurnPanel.PANEL_WIDTH
+	turn_panel.offset_top = -276
+	turn_panel.offset_bottom = -16
+	menu_button = turn_panel.menu_button
+	status_label = turn_panel.status_label
+	speech_label = turn_panel.speaker_label
+	ability_buttons = turn_panel.ability_buttons
+
+	log_label = _label("Профессия открыта. Раскройте ещё одну характеристику замком в её карточке.", 13)
 	log_label.max_lines_visible = 4
-	shell.add_child(log_label)
-	var hint := _label("Касание — идти; свайп — камера; два пальца — масштаб.\nТерминал и аптечка: подойдите и коснитесь предмета.", 16)
-	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	hint.position = Vector2(24, -75)
-	hint.size = Vector2(560, 60)
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(hint)
-	var left_panel := PanelContainer.new()
-	left_panel.position = Vector2(20, 130)
-	root.add_child(left_panel)
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 245
-	left.size.x = 245
-	left.add_theme_constant_override("separation", 8)
-	left_panel.add_child(left)
-	for slot in 2:
-		var number: int = slot
-		var button := _button("", func(): use_ability(number), left)
-		ability_buttons.append(button)
-	speech_label = _label("", 17)
-	left.add_child(speech_label)
-	_button("Передать ход / пропустить", pass_speech, left)
-	_button("Совет: доступ к складу", func(): menu.show_council(), left)
-	_button("Общий вид бункера", _frame_camera, left)
+	log_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	log_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	log_label.offset_left = 400
+	log_label.offset_right = -400
+	log_label.offset_top = -58
+	log_label.offset_bottom = -14
+	root.add_child(log_label)
+
 	menu = Menu.new()
 	root.add_child(menu)
 	menu.setup(self, profile)
@@ -383,41 +375,78 @@ func _build_ui() -> void:
 	vote_panel = preload("res://game/scripts/vote_panel.gd").new()
 	root.add_child(vote_panel)
 	vote_panel.setup(self)
+	character_card = CharacterCard.new()
+	root.add_child(character_card)
+	character_card.setup(self)
+	character_card.player_changed.connect(func(index: int):
+		selected = index
+		_sync_table_card()
+		_refresh())
+	character_card.reveal_requested.connect(func(id: String):
+		if reveal_parameter(id):
+			character_card.refresh())
+	radio_panel = RadioPanel.new()
+	root.add_child(radio_panel)
+	radio_panel.setup(self)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 
 
 func _refresh() -> void:
 	_refresh_left()
-	var dossier_page := detail.page_index
-	detail.clear_cards()
+	if is_instance_valid(radio_panel) and radio_panel.visible:
+		radio_panel.refresh()
+	if is_instance_valid(character_card) and character_card.visible:
+		character_card.refresh()
+	if is_instance_valid(table_card):
+		table_card.refresh()
 	var names := {"reveal": "Раскрытие", "discussion": "Обсуждение", "vote": "Голосование", "result": "Результат", "end": "Итог"}
 	phase_label.text = "РАУНД %d  /  %s" % [round_number, names[phase]]
-	status_label.text = "В бункере: %d • Мест: %d • Раунд: %d/%d" % [active.size(), capacity, round_number, players.size() - capacity]
-	for c in players[selected]["cards"]:
-		var card: Dictionary = c
-		var frame := PanelContainer.new()
-		frame.add_theme_stylebox_override("panel", Cards.panel())
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		frame.add_child(row)
-		var value := _label(card["label"] + "\n" + card_value_for(selected, card, 0), 16)
-		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(value)
-		frame.custom_minimum_size.y = maxf(76, 24 + ceili(float(value.text.length()) / 23) * 20)
-		var lock := RevealLock.new()
-		lock.parameter_id = card["id"]
-		lock.is_public = card["revealed"]
-		lock.disabled = selected != 0 or card["revealed"] or not can_reveal_parameter()
-		lock.tooltip_text = "Открыто всем" if card["revealed"] else "Раскрыть в свой ход • таймер не меняется"
-		lock.pressed.connect(func(): reveal_parameter(card["id"]))
-		row.add_child(lock)
-		detail.add_card(frame)
-		if card["id"] == "health" and (selected == 0 or card["revealed"]):
-			detail.add_info("Нагрузка на группу: " + Supplies.cost_text(card.get("cost", {})), 16)
-	detail.page_index = dossier_page
-	if not active.has(selected):
-		detail.add_info("Наблюдатель — больше не участвует в голосовании.")
+	_update_speaker_glow()
+
+
+func _sync_table_card() -> void:
+	if is_instance_valid(table_card):
+		table_card.show_for(selected, false, true)
+
+
+# A tap on a survivor only switches the table card; the full dossier opens
+# from the card itself.
+func select_player(player_index: int) -> void:
+	if players.is_empty():
+		return
+	selected = clampi(player_index, 0, players.size() - 1)
+	if is_instance_valid(table_card):
+		table_card.show_for(selected)
+	_refresh()
+
+
+func open_character_card(player_index: int) -> void:
+	if players.is_empty():
+		return
+	selected = clampi(player_index, 0, players.size() - 1)
+	_sync_table_card()
+	_refresh()
+	if is_instance_valid(character_card):
+		character_card.show_for(selected)
+
+
+func _actor_at_screen(point: Vector2) -> int:
+	if camera == null:
+		return -1
+	var limit := 0.58 * get_viewport().get_visible_rect().size.y / maxf(camera.size, 1.0)
+	var best := -1
+	var best_distance := limit
+	for i in actors.size():
+		var actor: Node3D = actors[i]
+		if not is_instance_valid(actor) or not actor.is_visible_in_tree():
+			continue
+		var screen_point := camera.unproject_position(actor.global_position + Vector3(0, 0.85, 0))
+		var distance := screen_point.distance_to(point)
+		if distance <= best_distance:
+			best = i
+			best_distance = distance
+	return best
 
 
 func can_reveal_parameter() -> bool:
@@ -627,6 +656,20 @@ func _eliminate(eliminated: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(character_card) and character_card.visible:
+		if event is InputEventKey and event.pressed and not event.echo:
+			match event.keycode:
+				KEY_ESCAPE:
+					character_card.close()
+				KEY_LEFT:
+					character_card.step(-1)
+				KEY_RIGHT:
+					character_card.step(1)
+				KEY_SPACE, KEY_F:
+					character_card.set_side(not character_card.showing_back)
+			get_viewport().set_input_as_handled()
+		camera_gestures.reset()
+		return
 	if is_instance_valid(vote_panel) and vote_panel.visible:
 		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -637,7 +680,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			menu.home()
 		return
-	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible):
 		camera_gestures.reset()
 		return
 	# Native ScreenTouch may reach unhandled input before its emulated mouse
@@ -652,7 +695,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(menu) or not is_instance_valid(survival_panel):
 		return
-	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible):
+	if menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible):
 		camera_gestures.reset()
 		return
 	# Starts reach us only after GUI handling; continuations remain captured
@@ -685,6 +728,10 @@ func _tap_world(point: Vector2) -> void:
 	if not nearest_item.is_empty():
 		request_interaction(nearest_item)
 		return
+	var tapped_actor := _actor_at_screen(point)
+	if tapped_actor >= 0:
+		select_player(tapped_actor)
+		return
 	var hit = Plane(Vector3.UP, 0).intersects_ray(camera.project_ray_origin(point), camera.project_ray_normal(point))
 	if hit == null:
 		return
@@ -704,9 +751,12 @@ func _set_route(destination: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if actors.is_empty() or menu.visible or survival_panel.visible:
+	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(character_card) and character_card.visible) or (is_instance_valid(radio_panel) and radio_panel.visible):
 		return
 	tick_round_timer(delta)
+	_tick_radio(delta)
+	if is_instance_valid(speaker_ring) and speaker_ring.visible:
+		_update_speaker_glow()
 	if started and phase == "reveal":
 		if speech.tick(delta):
 			_begin_speaker()
@@ -772,6 +822,9 @@ func _physics_process(delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and camera_gestures != null:
 		camera_gestures.reset()
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(character_card) and character_card.visible:
+		character_card.close()
+		return
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(menu) and not (is_instance_valid(survival_panel) and survival_panel.visible):
 		menu.home()
 
@@ -807,6 +860,10 @@ func begin_game() -> void:
 		return
 	started = true
 	audio.begin()
+	# The cabinet wakes up on the surviving civil station: quiet music, no news.
+	radio.power(true)
+	radio.tune("aurora")
+	apply_radio_audio()
 	menu.briefing()
 	_narrate_intro()
 
@@ -819,10 +876,9 @@ func _narrate_intro() -> void:
 			menu.briefing(false)
 
 
-func _on_radio_message(text: String, status: String) -> void:
-	log_label.text = text
-	if not status.is_empty() and status != "Сообщение озвучивается.":
-		log_label.text += "\n" + status
+func _on_speech_unavailable(message: String) -> void:
+	if is_instance_valid(log_label):
+		log_label.text += "\n" + message
 
 
 func _active_doctor() -> bool:
@@ -929,9 +985,11 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 				log_label.text = scenario["repair"] + " " + medical_status()
 				_update_medical_access()
 		"radio":
-			audio.toggle_radio()
-			if not audio.radio_on:
-				log_label.text = "Радио выключено."
+			if radio_panel.visible:
+				radio_panel.close()
+			else:
+				radio_panel.open()
+			log_label.text = "Приёмник: три станции, эфир других бункеров и маяк 1180."
 		"bed", "bed2":
 			if used_actions.get("rest", 0) == round_number:
 				log_label.text = "В этом раунде вы уже отдыхали."
@@ -988,6 +1046,81 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 				medicines -= 1
 				stamina = mini(100, stamina + (5 if supplies.shortage else 15))
 				log_label.text = "Осмотр выполнен, бодрость +%d. Закрытые характеристики не раскрываются. " % (5 if supplies.shortage else 15) + medical_status()
+
+
+func _tick_radio(delta: float) -> void:
+	if not started or finished or radio == null:
+		return
+	var arrival: Dictionary = radio.tick(delta)
+	if arrival.is_empty():
+		return
+	log_label.text = "ЭФИР · " + str(arrival["from"]) + ": " + str(arrival["text"])
+	audio.say_radio(str(arrival["from"]) + ". " + str(arrival["text"]))
+	if is_instance_valid(radio_panel) and radio_panel.visible:
+		radio_panel.refresh()
+
+
+## Pushes the tuned station into the three cabinet players.
+func apply_radio_audio() -> void:
+	if audio == null or radio == null:
+		return
+	audio.play_station(radio.kind(), radio.track_index)
+
+
+func open_radio() -> void:
+	if is_instance_valid(radio_panel):
+		radio_panel.open()
+
+
+func can_scan_radio() -> bool:
+	for id in active:
+		if id >= 0 and id < players.size() and Professions.radio_operator(players[id]):
+			return true
+	return false
+
+
+func radio_operator_name() -> String:
+	for id in active:
+		if id >= 0 and id < players.size() and Professions.radio_operator(players[id]):
+			return players[id]["name"] + " — " + Professions.profession(players[id])
+	return ""
+
+
+## Reads the hidden beacon. Only a radio specialist can decode it, once per round.
+func scan_radio() -> bool:
+	if radio == null:
+		return false
+	if not can_scan_radio():
+		log_label.text = "Маяк 1180 разбирает только связист или радиотехник."
+		return false
+	if not radio.powered or radio.kind() != "signal":
+		log_label.text = "Сначала настройтесь на маяк 1180."
+		return false
+	var result: Dictionary = radio.scan(round_number)
+	if not bool(result.get("ok", false)):
+		match str(result.get("reason", "")):
+			"cooldown":
+				log_label.text = "Маяк уже прочитан в этом раунде. Вернитесь в следующем."
+			"exhausted":
+				log_label.text = "Все передачи маяка прочитаны."
+			_:
+				log_label.text = "Эфир пуст."
+		return false
+	var headline: String = str(result["title"]) + ": " + str(result["text"])
+	match str(result.get("effect", "")):
+		"supplies":
+			supplies.stock["filters"] += 3
+			supplies.stock["food"] += 4
+			log_label.text = headline + " Получено 3 фильтра и 4 рациона."
+		"stamina":
+			stamina = mini(100, stamina + 15)
+			log_label.text = headline + " Бодрость +15."
+		_:
+			log_label.text = headline
+	audio.blip("click")
+	audio.say_radio(headline)
+	_refresh()
+	return true
 
 
 func _tick_rest(delta: float) -> void:
@@ -1092,18 +1225,8 @@ func focus_module(kind: String) -> void:
 
 
 func _refresh_left() -> void:
-	if not is_instance_valid(speech_label):
-		return
-	for slot in 2:
-		ability_buttons[slot].text = "%d. %s%s" % [slot + 1, Abilities.NAMES[abilities.cards[slot]], " • использована" if abilities.used[slot] else ""]
-		ability_buttons[slot].disabled = abilities.used[slot] or not active.has(0) or phase in ["vote", "end"]
-	if phase == "discussion":
-		speech_label.text = "Общее обсуждение\nОсталось %d сек.\nЗатем голосование." % ceili(discussion_remaining)
-		return
-	if phase == "vote":
-		speech_label.text = "Голосование\nОсталось %d сек." % ceili(vote_remaining)
-		return
-	speech_label.text = ("Речь: %s\nОсталось %d сек.\nРаскройте карту, объясните выбор и передайте ход. Меню = пауза." % [players[speech.speaker()]["name"], ceili(speech.remaining)]) if phase == "reveal" and not speech.finished else "Выступления завершены."
+	if is_instance_valid(turn_panel):
+		turn_panel.refresh()
 
 
 func use_ability(slot: int) -> void:
@@ -1130,6 +1253,8 @@ func _begin_speaker() -> void:
 		log_label.text = "Общее обсуждение: 60 секунд, затем голосование начнётся автоматически."
 	else:
 		selected = speech.speaker()
+		if is_instance_valid(table_card):
+			table_card.show_for(selected, true, false)
 		if selected != 0:
 			var card := Content.random_hidden_card(players[selected])
 			if not card.is_empty():
@@ -1137,6 +1262,23 @@ func _begin_speaker() -> void:
 				speech.revealed = true
 		log_label.text = "Ход: " + players[selected]["name"] + (". Тестовый участник: карта открыта, речь не генерируется; можно пропустить." if selected != 0 else ". Раскройте одну карту и объясните решение.")
 	_refresh()
+
+
+func _update_speaker_glow() -> void:
+	if not is_instance_valid(speaker_ring) or actors.size() != players.size():
+		return
+	var who := speech.speaker() if phase == "reveal" and not speech.finished else -1
+	var lit := who >= 0 and active.has(who) and is_instance_valid(actors[who])
+	speaker_ring.visible = lit
+	if lit:
+		speaker_ring.position = actors[who].position + Vector3(0, 0.04, 0)
+	for i in actors.size():
+		if not is_instance_valid(actors[i]) or actors[i].get_child_count() < 2:
+			continue
+		var tag: Label3D = actors[i].get_child(1)
+		if tag is Label3D and active.has(i):
+			tag.modulate = Color("f9e4b6") if i == who else Color("b7ccd0")
+			tag.font_size = 30 if i == who else 26
 
 
 func vote_warehouse(voter: int, open_vote: bool) -> void:

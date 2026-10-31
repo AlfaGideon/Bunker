@@ -131,11 +131,13 @@ func run() -> void:
 		room._update_medical_access()
 		check(not room.medical_open and not room.navigation.is_walkable(room.layout["items"]["medical"]["goal"]), "Medical closes without doctor")
 		walk(room, "radio")
-		check(room.audio.radio_on and room.audio.radio.playing, "Radio plays local loop")
+		check(room.radio_panel.visible, "Receiver opens the station panel")
+		room.radio_panel.power_button.pressed.emit()
+		check(room.audio.radio_on and room.audio.radio.playing, "Radio plays the music station")
 		check(room.audio.radio.volume_db >= -10 and room.audio.effect.volume_db >= -8, "Audible prototype mix gains")
 		check(room.audio.radio.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "Radio loops")
-		walk(room, "radio")
-		check(not room.audio.radio_on, "Radio toggles off")
+		room.radio_panel.close()
+		check(not room.radio_panel.visible, "Receiver closes back to the game")
 		room.profile.narration = true
 		if not DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
 			check(not room.audio.narrate() and not room.audio.narration_status.is_empty(), "Explicit unavailable native speech fallback")
