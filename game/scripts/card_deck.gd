@@ -16,6 +16,8 @@ var queued := false
 
 func _init() -> void:
  add_theme_constant_override("separation", 10)
+ # Never let a tall page spill past the menu panel or under the navigation row.
+ clip_contents = true
  size_flags_horizontal = Control.SIZE_EXPAND_FILL
  grid = GridContainer.new()
  grid.columns = columns

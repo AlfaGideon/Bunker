@@ -22,7 +22,7 @@ static func generate(seed_value: int, capacity: int = 4) -> Dictionary:
  var table := Vector3(0.3, 0, 0)
  var items := {
   "terminal": {"title": "Терминал — восстановить систему", "at": Vector3(3, 1, -3.5), "goal": Vector3(3, 0, -2.3)},
-  "radio": {"title": "Радио — включить / выключить", "at": table + Vector3(-0.7, 1.05, 0), "goal": table + Vector3(-0.7, 0, 1.6)},
+  "radio": {"title": "Радио — приёмник и эфир", "at": table + Vector3(-0.7, 1.05, 0), "goal": table + Vector3(-0.7, 0, 1.6)},
   "food": {"title": "Общий стол — поесть", "at": table + Vector3(0.7, 1, 0), "goal": table + Vector3(0.7, 0, 1.6)}
  }
  var blockers: Array[Rect2] = [Rect2(-1.65, -1.25, 3.9, 2.5), Rect2(2.2, -4.2, 1.6, 1.4)]

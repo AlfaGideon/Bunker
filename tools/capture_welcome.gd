@@ -26,16 +26,18 @@ func capture() -> void:
   welcome.edit_profile()
  if OS.get_cmdline_user_args().has("--settings"):
   welcome.settings()
- if OS.get_cmdline_user_args().has("--library") or OS.get_cmdline_user_args().has("--library-form"):
+ if OS.get_cmdline_user_args().has("--library") or OS.get_cmdline_user_args().has("--library-form") or OS.get_cmdline_user_args().has("--library-professions"):
   welcome.settings()
   welcome.open_library()
   if OS.get_cmdline_user_args().has("--library-form"):
    welcome.library_editor.key = "health"
    welcome.library_editor.show_form(-1)
+  if OS.get_cmdline_user_args().has("--library-professions"):
+   welcome.library_editor.show_professions()
  for frame in 25:
   await process_frame
  await create_timer(0.9).timeout
- if OS.get_cmdline_user_args().has("--library-form"):
+ if OS.get_cmdline_user_args().has("--library-form") or OS.get_cmdline_user_args().has("--library-professions"):
   for page in welcome.column.pages.size():
    welcome.column.page_index = page
    welcome.column.rebuild()
@@ -57,6 +59,9 @@ func capture() -> void:
   bytes = image.save_jpg_to_buffer(0.3)
  if bytes.size() > 22000:
   bytes = image.save_jpg_to_buffer(0.15)
+ DirAccess.make_dir_recursive_absolute("res://builds")
+ var file := FileAccess.open("res://builds/scene.jpg", FileAccess.WRITE)
+ file.store_buffer(bytes)
  var encoded := Marshalls.raw_to_base64(bytes)
  var prefix := "WELCOMEAVATARSHOT" if OS.get_cmdline_user_args().has("--female") else "MENUSHOT"
  if OS.get_cmdline_user_args().has("--profile"):
@@ -69,6 +74,10 @@ func capture() -> void:
   prefix = "LIBRARYSHOT"
  if OS.get_cmdline_user_args().has("--library-form"):
   prefix = "LIBFORMHOTSHOT"
+ if OS.get_cmdline_user_args().has("--library-professions"):
+  prefix = "LIBPROFSHOT"
+ if OS.get_cmdline_user_args().has("--camp-radio"):
+  prefix = "CAMPRADIOSHOT"
  if not skin.is_empty():
   prefix = "SKIN" + skin.replace("_", "").to_upper() + "SHOT"
  for index in ceili(encoded.length() / 3500.0):

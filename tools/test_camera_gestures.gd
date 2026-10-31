@@ -66,16 +66,17 @@ func run() -> void:
  # Local viewport coordinates: headless has a 64px physical window, so
  # Input.parse_input_event would multiply these logical coordinates by 20.
  # Dispatch through GUI normally, without applying physical stretch twice.
+ var hud_point: Vector2 = room.turn_panel.get_global_rect().get_center()
  var event := InputEventScreenTouch.new()
  event.index = 4
- event.position = Vector2(root.get_visible_rect().size.x - 60, 70)
+ event.position = hud_point
  event.pressed = true
  root.push_input(event, true)
  await process_frame
  check(controller.fingers.is_empty(), "Touch over HUD stays in GUI")
  event = InputEventScreenTouch.new()
  event.index = 4
- event.position = Vector2(root.get_visible_rect().size.x - 60, 70)
+ event.position = hud_point
  event.pressed = false
  root.push_input(event, true)
  await process_frame
