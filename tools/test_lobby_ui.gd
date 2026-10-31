@@ -28,6 +28,21 @@ func run() -> void:
   if node.text == "НАЧАТЬ ИГРУ":
    disabled = node.disabled
  check(disabled, "Incomplete online game cannot be started")
+ var bots: Array = [{"id": "one", "name": "Me", "bot": false}]
+ for i in 5:
+  bots.append({"id": "bot-" + str(i), "name": "Бот " + str(i + 1), "skin": "male", "bot": true})
+ welcome.lobby_room = {"host_id": "one", "count": 6, "capacity": 6, "players": bots}
+ welcome._lobby_room_page()
+ await process_frame
+ for node in welcome.find_children("*", "Button", true, false):
+  if node.text == "НАЧАТЬ ИГРУ" and not node.is_queued_for_deletion():
+   check(not node.disabled, "Full host-only bot test can start")
+ bots[1]["bot"] = false
+ welcome._lobby_room_page()
+ await process_frame
+ for node in welcome.find_children("*", "Button", true, false):
+  if node.text == "НАЧАТЬ ИГРУ" and not node.is_queued_for_deletion():
+   check(node.disabled, "Real guest cannot be presented as a local bot test")
  welcome.home()
  check(welcome.lobby_actors.is_empty(), "Leaving removes remote avatars")
  welcome.queue_free()
