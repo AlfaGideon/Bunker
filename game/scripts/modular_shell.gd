@@ -56,9 +56,18 @@ static func build(room: Node3D) -> void:
   if kind == "medical":
    room.med_light = light
    light.light_energy = 0
-  # Doorframes and light strips make each connecting neck visible.
+  # Rounded pressure-door surround: the centre remains open for navigation.
   var horizontal: bool = module["horizontal"]
-  for sign_value in [-1.0, 1.0]:
-   var offset := Vector3(0, 0, sign_value * 1.12) if horizontal else Vector3(sign_value * 1.12, 0, 0)
-   room._box(gate + offset - Vector3(0, 0.3, 0), Vector3(0.18, 1.4, 0.18), Color("9cbbc4"))
-  Finish.glow(room, gate + Vector3(0, 0.48, 0), Vector3(0.18, 0.1, 2.4) if horizontal else Vector3(2.4, 0.1, 0.18), Color("a6d7e2"))
+  var ring := MeshInstance3D.new()
+  var torus := TorusMesh.new()
+  torus.inner_radius = 1.10
+  torus.outer_radius = 1.23
+  torus.rings = 40
+  torus.ring_segments = 10
+  ring.mesh = torus
+  ring.position = Vector3(gate.x, 1.13, gate.z)
+  ring.rotation.z = PI / 2 if horizontal else 0.0
+  ring.rotation.x = 0.0 if horizontal else PI / 2
+  ring.material_override = room._material(Color("91aeb7"))
+  ring.name = "RoundedPassageFrame"
+  room.add_child(ring)

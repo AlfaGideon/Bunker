@@ -87,6 +87,15 @@ var selected := 0
 var round_number := 1
 var phase := "reveal"
 var camera: Camera3D
+var top_camera: Camera3D
+var first_camera: Camera3D
+var first_person := false
+var view_yaw := 0.0
+var view_pitch := 0.0
+var first_previous_position := Vector3.ZERO
+var move_stick: Control
+var look_stick: Control
+var view_button: Button
 var status_label: Label
 var log_label: Label
 var phase_label: Label
@@ -216,6 +225,11 @@ func _build_world() -> void:
 	add_child(camera)
 	camera.look_at(Vector3(1.8, 0, 0))
 	camera.current = true
+	top_camera = camera
+	first_camera = Camera3D.new()
+	first_camera.fov = 75.0
+	first_camera.near = 0.06
+	add_child(first_camera)
 	Surroundings.build(self)
 	weather = Weather.new()
 	add_child(weather)
@@ -322,6 +336,30 @@ func _build_ui() -> void:
 		style.content_margin_right = 10
 		theme.set_stylebox(state, "Button", style)
 	root.theme = theme
+	view_button = _button("ВИД ОТ ПЕРВОГО ЛИЦА", toggle_first_person, root)
+	view_button.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	view_button.offset_left = -125
+	view_button.offset_right = 125
+	view_button.offset_top = 12
+	view_button.offset_bottom = 62
+	move_stick = preload("res://game/scripts/virtual_joystick.gd").new()
+	move_stick.caption = "ДВИЖЕНИЕ"
+	root.add_child(move_stick)
+	move_stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	move_stick.offset_left = 332
+	move_stick.offset_right = 482
+	move_stick.offset_top = -160
+	move_stick.offset_bottom = -10
+	move_stick.visible = false
+	look_stick = preload("res://game/scripts/virtual_joystick.gd").new()
+	look_stick.caption = "ОБЗОР"
+	root.add_child(look_stick)
+	look_stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	look_stick.offset_left = -510
+	look_stick.offset_right = -360
+	look_stick.offset_top = -160
+	look_stick.offset_bottom = -10
+	look_stick.visible = false
 	var header := VBoxContainer.new()
 	header.position = Vector2(24, 18)
 	header.size = Vector2(590, 120)
@@ -434,12 +472,12 @@ func open_character_card(player_index: int) -> void:
 func _actor_at_screen(point: Vector2) -> int:
 	if camera == null:
 		return -1
-	var limit := 0.58 * get_viewport().get_visible_rect().size.y / maxf(camera.size, 1.0)
+	var limit := 80.0 if first_person else 0.58 * get_viewport().get_visible_rect().size.y / maxf(camera.size, 1.0)
 	var best := -1
 	var best_distance := limit
 	for i in actors.size():
 		var actor: Node3D = actors[i]
-		if not is_instance_valid(actor) or not actor.is_visible_in_tree():
+		if not is_instance_valid(actor) or not actor.is_visible_in_tree() or (first_person and (i == 0 or camera.is_position_behind(actor.global_position + Vector3(0, 0.85, 0)))):
 			continue
 		var screen_point := camera.unproject_position(actor.global_position + Vector3(0, 0.85, 0))
 		var distance := screen_point.distance_to(point)
@@ -617,6 +655,8 @@ func _eliminate(eliminated: int) -> void:
 	if is_instance_valid(vote_panel):
 		vote_panel.visible = false
 	if eliminated == 0:
+		if first_person:
+			toggle_first_person()
 		if rest_remaining > 0:
 			rest_remaining = 0
 			actors[0].position = rest_return
@@ -705,6 +745,13 @@ func _input(event: InputEvent) -> void:
 
 
 func _apply_camera_event(event: InputEvent) -> void:
+	if first_person:
+		# A short tap still selects a survivor or interacts with an item.
+		if event is InputEventScreenTouch and not event.pressed:
+			_tap_world(event.position)
+		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_tap_world(event.position)
+		return
 	var result: Dictionary = camera_gestures.handle(event)
 	if result["handled"]:
 		get_viewport().set_input_as_handled()
@@ -721,6 +768,8 @@ func _tap_world(point: Vector2) -> void:
 		if key == "medical" and not medical_open:
 			continue
 		var point_3d: Vector3 = layout["items"][key]["at"]
+		if first_person and camera.is_position_behind(point_3d):
+			continue
 		var distance := camera.unproject_position(point_3d).distance_to(point)
 		if distance < nearest_distance:
 			nearest_item = key
@@ -732,6 +781,8 @@ func _tap_world(point: Vector2) -> void:
 	if tapped_actor >= 0:
 		select_player(tapped_actor)
 		return
+	if first_person:
+		return
 	var hit = Plane(Vector3.UP, 0).intersects_ray(camera.project_ray_origin(point), camera.project_ray_normal(point))
 	if hit == null:
 		return
@@ -740,6 +791,62 @@ func _tap_world(point: Vector2) -> void:
 		return
 	pending_inspection = ""
 	_set_route(hit)
+
+
+func toggle_first_person() -> void:
+	if not active.has(0):
+		return
+	first_person = not first_person
+	camera_gestures.reset()
+	route.clear()
+	route_index = 0
+	pending_inspection = ""
+	marker.visible = false
+	move_stick.reset()
+	look_stick.reset()
+	move_stick.visible = first_person
+	look_stick.visible = first_person
+	actors[0].get_child(0).visible = not first_person
+	actors[0].get_child(1).visible = not first_person
+	if first_person:
+		if is_instance_valid(camera_tween): camera_tween.kill()
+		view_yaw = actors[0].rotation.y + PI
+		view_pitch = 0.0
+		camera = first_camera
+		_update_first_camera()
+		first_camera.make_current()
+		view_button.text = "ВИД СВЕРХУ"
+	else:
+		camera = top_camera
+		top_camera.make_current()
+		view_button.text = "ВИД ОТ ПЕРВОГО ЛИЦА"
+
+func _update_first_camera() -> void:
+	first_camera.position = actors[0].position + Vector3(0, 1.45, 0)
+	first_camera.rotation = Vector3(view_pitch, view_yaw, 0)
+
+func _tick_first_person(delta: float) -> void:
+	first_previous_position = actors[0].position
+	view_yaw -= look_stick.value.x * delta * 2.2
+	view_pitch = clampf(view_pitch - look_stick.value.y * delta * 1.6, -1.05, 1.05)
+	if active.has(0) and rest_remaining <= 0:
+		var input: Vector2 = move_stick.value
+		var forward := Vector3(-sin(view_yaw), 0, -cos(view_yaw))
+		var right := Vector3(cos(view_yaw), 0, -sin(view_yaw))
+		var displacement := (right * input.x - forward * input.y) * delta * 1.6
+		# Small steps prevent tunnelling through closed rooms or obstacles.
+		var steps := maxi(1, ceili(displacement.length() / 0.05))
+		var step := displacement / steps
+		for i in steps:
+			var candidate: Vector3 = actors[0].position + step
+			if navigation.is_walkable(candidate):
+				actors[0].position = candidate
+			else:
+				var along_x: Vector3 = actors[0].position + Vector3(step.x, 0, 0)
+				var along_z: Vector3 = actors[0].position + Vector3(0, 0, step.z)
+				if navigation.is_walkable(along_x): actors[0].position = along_x
+				elif navigation.is_walkable(along_z): actors[0].position = along_z
+	_update_first_camera()
 
 
 func _set_route(destination: Vector3) -> void:
@@ -751,8 +858,13 @@ func _set_route(destination: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(character_card) and character_card.visible) or (is_instance_valid(radio_panel) and radio_panel.visible):
+	if actors.is_empty() or menu.visible or survival_panel.visible or (is_instance_valid(vote_panel) and vote_panel.visible) or (is_instance_valid(character_card) and character_card.visible) or (is_instance_valid(radio_panel) and radio_panel.visible):
+		if first_person and is_instance_valid(move_stick):
+			move_stick.reset()
+			look_stick.reset()
 		return
+	if first_person:
+		_tick_first_person(delta)
 	tick_round_timer(delta)
 	_tick_radio(delta)
 	if is_instance_valid(speaker_ring) and speaker_ring.visible:
@@ -767,6 +879,8 @@ func _physics_process(delta: float) -> void:
 		return
 	var budget := delta * 1.8 * (0.75 + 0.25 * stamina / 100.0)
 	var previous := actors[0].position
+	if first_person:
+		previous = first_previous_position
 	while route_index < route.size() and budget > 0:
 		var next := route[route_index]
 		var distance := actors[0].position.distance_to(next)
@@ -1179,6 +1293,8 @@ func _update_medical_access() -> void:
 
 
 func _frame_camera() -> void:
+	if first_person:
+		return
 	if is_instance_valid(survival_panel) and survival_panel.visible:
 		return
 	if is_instance_valid(camera_tween):
@@ -1215,6 +1331,8 @@ func _frame_camera() -> void:
 
 
 func focus_module(kind: String) -> void:
+	if first_person:
+		toggle_first_person()
 	if not layout["modules"].has(kind):
 		return
 	if is_instance_valid(camera_tween):
