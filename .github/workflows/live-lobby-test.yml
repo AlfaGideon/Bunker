@@ -1,0 +1,23 @@
+name: Live lobby smoke test
+on:
+  workflow_dispatch:
+    inputs:
+      lobby_url:
+        description: 'Temporary public lobby HTTPS URL'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r server/requirements.txt
+      - run: python tools/test_live_lobby.py
+        env:
+          LOBBY_URL: ${{ inputs.lobby_url }}
