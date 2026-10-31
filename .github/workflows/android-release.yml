@@ -88,6 +88,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "builds/bunker-$VERSION_CODE.apk" > /tmp/apk-badging.txt
           grep "^package: name='org.bunker.prototype' versionCode='$VERSION_CODE'" /tmp/apk-badging.txt
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree "builds/bunker-$VERSION_CODE.apk" AndroidManifest.xml | grep 'android.intent.action.TTS_SERVICE'
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree "builds/bunker-$VERSION_CODE.apk" AndroidManifest.xml | grep 'bunkerinvite'
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump permissions "builds/bunker-$VERSION_CODE.apk" | grep 'android.permission.REQUEST_INSTALL_PACKAGES' 
           cd builds
           cp "bunker-$VERSION_CODE.apk" "Bunker-Posledniy-Shlyuz-$VERSION_CODE.apk"
