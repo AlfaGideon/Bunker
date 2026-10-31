@@ -7,7 +7,7 @@ func capture() -> void:
  room.set_physics_process(false)
  for i in 15: await process_frame
  room.menu.visible = false
- room.toggle_first_person()
+ if not room.first_person: room.toggle_first_person()
  room.view_yaw = -0.7
  room._update_first_camera()
  for i in 10: await process_frame

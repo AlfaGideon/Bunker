@@ -123,6 +123,8 @@ func run() -> void:
 	check(room.table_card.index == 1, "Table card follows card navigation")
 	card.step(-1)
 	check(card.index == 0, "Card navigation wraps backwards")
+	# The local avatar is hidden in first person; test self-selection from above.
+	if room.first_person: room.toggle_first_person()
 	# Survivors are selectable directly in the 3D scene.
 	var screen = room.camera.unproject_position(room.actors[0].global_position + Vector3(0, 0.85, 0))
 	check(room._actor_at_screen(screen) == 0, "Screen tap resolves the survivor under the finger")

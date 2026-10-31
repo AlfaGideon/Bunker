@@ -21,6 +21,7 @@ func run() -> void:
  var room := (load("res://game/main.tscn") as PackedScene).instantiate()
  root.add_child(room)
  room.menu.visible = false
+ if room.first_person: room.toggle_first_person()
  room.set_physics_process(false)
  for frame in 4:
   await process_frame

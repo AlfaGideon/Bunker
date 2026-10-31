@@ -19,3 +19,13 @@ jobs:
           python-version: '3.11'
       - run: pip install -r server/requirements.txt
       - run: python -m unittest discover -s server -p 'test_*.py' -v
+      - name: Verify streaming APK download
+        run: |
+          python server/app.py &
+          pid=$!
+          trap 'kill $pid' EXIT
+          sleep 2
+          curl --fail --silent --show-error --max-time 240 -D /tmp/apk-headers -o /tmp/bunker.apk http://127.0.0.1:8080/download
+          grep -qi 'application/vnd.android.package-archive' /tmp/apk-headers
+          test "$(wc -c < /tmp/bunker.apk)" -gt 50000000
+          unzip -tq /tmp/bunker.apk > /dev/null

@@ -12,6 +12,13 @@ func capture() -> void:
   welcome.profile.appearance = skin
   welcome.update_avatar()
   welcome.edit_profile()
+ if OS.get_cmdline_user_args().has("--lobby"):
+  var players: Array = [{"id": "one", "name": "Ведущий", "skin": "male", "bot": false}]
+  for i in 9:
+   players.append({"id": "bot-" + str(i), "name": "Бот " + str(i + 1), "skin": "female" if i % 2 else "male", "bot": true})
+  welcome.lobby_player_id = "one"
+  welcome.lobby_room = {"host_id": "one", "count": 10, "capacity": 10, "players": players}
+  welcome._lobby_room_page()
  if OS.get_cmdline_user_args().has("--update"):
   var update = preload("res://game/scripts/app_updates.gd").show_updates(welcome, false)
   var next: int = preload("res://game/scripts/app_updates.gd").VERSION_CODE + 1
@@ -78,6 +85,8 @@ func capture() -> void:
   prefix = "LIBPROFSHOT"
  if OS.get_cmdline_user_args().has("--camp-radio"):
   prefix = "CAMPRADIOSHOT"
+ if OS.get_cmdline_user_args().has("--lobby"):
+  prefix = "LOBBYSHOT"
  if not skin.is_empty():
   prefix = "SKIN" + skin.replace("_", "").to_upper() + "SHOT"
  for index in ceili(encoded.length() / 3500.0):

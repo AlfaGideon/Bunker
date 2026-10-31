@@ -1,7 +1,7 @@
 extends RefCounted
 
-const VERSION_CODE := 37
-const VERSION_NAME := "0.37.0"
+const VERSION_CODE := 38
+const VERSION_NAME := "0.38.0"
 const REPOSITORY := "https://github.com/AlfaGideon/Bunker"
 const LATEST := REPOSITORY + "/releases/latest"
 const API := "https://api.github.com/repos/AlfaGideon/Bunker/releases/latest"

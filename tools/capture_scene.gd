@@ -38,6 +38,7 @@ func capture() -> void:
 	room.profile.scenario_choice = scenario_id
 	set_meta("world_seed", seed_value)
 	root.add_child(room)
+	if room.first_person: room.toggle_first_person()
 	if args.has("--architecture") or args.has("--architecture-alt"):
 		room.ui_root.visible = false
 		room._frame_camera()

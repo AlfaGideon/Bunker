@@ -480,6 +480,10 @@ func home() -> void:
   lobby_client.disconnect_server()
   lobby_room.clear()
   _clear_lobby_actors()
+  camera.size = 5.2
+  radio_hotspot.visible = true
+  camera.look_at(Vector3(0.7, 1.2, 0))
+  update_avatar()
  page = "home"
  clear()
  if column is Deck:
@@ -516,24 +520,37 @@ func _clear_lobby_actors() -> void:
 
 func _show_lobby_actors() -> void:
  _clear_lobby_actors()
- var others: Array = lobby_room.get("players", [])
- var n := 0
- for person in others:
+ var players: Array = lobby_room.get("players", [])
+ var total := maxi(players.size(), 1)
+ camera.size = 8.5
+ camera.look_at(Vector3(0, 0.9, 1))
+ camera.position += camera.basis.x * camera.size * get_viewport().get_visible_rect().size.aspect() * 0.24
+ radio_hotspot.visible = false
+ for i in players.size():
+  var person: Dictionary = players[i]
+  var angle := TAU * float(i) / float(total) + PI * 0.75
+  var position := Vector3(cos(angle) * 3.2, 0, 1.0 + sin(angle) * 3.2)
   if str(person.get("id", "")) == lobby_player_id:
+   avatar.position = position
+   avatar.look_at(Vector3(0, 0, 1), Vector3.UP)
+   animator.play("Idle")
    continue
   var appearance := str(person.get("skin", "male"))
-  var angle := -1.2 + float(n) * 0.45
-  var position := Vector3(cos(angle) * 2.2, 0, 1.0 + sin(angle) * 2.2)
-  var actor: Node3D = Art.spawn(self, Catalog.model(appearance, n), position, Vector3(1, 1.8, 1), true)
+  var actor: Node3D = Art.spawn(self, Catalog.model(appearance, i), position, Vector3(1, 1.8, 1), true)
   actor.look_at(Vector3(0, 0, 1), Vector3.UP)
+  var animators := actor.find_children("*", "AnimationPlayer", true, false)
+  if not animators.is_empty():
+   var motion: AnimationPlayer = animators[0]
+   if motion.has_animation("Idle"):
+    motion.get_animation("Idle").loop_mode = Animation.LOOP_LINEAR
+    motion.play("Idle")
   var name_tag := Label3D.new()
   name_tag.text = str(person.get("name", "Игрок"))
   name_tag.position = Vector3(0, 1.9, 0)
   name_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-  name_tag.font_size = 36
+  name_tag.font_size = 28
   actor.add_child(name_tag)
   lobby_actors.append(actor)
-  n += 1
 
 # Accept only a 16-character hex room id and a simple secure WebSocket host.
 func _parse_invitation(value: String) -> Dictionary:
@@ -631,6 +648,25 @@ func _lobby_event(data: Dictionary) -> void:
    lobby_room = data.get("room", {})
    if page == "lobby_room":
     _lobby_room_page()
+  "bot_test_start":
+   var room: Dictionary = data.get("room", {})
+   if page != "lobby_room" or lobby_player_id != str(room.get("host_id", "")):
+    return
+   var roster: Array = room.get("players", [])
+   if roster.size() != int(room.get("capacity", 0)):
+    return
+   for member in roster:
+    if str(member.get("id", "")) != lobby_player_id and not bool(member.get("bot", false)):
+     return
+   get_tree().set_meta("bot_test_roster", roster.duplicate(true))
+   profile.player_count = roster.size()
+   profile.nickname = draft_name.strip_edges()
+   profile.save()
+   lobby_client.disconnect_server()
+   var result := get_tree().change_scene_to_file("res://game/loading.tscn")
+   if result != OK:
+    get_tree().remove_meta("bot_test_roster")
+    _lobby_status("Не удалось открыть тестовую партию.")
   "room_closed":
    lobby_room.clear()
    _clear_lobby_actors()
@@ -650,7 +686,7 @@ func _lobby_room_page() -> void:
  for person in lobby_room.get("players", []):
   names.append(str(person.get("name", "Игрок")))
  label(", ".join(names), 16)
- label("Тест лобби: запуск онлайн-партии ещё не готов.", 16)
+ label("Локальный тест: персонажи без полноценного ИИ. Сетевая партия ещё не готова.", 16)
  button("Скопировать ссылку-приглашение", _copy_lobby_invite)
  if lobby_player_id == str(lobby_room.get("host_id", "")):
   var add_bot := button("Добавить бота", func(): lobby_client.send({"type": "add_bot"}))
@@ -661,12 +697,18 @@ func _lobby_room_page() -> void:
     bot_count += 1
   var remove_bot := button("Убрать последнего бота", func(): lobby_client.send({"type": "remove_bot"}))
   remove_bot.disabled = bot_count == 0
- var start := button("НАЧАТЬ ИГРУ", func(): pass)
- start.disabled = true
+ var only_bots := true
+ for person in lobby_room.get("players", []):
+  if str(person.get("id", "")) != lobby_player_id and not bool(person.get("bot", false)):
+   only_bots = false
+ var start := button("НАЧАТЬ ИГРУ", func(): lobby_client.send({"type": "start_bot_test"}))
+ start.disabled = lobby_player_id != str(lobby_room.get("host_id", "")) or count < capacity or not only_bots
  if lobby_player_id != str(lobby_room.get("host_id", "")):
   label("Начать партию сможет только ведущий.", 15)
  elif count < capacity:
   label("Ожидаем ещё %d игроков." % (capacity - count), 15)
+ elif not only_bots:
+  label("Для других игроков запуск онлайн-партии ещё не готов.", 15)
  button("Выйти из лобби", home)
  error_label = label(lobby_status, 15)
 
