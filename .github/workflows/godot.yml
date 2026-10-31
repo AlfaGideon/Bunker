@@ -50,6 +50,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_library_gallery.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_table_card.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_radio.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_radio_speech.gd
           python3 tools/test_release_config.py
       - name: Smoke test scene
         run: |
