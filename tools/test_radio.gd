@@ -23,7 +23,7 @@ func run() -> void:
 	var receiver = room.radio
 	var panel: Control = room.radio_panel
 	check(is_instance_valid(panel), "The receiver panel is part of the HUD")
-	check(receiver.station_list.size() == 3, "Three stations are wired to the dial")
+	check(receiver.station_list.size() == 4, "Three stations are wired to the dial")
 	check(str(receiver.station_list[0]["id"]) == "aurora", "The first item is the music station")
 	check(str(receiver.station_list[0]["subtitle"]).to_lower().contains("музык"), "The first item is labelled as music")
 	check(str(receiver.station_list[1]["id"]) == "bunkers", "The second item is the bunker feed")
@@ -74,7 +74,7 @@ func run() -> void:
 	# The full loop through the real interaction path.
 	room._complete_interaction("radio")
 	check(panel.visible, "Tapping the receiver opens the station panel")
-	check(panel.station_buttons.size() == 3, "Every station has its own item")
+	check(panel.station_buttons.size() == 4, "Every station has its own item")
 	check(panel.get_global_rect().size.x <= screen.size.x and panel.get_global_rect().size.y <= screen.size.y, "The receiver fits the screen")
 	check(panel.find_children("*", "ScrollContainer", true, false).is_empty(), "The receiver never scrolls")
 	check(panel.station_buttons[0].text.contains("АВРОРА"), "The first item on the dial is the music station")

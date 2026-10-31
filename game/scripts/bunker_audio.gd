@@ -11,6 +11,7 @@ var radio: AudioStreamPlayer
 var static_noise: AudioStreamPlayer
 var transmission: AudioStreamPlayer
 var music_index := 0
+var internet: Node
 var air: AudioStreamPlayer
 var effect: AudioStreamPlayer
 var room: Node3D
@@ -24,6 +25,8 @@ var active_speech_kind := ""
 
 func setup(game: Node3D, radio_position: Vector3) -> void:
 	room = game
+	internet = preload("res://game/scripts/internet_radio.gd").new()
+	add_child(internet)
 	# Three receivers share the cabinet: the music station, the static bed used
 	# by the bunker feed and the beacon, and the voice of a transmission.
 	radio = _cabinet_player(Music.path(music_index), -6.0)
@@ -62,6 +65,8 @@ func _loop(filename: String) -> AudioStreamWAV:
 func apply_settings() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, room.profile.volume)))
 	AudioServer.set_bus_mute(0, room.profile.volume <= 0)
+	if is_instance_valid(internet):
+		internet.set_volume(room.profile.volume)
 	radio.volume_db = -6
 	static_noise.volume_db = -14
 	if room.profile.volume <= 0 or not room.profile.narration:
@@ -76,7 +81,8 @@ func begin() -> void:
 
 
 ## Syncs the cabinet with the receiver state that the player tuned.
-func play_station(kind: String, track: int = 0) -> void:
+func play_station(kind: String, track: int = 0, stream_url: String = "") -> void:
+	internet.stop()
 	radio.stop()
 	static_noise.stop()
 	radio_on = not kind.is_empty()
@@ -85,6 +91,8 @@ func play_station(kind: String, track: int = 0) -> void:
 	if not radio_on:
 		return
 	match kind:
+		"internet":
+			internet.play(stream_url, room.profile.volume)
 		"music":
 			play_music(track)
 		"broadcast":
@@ -108,6 +116,7 @@ func play_transmission() -> void:
 
 
 func stop_all() -> void:
+	internet.stop()
 	radio.stop()
 	static_noise.stop()
 	transmission.stop()
@@ -203,5 +212,7 @@ func _process(delta: float) -> void:
 			room.menu.briefing(false)
 
 func _exit_tree() -> void:
+	if is_instance_valid(internet):
+		internet.stop()
 	if has_tts():
 		stop_tts()

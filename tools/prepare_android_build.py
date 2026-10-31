@@ -35,4 +35,7 @@ if 'android.intent.action.TTS_SERVICE' not in text:
     if count != 1:
         raise SystemExit('Cannot insert TTS service query into Godot manifest')
     manifest.write_text(text)
+java = build / 'src/org/bunker/prototype/InternetRadioPlayer.java'
+java.parent.mkdir(parents=True, exist_ok=True)
+java.write_bytes(Path('android_src/InternetRadioPlayer.java').read_bytes())
 print('Android build prepared with TTS engine visibility:', identifier)

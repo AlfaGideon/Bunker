@@ -939,6 +939,10 @@ func _physics_process(delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and camera_gestures != null:
 		camera_gestures.reset()
+		if is_instance_valid(audio) and is_instance_valid(audio.internet):
+			audio.internet.stop()
+	if what == NOTIFICATION_APPLICATION_FOCUS_IN and is_instance_valid(audio) and radio != null and radio.kind() == "internet":
+		apply_radio_audio()
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_instance_valid(character_card) and character_card.visible:
 		character_card.close()
 		return
@@ -1183,7 +1187,7 @@ func _tick_radio(delta: float) -> void:
 func apply_radio_audio() -> void:
 	if audio == null or radio == null:
 		return
-	audio.play_station(radio.kind(), radio.track_index)
+	audio.play_station(radio.kind(), radio.track_index, str(radio.internet_stream().get("url", "")))
 
 
 func open_radio() -> void:

@@ -83,10 +83,10 @@ func _build() -> void:
 	specialist_label = _label("", 13, Color("8ea3a8"))
 	column.add_child(specialist_label)
 
-	for slot in 3:
+	for slot in room.radio.station_list.size():
 		var index: int = slot
 		var button := Button.new()
-		button.custom_minimum_size.y = 74
+		button.custom_minimum_size.y = 60
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.autowrap_mode = TextServer.AUTOWRAP_OFF
 		Cards.button(button, true)
@@ -140,6 +140,11 @@ func _build() -> void:
 	close_button.offset_top = 20
 	close_button.offset_bottom = 68
 	close_button.pressed.connect(close)
+
+
+func _process(_delta: float) -> void:
+	if visible and room != null and room.radio.kind() == "internet":
+		status_label.text = room.audio.internet.status_text()
 
 
 func _label(text: String, size: int, color: Color) -> Label:
@@ -205,6 +210,8 @@ func _tune(index: int) -> void:
 		room.log_label.text = "Пластинка: " + room.radio.track_title() + " · " + room.radio.track_mood() + "."
 		refresh()
 		return
+	if active and str(entry.get("kind", "")) == "internet" and room.audio.internet.status == "playing":
+		room.radio.next_internet()
 	room.radio.tune(station_id)
 	room.apply_radio_audio()
 	if str(entry.get("kind", "")) == "music":
@@ -241,6 +248,8 @@ func refresh() -> void:
 		return
 	var receiver: RefCounted = room.radio
 	status_label.text = receiver.status_text()
+	if receiver.kind() == "internet":
+		status_label.text = room.audio.internet.status_text()
 	status_label.add_theme_color_override("font_color", Color("7fe3b0") if receiver.powered else Color("8ea3a8"))
 	power_button.text = "ВЫКЛЮЧИТЬ РАДИО" if receiver.powered else "ВКЛЮЧИТЬ РАДИО"
 
@@ -261,6 +270,8 @@ func refresh() -> void:
 		var subtitle := str(entry.get("subtitle", ""))
 		if str(entry.get("kind", "")) == "music":
 			subtitle = receiver.track_title() + " · " + receiver.track_mood()
+		elif str(entry.get("kind", "")) == "internet":
+			subtitle = "Radio Paradise · " + str(receiver.internet_stream().get("name", ""))
 		button.text = ("●  " if active else "○  ") + str(entry.get("number", "")) + "   " + str(entry.get("name", "")) + "   ·   " + subtitle
 		button.tooltip_text = str(entry.get("note", ""))
 
@@ -274,6 +285,8 @@ func refresh() -> void:
 		feed_label.text = text
 
 	var kind: String = receiver.kind()
+	if kind == "internet":
+		feed_label.text = "Radio Paradise — прямой интернет-эфир. Требуется сеть; возможен расход мобильного трафика."
 	scan_button.disabled = kind != "signal" or not specialist or receiver.scans_left() == 0 or receiver.scan_round == room.round_number
 	if kind != "signal":
 		hint_label.text = "Сканирование 1180 доступно на третьей станции. Маяк разбирает только связист или радиотехник."
@@ -285,6 +298,8 @@ func refresh() -> void:
 		hint_label.text = "В этом раунде маяк уже прочитан. Вернитесь в следующем."
 	else:
 		hint_label.text = "Сканирование вслепую: одна передача за раунд, всего %d." % receiver.scans_left()
+	if kind == "internet":
+		hint_label.text = "Повторное касание меняет канал; при ошибке повторяет подключение. Станция использует интернет."
 	if kind == "music":
 		hint_label.text = "Повторное касание первой станции меняет пластинку — всего %d записей." % receiver.track_count()
 
