@@ -481,6 +481,7 @@ func home() -> void:
   lobby_room.clear()
   _clear_lobby_actors()
   camera.size = 5.2
+  radio_hotspot.visible = true
   camera.look_at(Vector3(0.7, 1.2, 0))
   update_avatar()
  page = "home"
@@ -523,6 +524,8 @@ func _show_lobby_actors() -> void:
  var total := maxi(players.size(), 1)
  camera.size = 8.5
  camera.look_at(Vector3(0, 0.9, 1))
+ camera.position += camera.basis.x * camera.size * get_viewport().get_visible_rect().size.aspect() * 0.24
+ radio_hotspot.visible = false
  for i in players.size():
   var person: Dictionary = players[i]
   var angle := TAU * float(i) / float(total) + PI * 0.75

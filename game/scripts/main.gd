@@ -1056,7 +1056,7 @@ func request_interaction(key: String, operator: int = 0) -> bool:
 	else:
 		pending_inspection = key
 		_set_route(goal)
-	if layout["modules"].has(key):
+	if layout["modules"].has(key) and not first_person:
 		focus_module(key)
 	log_label.text = "Идём: " + layout["items"][key]["title"]
 	return true
