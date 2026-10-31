@@ -104,10 +104,7 @@ class Lobby:
                 return await self.error(peer, 'already_started')
             if len(room.members) != room.capacity:
                 return await self.error(peer, 'not_enough_players')
-            # Bot AI is not yet implemented in the authoritative match.
-            if any(isinstance(p, Bot) for p in room.members):
-                return await self.error(peer, 'online_bots_not_ready')
-            room.game = Match(room.members)
+            room.game = Match(room.members, bot_ids=[p.id for p in room.members if isinstance(p, Bot)])
             room.started = True
             await self.broadcast(room, {'type': 'online_game_start', 'room': room.public()})
             await self.game_update(room)

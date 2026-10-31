@@ -193,7 +193,7 @@ func refresh() -> void:
 		var ability_name: String = Abilities.NAMES[room.abilities.cards[slot]].split("\n")[0]
 		ability_buttons[slot].text = "%d   %s" % [slot + 1, ability_name]
 		ability_buttons[slot].text += "  ✓" if room.abilities.used[slot] else ""
-		ability_buttons[slot].disabled = room.abilities.used[slot] or not room.active.has(0) or room.phase in ["vote", "end"]
+		ability_buttons[slot].disabled = room.online_active or room.abilities.used[slot] or not room.active.has(0) or room.phase in ["vote", "end"]
 	ratio = 0.0
 	timer_label.text = "--"
 	speaker_label.text = "Партия завершена" if room.finished else "Ожидание"
@@ -209,12 +209,13 @@ func refresh() -> void:
 			ratio = remaining / 60.0
 			speaker_label.text = ("Говорит: " if who >= 0 else "") + name
 			action_button.text = "Передать ход →"
-			action_button.disabled = room.finished
+			action_button.disabled = room.finished or (room.online_active and who != 0)
 		"discussion":
 			timer_label.text = str(ceili(room.discussion_remaining))
 			ratio = room.discussion_remaining / 60.0
 			speaker_label.text = "Общее обсуждение"
-			action_button.text = "К голосованию →"
+			action_button.text = "Ожидание голосования" if room.online_active else "К голосованию →"
+			action_button.disabled = room.online_active
 		"vote":
 			timer_label.text = str(ceili(room.vote_remaining))
 			ratio = room.vote_remaining / 20.0
@@ -223,7 +224,8 @@ func refresh() -> void:
 			action_button.disabled = true
 		"result":
 			speaker_label.text = "Раунд завершён"
-			action_button.text = "Следующий раунд →"
+			action_button.text = "Ожидание следующего раунда" if room.online_active else "Следующий раунд →"
+			action_button.disabled = room.online_active
 		"end":
 			speaker_label.text = "Партия завершена"
 			action_button.text = "Итог партии"

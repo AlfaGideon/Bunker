@@ -23,6 +23,15 @@ func run() -> void:
   await process_frame
  check(welcome.page == "lobby_room", "Room page opens")
  check(welcome.lobby_actors.size() == 1, "Remote player appears at camp")
+ check(welcome.avatar.position.is_equal_approx(Vector3(-1.7, 0, 0)) and welcome.animator.current_animation == "Sit_Chair_Idle", "Local avatar remains seated")
+ var fixed_camera: Transform3D = welcome.camera.transform
+ welcome._lobby_room_page()
+ check(welcome.camera.transform.is_equal_approx(fixed_camera), "Lobby updates never move camera")
+ var fire := Vector3(0, 0, 1)
+ var toward_camera := Vector3(6, 0, 9).normalized()
+ for actor in welcome.lobby_actors:
+  check((actor.position - fire).dot(toward_camera) < 0, "Guests are behind the fire")
+  check(actor.basis.z.dot((fire - actor.position).normalized()) > 0.99, "Guest faces fire")
  var disabled := false
  for node in welcome.find_children("*", "Button", true, false):
   if node.text == "НАЧАТЬ ИГРУ":
@@ -42,7 +51,7 @@ func run() -> void:
  await process_frame
  for node in welcome.find_children("*", "Button", true, false):
   if node.text == "НАЧАТЬ ИГРУ" and not node.is_queued_for_deletion():
-   check(node.disabled, "Real guest cannot be presented as a local bot test")
+   check(not node.disabled, "Host can start a full room with real guests")
  welcome.home()
  check(welcome.lobby_actors.is_empty(), "Leaving removes remote avatars")
  welcome.queue_free()

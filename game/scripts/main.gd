@@ -113,33 +113,52 @@ var ui_root: Control
 var menu_button: Button
 var original_camera: Transform3D
 var reveal_log: Array = []
+var online_session: Node
+var online_active := false
+var online_speaker := -1
+var online_last_phase := ""
 
 
 func _ready() -> void:
 	camera_gestures.setup(self)
 	if OS.has_feature("android"):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	scenario = Content.pick_scenario(profile.scenario_choice)
-	var explicit_seed := get_tree().has_meta("world_seed")
-	layout_seed = int(get_tree().get_meta("world_seed", randi()))
-	if get_tree().has_meta("world_seed"):
-		get_tree().remove_meta("world_seed")
-	if not explicit_seed and posmod(layout_seed, 3) == profile.last_layout:
-		layout_seed += 1
-	layout = Layout.generate(layout_seed, profile.player_count / 2)
-	profile.world_count += 1
-	profile.last_layout = layout["variant"]
-	profile.save()
+	online_session = get_tree().get_meta("online_session", null)
+	online_active = is_instance_valid(online_session) and not online_session.state.players.is_empty()
+	if online_active:
+		scenario = online_session.state.scenario.duplicate(true)
+		layout_seed = online_session.state.seed
+		players = online_session.state.players.duplicate(true)
+		for player in players:
+			if player.has("sex") and player.has("age"):
+				for card in player["cards"]:
+					if card["id"] == "biology" and card["revealed"]:
+						player["appearance"] = preload("res://game/scripts/avatar_catalog.gd").biology(player["sex"], int(player["age"]))
+		capacity = online_session.state.capacity
+		active.assign(online_session.state.active)
+	else:
+		scenario = Content.pick_scenario(profile.scenario_choice)
+		var explicit_seed := get_tree().has_meta("world_seed")
+		layout_seed = int(get_tree().get_meta("world_seed", randi()))
+		if get_tree().has_meta("world_seed"):
+			get_tree().remove_meta("world_seed")
+		if not explicit_seed and posmod(layout_seed, 3) == profile.last_layout:
+			layout_seed += 1
+		players = Content.create_players(profile.player_count, profile.nickname, profile.appearance, profile.custom_parameters)
+		if get_tree().has_meta("bot_test_roster"):
+			var roster: Array = get_tree().get_meta("bot_test_roster")
+			get_tree().remove_meta("bot_test_roster")
+			for i in range(1, mini(players.size(), roster.size())):
+				players[i]["name"] = str(roster[i].get("name", "Бот %d" % i))
+				players[i]["appearance"] = str(roster[i].get("skin", "male"))
+		active.assign(range(players.size()))
+		capacity = players.size() / 2
+	layout = Layout.generate(layout_seed, capacity)
+	if not online_active:
+		profile.world_count += 1
+		profile.last_layout = layout["variant"]
+		profile.save()
 	navigation = Navigation.new(layout)
-	players = Content.create_players(profile.player_count, profile.nickname, profile.appearance, profile.custom_parameters)
-	if get_tree().has_meta("bot_test_roster"):
-		var roster: Array = get_tree().get_meta("bot_test_roster")
-		get_tree().remove_meta("bot_test_roster")
-		for i in range(1, mini(players.size(), roster.size())):
-			players[i]["name"] = str(roster[i].get("name", "Бот %d" % i))
-			players[i]["appearance"] = str(roster[i].get("skin", "male"))
-	active.assign(range(players.size()))
-	capacity = players.size() / 2
 	meals = capacity
 	speech.start(active)
 	_build_world()
@@ -155,10 +174,108 @@ func _ready() -> void:
 		table_card.show_for(selected, false, false)
 	_refresh()
 	toggle_first_person()
+	if online_active:
+		online_session.state_changed.connect(_online_state_changed)
+		online_session.connection_lost.connect(_online_connection_lost)
+		online_session.server_error.connect(_online_error)
+		_online_state_changed(online_session.state)
 	get_viewport().size_changed.connect(_frame_camera)
 	if get_tree().has_meta("start_game"):
 		get_tree().remove_meta("start_game")
 		begin_game()
+
+
+func _online_state_changed(state) -> void:
+	if not online_active or not is_inside_tree():
+		return
+	var previous_active: Array = active.duplicate()
+	var previous_phase := phase
+	var previous_second := vote_second
+	players = state.players.duplicate(true)
+	for i in players.size():
+		if _biology_revealed(i) and players[i].has("sex") and players[i].has("age"):
+			_change_appearance(i, biology_appearance(i))
+	for i in previous_active:
+		if not state.active.has(i):
+			if i == 0 and first_person:
+				toggle_first_person()
+			actors[i].visible = false
+	active.assign(state.active)
+	capacity = state.capacity
+	round_number = state.round_number
+	phase = state.phase
+	finished = phase == "end"
+	speech.order = active.duplicate()
+	speech.finished = phase != "reveal"
+	speech.index = active.find(state.speaker) if phase == "reveal" else 0
+	speech.revealed = state.revealed_this_turn
+	speech.remaining = state.remaining if phase == "reveal" else 0.0
+	discussion_remaining = state.remaining if phase == "discussion" else 0.0
+	vote_remaining = state.remaining if phase == "vote" else 0.0
+	vote_second = state.second_ballot
+	vote_candidates = state.candidates.duplicate()
+	ballots.clear()
+	if state.my_vote >= 0:
+		ballots[0] = state.my_vote
+	if state.speaker >= 0 and state.speaker != online_speaker:
+		selected = state.speaker
+		online_speaker = state.speaker
+		table_card.show_for(selected, false, false)
+	if phase == "vote":
+		if previous_phase != "vote" or previous_second != vote_second:
+			vote_panel.open_ballot()
+		else:
+			vote_panel.update_state()
+	else:
+		vote_panel.visible = false
+	if phase != previous_phase or online_last_phase.is_empty():
+		match phase:
+			"reveal": log_label.text = "Общий ход. Раскрытие и смену выступающего подтверждает сервер."
+			"discussion": log_label.text = "Обсуждение: 60 секунд. Голосовой чат в игре пока не реализован."
+			"vote": log_label.text = "Общее голосование: 20 секунд. Пропуск — голос за себя."
+			"result", "end":
+				var removed := state.index_for(str(state.result.get("player", "")))
+				var name: String = players[removed]["name"] if removed >= 0 else "Участник"
+				log_label.text = name + " покидает бункер." + (" Партия завершена." if phase == "end" else " Следующий раунд начнётся автоматически.")
+	online_last_phase = phase
+	_refresh()
+
+
+func _process(delta: float) -> void:
+	if not online_active or not is_instance_valid(online_session):
+		return
+	online_session.state.tick(delta)
+	var remaining: float = online_session.state.remaining
+	if phase == "reveal": speech.remaining = remaining
+	elif phase == "discussion": discussion_remaining = remaining
+	elif phase == "vote":
+		vote_remaining = remaining
+		if is_instance_valid(vote_panel) and vote_panel.visible:
+			vote_panel.update_state()
+	_refresh_left()
+
+
+func _online_connection_lost(message: String) -> void:
+	if not is_inside_tree():
+		return
+	var dialog := AcceptDialog.new()
+	dialog.title = "Соединение потеряно"
+	dialog.dialog_text = message + " Переподключение пока не поддерживается."
+	add_child(dialog)
+	dialog.confirmed.connect(func(): get_tree().change_scene_to_file("res://game/welcome.tscn"))
+	dialog.popup_centered()
+
+
+func _online_error(code: String) -> void:
+	if is_instance_valid(log_label):
+		log_label.text = "Сервер отклонил действие: " + code
+
+
+func _exit_tree() -> void:
+	if online_active and is_instance_valid(online_session):
+		if get_tree().get_meta("online_session", null) == online_session:
+			get_tree().remove_meta("online_session")
+		online_session.close_session()
 
 
 func apply_settings() -> void:
@@ -166,7 +283,7 @@ func apply_settings() -> void:
 	sun.shadow_enabled = profile.shadows
 	weather.set_reduced_motion(profile.reduced_motion)
 	audio.apply_settings()
-	if not _biology_revealed(0) and actors[0].get_meta("appearance") != profile.appearance and rest_remaining <= 0:
+	if not online_active and not _biology_revealed(0) and actors[0].get_meta("appearance") != profile.appearance and rest_remaining <= 0:
 		_change_appearance(0, profile.appearance)
 
 
@@ -274,8 +391,9 @@ func _build_world() -> void:
 		preload("res://game/scripts/avatar_style.gd").apply(visual, profile.outfit if i == 0 else 0, appearance)
 		visual.set_script(SurvivorVisual)
 		visual._collect(visual)
-		actor.position = navigation.nearest_walkable(positions[i])
-		actor.rotation.y = PI if i > 1 else 0
+		var seat := clampi(int(players[i].get("seat", i)), 0, positions.size() - 1)
+		actor.position = navigation.nearest_walkable(positions[seat])
+		actor.rotation.y = PI if seat > 1 else 0
 		var label := Label3D.new()
 		label.text = players[i]["name"] + (" • ВЫ" if i == 0 else "")
 		label.position.y = 1.85
@@ -354,7 +472,7 @@ func _build_ui() -> void:
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(header)
 	header.add_child(_label("Б У Н К Е Р  /  ПОСЛЕДНИЙ ШЛЮЗ", 25))
-	header.add_child(_label("ЛОКАЛЬНЫЙ ПРОТОТИП • НЕ СЕТЕВАЯ ИГРА", 15))
+	header.add_child(_label("ОНЛАЙН • РЕЧИ И ГОЛОСОВАНИЕ" if online_active else "ЛОКАЛЬНЫЙ ПРОТОТИП • НЕ СЕТЕВАЯ ИГРА", 15))
 	phase_label = _label("", 20)
 	header.add_child(phase_label)
 
@@ -484,6 +602,11 @@ func card_value_for(owner: int, card: Dictionary, viewer: int) -> String:
 
 
 func reveal_parameter(id: String) -> bool:
+	if online_active:
+		if not can_reveal_parameter() or online_session.closed:
+			return false
+		online_session.reveal(id)
+		return true
 	if not can_reveal_parameter():
 		return false
 	for card in players[0]["cards"]:
@@ -551,6 +674,8 @@ func _change_appearance(index: int, appearance: String) -> void:
 
 
 func _advance() -> void:
+	if online_active:
+		return
 	match phase:
 		"reveal":
 			pass_speech()
@@ -576,6 +701,8 @@ func _advance() -> void:
 
 
 func start_vote(candidates: Array = [], second: bool = false) -> void:
+	if online_active:
+		return
 	phase = "vote"
 	vote_second = second
 	vote_candidates = candidates.duplicate()
@@ -592,6 +719,11 @@ func start_vote(candidates: Array = [], second: bool = false) -> void:
 
 
 func cast_vote(target: int) -> bool:
+	if online_active:
+		if phase != "vote" or not active.has(0) or not active.has(target) or online_session.closed:
+			return false
+		online_session.vote(target)
+		return true
 	if phase != "vote" or not active.has(0) or not active.has(target):
 		return false
 	if target != 0 and not vote_candidates.is_empty() and not vote_candidates.has(target):
@@ -615,6 +747,8 @@ func finish_vote() -> void:
 
 
 func tick_round_timer(delta: float) -> void:
+	if online_active:
+		return
 	if not started:
 		return
 	if phase == "discussion":
@@ -877,7 +1011,7 @@ func _physics_process(delta: float) -> void:
 	_tick_radio(delta)
 	if is_instance_valid(speaker_ring) and speaker_ring.visible:
 		_update_speaker_glow()
-	if started and phase == "reveal":
+	if started and phase == "reveal" and not online_active:
 		if speech.tick(delta):
 			_begin_speaker()
 		_refresh_left()
@@ -982,6 +1116,10 @@ func _update_safe_area() -> void:
 
 
 func begin_game() -> void:
+	if online_active:
+		started = true
+		menu.visible = false
+		return
 	if started:
 		menu.visible = false
 		return
@@ -1026,6 +1164,9 @@ func medical_status() -> String:
 
 
 func request_interaction(key: String, operator: int = 0) -> bool:
+	if online_active:
+		log_label.text = "Действия в помещениях пока не синхронизированы в онлайн-режиме."
+		return false
 	if not active.has(0) or rest_remaining > 0:
 		log_label.text = "Сейчас персонаж не может взаимодействовать."
 		return false
@@ -1363,6 +1504,9 @@ func _refresh_left() -> void:
 
 
 func use_ability(slot: int) -> void:
+	if online_active:
+		log_label.text = "Способности пока недоступны в сетевом режиме."
+		return
 	if not active.has(0) or selected not in active or phase in ["vote", "end"]:
 		return
 	var result := abilities.apply(slot, players[0], players[selected])
@@ -1373,6 +1517,10 @@ func use_ability(slot: int) -> void:
 
 
 func pass_speech() -> void:
+	if online_active:
+		if can_reveal_parameter() or (phase == "reveal" and speech.speaker() == 0 and active.has(0)):
+			online_session.pass_turn()
+		return
 	if phase != "reveal":
 		return
 	speech.pass_turn()

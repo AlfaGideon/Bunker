@@ -112,11 +112,11 @@ class ProtocolTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(game.speaker, game.active[1])
 
-    async def test_online_bots_not_implemented(self):
+    async def test_online_bots_start(self):
         h = await self.open()
         await self.send(h, {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
         for _ in range(5):
             await self.send(h, {'type': 'add_bot'})
         events = await self.send(h, {'type': 'online_start'})
-        self.assertEqual(events[-1]['code'], 'online_bots_not_ready')
-        self.assertFalse(next(iter(self.app[LOBBY_KEY].rooms.values())).started)
+        self.assertTrue(any(e['type'] == 'online_game_start' for e in events))
+        self.assertTrue(next(iter(self.app[LOBBY_KEY].rooms.values())).started)

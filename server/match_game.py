@@ -26,14 +26,15 @@ class Match:
     VOTE_SECONDS = 20
     RESULT_SECONDS = 10
 
-    def __init__(self, members, *, now=None, rng=None, content=None):
+    def __init__(self, members, *, now=None, rng=None, content=None, bot_ids=()):
         self.rng = rng or random.SystemRandom()
         self.content = content or json.loads(CONTENT_PATH.read_text(encoding='utf-8'))
         self.seed = secrets.randbelow(2**31)
         self.scenario = self.rng.choice(json.loads(SCENARIOS_PATH.read_text(encoding="utf-8")))
+        self.bot_ids = set(bot_ids)
         self.players = []
         professions = self.rng.sample(self.content['professions'], len(members))
-        for member, profession in zip(members, professions):
+        for seat, (member, profession) in enumerate(zip(members, professions)):
             sex = self.rng.choice(['male', 'female'])
             age = self.rng.choice(self.content['ages'])
             cards = [{'id': 'profession', 'label': 'Профессия', 'value': profession, 'revealed': True},
@@ -49,7 +50,7 @@ class Match:
             # One additional characteristic is public at the start.
             self.rng.choice(cards[1:])['revealed'] = True
             self.players.append({'id': member.id, 'name': member.name, 'appearance': member.skin,
-                                 'sex': sex, 'age': int(age.split()[0]), 'cards': cards})
+                                 'sex': sex, 'age': int(age.split()[0]), 'cards': cards, 'bot': member.id in self.bot_ids, 'seat': seat})
         self.active = [p['id'] for p in self.players]
         self.capacity = len(self.active) // 2
         self.round = 1
@@ -121,6 +122,27 @@ class Match:
                 break
             self.revision += 1
             changed = True
+        # Test bots use simple random rules, not generated speech or full AI.
+        if self.phase == 'reveal' and self.speaker in self.bot_ids:
+            elapsed = now - (self.deadline - self.SPEECH_SECONDS)
+            if elapsed >= 2 and not self.revealed_this_turn:
+                player = next(p for p in self.players if p['id'] == self.speaker)
+                hidden = [card for card in player['cards'] if not card['revealed']]
+                if hidden:
+                    self.rng.choice(hidden)['revealed'] = True
+                self.revealed_this_turn = True
+                self.revision += 1
+                changed = True
+            if elapsed >= 5:
+                self._next_speaker(now)
+                self.revision += 1
+                changed = True
+        elif self.phase == 'vote' and now >= self.deadline - self.VOTE_SECONDS + 2:
+            for bot in self.bot_ids.intersection(self.active):
+                if bot not in self.votes:
+                    self.votes[bot] = self.rng.choice(self.candidates or self.active)
+                    self.revision += 1
+                    changed = True
         return changed
 
     def command(self, player_id, action, value=None, now=None):

@@ -79,7 +79,7 @@ func open_ballot() -> void:
 func update_state() -> void:
  timer.text = "%d сек." % ceili(room.vote_remaining)
  if not room.active.has(0):
-  selection.text = "Вы наблюдаете. Участники — локальный тестовый сценарий."
+  selection.text = "Вы наблюдаете." if room.online_active else "Вы наблюдаете. Участники — локальный тестовый сценарий."
  elif room.ballots.has(0):
   var target: int = room.ballots[0]
   selection.text = "Ваш голос: " + room.players[target]["name"] + (" (за себя)" if target == 0 else "")

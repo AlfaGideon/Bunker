@@ -181,7 +181,11 @@ func _process(delta: float) -> void:
    retained.append(ResourceLoader.load_threaded_get(path))
    pending.remove_at(index)
  progress.value = 100.0 * float(total - pending.size()) / maxf(1, total)
- ready_to_enter = pending.is_empty()
+ var session: Variant = get_tree().get_meta("online_session", null)
+ if is_instance_valid(session) and session.closed:
+  fail("Соединение потеряно. Вернитесь к костру.")
+  return
+ ready_to_enter = pending.is_empty() and (not is_instance_valid(session) or not session.state.players.is_empty())
  if ready_to_enter and cancel_requested:
   transitioning = true
   get_tree().change_scene_to_file("res://game/welcome.tscn")
@@ -211,6 +215,10 @@ func cancel_loading() -> void:
  if transitioning:
   return
  cancel_requested = true
+ var session: Variant = get_tree().get_meta("online_session", null)
+ if is_instance_valid(session):
+  get_tree().remove_meta("online_session")
+  session.close_session()
  status.text = "Возвращаемся к костру…"
  if ready_to_enter or failed:
   transitioning = true
