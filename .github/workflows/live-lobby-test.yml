@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/live-lobby-test.yml'
       - 'tools/test_live_lobby.py'
+      - 'tools/test_live_http_lobby.py'
   workflow_dispatch:
     inputs:
       lobby_url:
@@ -23,7 +24,7 @@ jobs:
           python-version: '3.11'
       - run: pip install -r server/requirements.txt
       - run: |
-          python tools/test_live_lobby.py > /tmp/snap-test.log 2>&1 || {
+          python tools/test_live_http_lobby.py > /tmp/snap-test.log 2>&1 || {
             python -c 'from pathlib import Path; print("::error::" + Path("/tmp/snap-test.log").read_text()[-7000:].replace("%", "%25").replace("\n", "%0A"))'
             exit 1
           }
