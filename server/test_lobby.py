@@ -1,0 +1,79 @@
+import unittest
+from aiohttp.test_utils import TestClient, TestServer
+from app import create_app
+
+
+class LobbyTest(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.client = TestClient(TestServer(create_app()))
+        await self.client.start_server()
+        self.sockets = []
+
+    async def asyncTearDown(self):
+        for ws in self.sockets:
+            await ws.close()
+        await self.client.close()
+
+    async def connect(self):
+        ws = await self.client.ws_connect('/ws')
+        self.sockets.append(ws)
+        self.assertEqual((await ws.receive_json())['type'], 'hello')
+        return ws
+
+    async def expect(self, ws, event):
+        for _ in range(30):
+            message = await ws.receive_json(timeout=3)
+            if message['type'] == event:
+                return message
+        self.fail(f'No {event} event')
+
+    async def test_rooms_start_and_disconnect(self):
+        response = await self.client.get('/healthz')
+        self.assertFalse((await response.json())['gameplay_sync'])
+        host = await self.connect()
+        await host.send_json({'type': 'create', 'name': 'Ведущий', 'title': 'Костёр', 'capacity': 6, 'skin': 'young'})
+        room = (await self.expect(host, 'joined'))['room']
+        self.assertEqual(room['count'], 1)
+        await host.send_json({'type': 'start'})
+        self.assertEqual((await self.expect(host, 'error'))['code'], 'not_enough_players')
+        members = []
+        for i in range(5):
+            ws = await self.connect()
+            await ws.send_json({'type': 'join', 'room_id': room['id'], 'name': f'Игрок {i}'})
+            joined = await self.expect(ws, 'joined')
+            self.assertEqual(joined['room']['count'], i + 2)
+            members.append(ws)
+        await members[0].send_json({'type': 'start'})
+        self.assertEqual((await self.expect(members[0], 'error'))['code'], 'host_only')
+        await host.send_json({'type': 'start'})
+        started = await self.expect(host, 'game_start')
+        self.assertTrue(started['room']['started'])
+        for ws in members:
+            event = await self.expect(ws, 'game_start')
+            self.assertEqual(event['seed'], started['seed'])
+        observer = await self.connect()
+        await observer.send_json({'type': 'list'})
+        self.assertEqual((await self.expect(observer, 'rooms'))['rooms'], [])
+        await host.close()
+        for ws in members:
+            self.assertEqual((await self.expect(ws, 'room_closed'))['reason'], 'host_left')
+
+    async def test_list_leave_validation(self):
+        host = await self.connect()
+        await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 7})
+        self.assertEqual((await self.expect(host, 'error'))['code'], 'invalid_capacity')
+        await host.send_json({'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 8})
+        room = (await self.expect(host, 'joined'))['room']
+        other = await self.connect()
+        await other.send_json({'type': 'list'})
+        self.assertEqual((await self.expect(other, 'rooms'))['rooms'][0]['id'], room['id'])
+        await other.send_json({'type': 'join', 'room_id': room['id'], 'name': 'Second'})
+        await self.expect(other, 'joined')
+        await other.send_json({'type': 'leave'})
+        await self.expect(other, 'left')
+        await host.send_json({'type': 'list'})
+        self.assertEqual((await self.expect(host, 'rooms'))['rooms'][0]['count'], 1)
+
+
+if __name__ == '__main__':
+    unittest.main()
