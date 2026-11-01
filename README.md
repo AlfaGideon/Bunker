@@ -15,7 +15,15 @@
 
 В партии справа лежит вертикальная игральная карта текущего говорящего: она подсвечивается, показывает сгенерированную портретную иллюстрацию обезличенного манекена в снаряжении профессии и по касанию переворачивается к шести параметрам, а «Открыть» разворачивает полное досье с замками. Касание любого выжившего просто меняет карту справа — списка участников и боковой панели больше нет. [Подробности](docs/ITERATION_27.md).
 
-## Текущий APK — 0.29: музыка у костра и в бункере
+## Текущий APK — 0.40: лобби работает на blitz.cloud
+
+[**Скачать APK 0.40**](https://github.com/AlfaGideon/Bunker/releases/download/android-40/Bunker-Posledniy-Shlyuz-40.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-40) · [Подробности](docs/ITERATION_40.md)
+
+Сервер лобби развёрнут: [alfagideon.blitz.cloud](https://alfagideon.blitz.cloud), `/healthz` отвечает `ok`. В игре адрес `wss://alfagideon.blitz.cloud/ws` уже стоит по умолчанию, поэтому «Создать лобби» и «Найти лобби» соединяются без ручного ввода, а ссылка-приглашение ведёт на тот же хост. Клиент сначала открывает WebSocket и, если какой-то хостинг его не пропускает, сам переходит на тот же протокол через HTTPS-опрос — это работает и для серверов из приглашений. Живой тест в GitHub Actions подтвердил на развёрнутом сервере создание комнаты, ботов, приглашение и запуск партии только ведущим.
+
+Ещё в сборке: вид от первого лица при входе в игру, лобби с ботами, страница приглашения с потоковой выдачей APK (`/download`). Синхронизация ходов между участниками пока не сделана.
+
+## APK — 0.29: музыка у костра и в бункере
 
 [**Скачать APK 0.29**](https://github.com/AlfaGideon/Bunker/releases/download/android-29/Bunker-Posledniy-Shlyuz-29.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-29) · [Подробности](docs/ITERATION_29.md)
 
@@ -35,7 +43,7 @@
 
 ![Поле голосования](docs/previews/vote.jpg)
 
-## Предыдущий APK — 0.28: живое радио
+## APK — 0.28: живое радио
 
 [**Скачать APK 0.28**](https://github.com/AlfaGideon/Bunker/releases/download/android-28/Bunker-Posledniy-Shlyuz-28.apk) · [Release](https://github.com/AlfaGideon/Bunker/releases/tag/android-28) · [Подробности](docs/ITERATION_28.md)
 
