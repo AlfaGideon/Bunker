@@ -12,6 +12,10 @@ namespace Bunker.UnityPort.Editor
     {
         public static void Verify()
         {
+            var asleep = LobbyTransport.DescribeFailure(503, "Service Unavailable", "{\"status\":\"asleep\"}");
+            if (!asleep.Contains("спит")) throw new Exception("Sleep gate not recognized");
+            if (LobbyTransport.DescribeFailure(503, "Service Unavailable", "{\"status\":\"busy\"}").Contains("спит"))
+                throw new Exception("Unrelated 503 misidentified as sleep gate");
             var root = new GameObject("Touch controller audit");
             root.SetActive(false);
             root.AddComponent<CharacterController>();

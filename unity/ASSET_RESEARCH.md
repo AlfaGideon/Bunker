@@ -28,3 +28,18 @@ debug APK. The first render showed an unsampled T-pose on the second participant
 in the editor-only capture; runtime idle sampling and the capture were adjusted
 subsequently and must be rechecked. Further provenance review remains necessary
 before distributing the model in a release.
+
+## Camp candidate audit (not enabled in the menu)
+
+Unity run 41314941427 rendered the camp candidate. The result is not acceptable
+for the requested final menu: the horizon is bare, foliage colours are wrong,
+the fire is a simple prop, and the procedural sitting pose needs correction.
+`CampWorld` is deliberately not wired into the menu. It also does not implement
+the loading transition, profile or final radio. Do not present it as finished.
+The Poly Haven-derived tree and rock still need a device performance check.
+
+Run 41314000064 rendered the experimental match world and verified physical
+interaction targets, table height and the state-driven medical door. That is
+not proof of touch operation, online sync or the full requested bunker on a
+phone. The temporary rectangular exit door is not the requested round airlock
+and has no elimination sequence. Medical and corridor geometry are preliminary.
