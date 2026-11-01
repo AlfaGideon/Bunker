@@ -139,6 +139,55 @@ jobs:
               part=data[i*3800:(i+1)*3800]
               if part: print('::notice::WORLDPART%03d=' % i + part)
           PYIMAGE
+      - name: Prepare camp preview data
+        run: |
+          base64 -w0 unity/BunkerUnity/Builds/camp-audit.jpg > "$RUNNER_TEMP/camp64"
+          test "$(wc -c < "$RUNNER_TEMP/camp64")" -le 171000
+      - name: Capture camp preview part 1
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
+          for i in range(0,9):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::CAMPPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture camp preview part 2
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
+          for i in range(9,18):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::CAMPPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture camp preview part 3
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
+          for i in range(18,27):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::CAMPPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture camp preview part 4
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
+          for i in range(27,36):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::CAMPPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture camp preview part 5
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
+          for i in range(36,45):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::CAMPPART%03d=' % i + part)
+          PYIMAGE
       - name: Build separately installed prototype, not a production update
         run: |
           set +e

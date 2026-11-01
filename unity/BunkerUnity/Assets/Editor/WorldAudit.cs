@@ -63,6 +63,7 @@ namespace Bunker.UnityPort.Editor
             RenderTexture.active = null; camera.targetTexture = null; target.Release();
             UnityEngine.Object.DestroyImmediate(world.gameObject);
             Debug.Log("WORLD_AUDIT_OK " + path);
+            CampAudit.Render();
         }
     }
 }
