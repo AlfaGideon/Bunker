@@ -271,6 +271,7 @@ namespace Bunker.UnityPort.World
             ActionRequested?.Invoke(target.action);
             return true;
         }
+        private void OnEnable() { RenderSettings.fog = false; }
         private void OnDisable() { tapFinger = -1; }
         private void OnDestroy() { if (wallMaterial != null) Destroy(wallMaterial); }
     }

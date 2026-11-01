@@ -8,6 +8,7 @@
     "com.unity.cloud.gltfast": "5.2.0",
     "com.unity.modules.physics": "1.0.0",
     "com.unity.modules.animation": "1.0.0",
-    "com.unity.cloud.ktx": "3.2.2"
+    "com.unity.cloud.ktx": "3.2.2",
+    "com.unity.modules.particlesystem": "1.0.0"
   }
 }

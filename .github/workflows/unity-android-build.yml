@@ -9,7 +9,7 @@ on:
       - 'unity/tools/**'
       - '.github/workflows/unity-android-build.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   license-check:
     runs-on: ubuntu-latest
@@ -90,103 +90,65 @@ jobs:
             exit "$code"
           fi
           test -s unity/BunkerUnity/Builds/world-audit.jpg
-      - name: Prepare world preview data
+      - name: Prepare three cutscene preview frames
         run: |
-          base64 -w0 unity/BunkerUnity/Builds/world-audit.jpg > "$RUNNER_TEMP/world64"
-          test "$(wc -c < "$RUNNER_TEMP/world64")" -le 171000
-      - name: Capture world preview part 1
-        run: |
+          for i in 0 1 2; do
+            base64 -w0 "unity/BunkerUnity/Builds/camp-audit-$i.jpg" > "$RUNNER_TEMP/camp$i"
+          done
           python3 - <<'PYIMAGE'
           import os
-          data=open(os.environ['RUNNER_TEMP']+'/world64').read()
-          for i in range(0,9):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::WORLDPART%03d=' % i + part)
+          data=[open(os.environ['RUNNER_TEMP']+'/camp'+str(i)).read() for i in range(3)]
+          if sum((len(d)+3799)//3800 for d in data)>45: raise Exception('preview exceeds annotation budget')
           PYIMAGE
-      - name: Capture world preview part 2
+      - name: Capture cutscene preview part 1
         run: |
           python3 - <<'PYIMAGE'
           import os
-          data=open(os.environ['RUNNER_TEMP']+'/world64').read()
-          for i in range(9,18):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::WORLDPART%03d=' % i + part)
+          data=[]
+          for j in range(3):
+              s=open(os.environ['RUNNER_TEMP']+'/camp'+str(j)).read()
+              data.extend((j,k//3800,s[k:k+3800]) for k in range(0,len(s),3800))
+          for j,k,part in data[0:9]: print('::notice::FRAME%dPART%03d=' % (j,k) + part)
           PYIMAGE
-      - name: Capture world preview part 3
+      - name: Capture cutscene preview part 2
         run: |
           python3 - <<'PYIMAGE'
           import os
-          data=open(os.environ['RUNNER_TEMP']+'/world64').read()
-          for i in range(18,27):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::WORLDPART%03d=' % i + part)
+          data=[]
+          for j in range(3):
+              s=open(os.environ['RUNNER_TEMP']+'/camp'+str(j)).read()
+              data.extend((j,k//3800,s[k:k+3800]) for k in range(0,len(s),3800))
+          for j,k,part in data[9:18]: print('::notice::FRAME%dPART%03d=' % (j,k) + part)
           PYIMAGE
-      - name: Capture world preview part 4
+      - name: Capture cutscene preview part 3
         run: |
           python3 - <<'PYIMAGE'
           import os
-          data=open(os.environ['RUNNER_TEMP']+'/world64').read()
-          for i in range(27,36):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::WORLDPART%03d=' % i + part)
+          data=[]
+          for j in range(3):
+              s=open(os.environ['RUNNER_TEMP']+'/camp'+str(j)).read()
+              data.extend((j,k//3800,s[k:k+3800]) for k in range(0,len(s),3800))
+          for j,k,part in data[18:27]: print('::notice::FRAME%dPART%03d=' % (j,k) + part)
           PYIMAGE
-      - name: Capture world preview part 5
+      - name: Capture cutscene preview part 4
         run: |
           python3 - <<'PYIMAGE'
           import os
-          data=open(os.environ['RUNNER_TEMP']+'/world64').read()
-          for i in range(36,45):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::WORLDPART%03d=' % i + part)
+          data=[]
+          for j in range(3):
+              s=open(os.environ['RUNNER_TEMP']+'/camp'+str(j)).read()
+              data.extend((j,k//3800,s[k:k+3800]) for k in range(0,len(s),3800))
+          for j,k,part in data[27:36]: print('::notice::FRAME%dPART%03d=' % (j,k) + part)
           PYIMAGE
-      - name: Prepare camp preview data
-        run: |
-          base64 -w0 unity/BunkerUnity/Builds/camp-audit.jpg > "$RUNNER_TEMP/camp64"
-          test "$(wc -c < "$RUNNER_TEMP/camp64")" -le 171000
-      - name: Capture camp preview part 1
+      - name: Capture cutscene preview part 5
         run: |
           python3 - <<'PYIMAGE'
           import os
-          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
-          for i in range(0,9):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::CAMPPART%03d=' % i + part)
-          PYIMAGE
-      - name: Capture camp preview part 2
-        run: |
-          python3 - <<'PYIMAGE'
-          import os
-          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
-          for i in range(9,18):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::CAMPPART%03d=' % i + part)
-          PYIMAGE
-      - name: Capture camp preview part 3
-        run: |
-          python3 - <<'PYIMAGE'
-          import os
-          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
-          for i in range(18,27):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::CAMPPART%03d=' % i + part)
-          PYIMAGE
-      - name: Capture camp preview part 4
-        run: |
-          python3 - <<'PYIMAGE'
-          import os
-          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
-          for i in range(27,36):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::CAMPPART%03d=' % i + part)
-          PYIMAGE
-      - name: Capture camp preview part 5
-        run: |
-          python3 - <<'PYIMAGE'
-          import os
-          data=open(os.environ['RUNNER_TEMP']+'/camp64').read()
-          for i in range(36,45):
-              part=data[i*3800:(i+1)*3800]
-              if part: print('::notice::CAMPPART%03d=' % i + part)
+          data=[]
+          for j in range(3):
+              s=open(os.environ['RUNNER_TEMP']+'/camp'+str(j)).read()
+              data.extend((j,k//3800,s[k:k+3800]) for k in range(0,len(s),3800))
+          for j,k,part in data[36:45]: print('::notice::FRAME%dPART%03d=' % (j,k) + part)
           PYIMAGE
       - name: Build separately installed prototype, not a production update
         run: |
@@ -216,3 +178,13 @@ jobs:
           path: unity/BunkerUnity/Builds/bunker-unity-prototype.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Publish direct test APK (not production)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "unity-test-$GITHUB_RUN_ID" \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Unity test $GITHUB_RUN_ID" \
+            --notes "Тестовая Unity-сборка, не готовая игра. Отдельный package ID и тестовая подпись; не заменяет Godot." \
+            "unity/BunkerUnity/Builds/bunker-unity-prototype.apk#Bunker-Unity-Test.apk"

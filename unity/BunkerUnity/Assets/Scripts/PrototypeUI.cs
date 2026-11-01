@@ -33,6 +33,9 @@ namespace Bunker.UnityPort
         private string screen = "home";
 #if UNITY_5_3_OR_NEWER
         private World.BunkerWorld world;
+        private World.CampWorld camp;
+        private CanvasGroup fadingMenu;
+        private bool campFailed;
 #endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -73,6 +76,10 @@ namespace Bunker.UnityPort
 
         private void Update()
         {
+#if UNITY_5_3_OR_NEWER
+            if (screen == "loading" && fadingMenu != null && camp != null)
+                fadingMenu.alpha = Mathf.Clamp01(1f - camp.TransitionProgress * 3f);
+#endif
             if (state == null || (screen != "game" && screen != "world")) return;
             radioAudio.Restore(state.stations?.radio);
             if (localMatch != null && localMatch.Tick(Time.unscaledDeltaTime))
@@ -89,7 +96,7 @@ namespace Bunker.UnityPort
         {
             status = message;
             if (statusText != null) statusText.text = status;
-            if (transport.Connected && screen == "home" && message == "Подключено")
+            if (transport.Connected && (screen == "home" || screen == "network") && message == "Подключено")
             {
                 transport.Send(new Command { type = "list" });
                 Draw();
@@ -105,7 +112,7 @@ namespace Bunker.UnityPort
             switch (item.type)
             {
                 case "error": status = "Сервер: " + ErrorName(item.code); Draw(); break;
-                case "rooms": rooms = item.rooms ?? Array.Empty<Room>(); if (screen == "home") Draw(); break;
+                case "rooms": rooms = item.rooms ?? Array.Empty<Room>(); if (screen == "home" || screen == "network") Draw(); break;
                 case "joined":
                     radioAudio.ResetRadio(); localMatch = null; playerId = item.player_id; room = item.room; state = null; screen = "room";
                     status = "Комната создана или подключена"; Draw(); break;
@@ -115,10 +122,11 @@ namespace Bunker.UnityPort
                     if (item.state == null || item.state.players == null) break;
                     if (state != null && item.state.revision < state.revision) break;
                     bool newMatch = state == null;
-                    state = item.state; localRemaining = state.remaining; if (screen != "world") screen = "game";
+                    state = item.state; localRemaining = state.remaining; if (screen != "world" && screen != "loading") screen = "game";
                     if (string.IsNullOrEmpty(selectedId)) selectedId = playerId;
 #if UNITY_5_3_OR_NEWER
-                    if (newMatch) { OpenWorld(); break; }
+                    if (newMatch) { BeginLaunch(OpenWorld); break; }
+                    if (screen == "loading") break;
 #endif
                     Draw(); break;
                 case "room_closed":
@@ -154,23 +162,59 @@ namespace Bunker.UnityPort
             if ((screen == "game" || screen == "world") && state != null) radioAudio.Restore(state.stations?.radio);
 #if UNITY_5_3_OR_NEWER
             if (world != null) world.gameObject.SetActive(screen == "world");
+            bool needsCamp = screen == "home" || screen == "network" || screen == "profile" || screen == "loading" || screen == "room";
+            if (needsCamp && camp == null && !campFailed)
+            {
+                try { camp = World.CampWorld.Create(); }
+                catch (Exception ex) { campFailed = true; status = "Лагерь не загрузился: " + ex.Message; }
+            }
+            if (camp != null) camp.gameObject.SetActive(needsCamp);
 #endif
             if (page != null) { page.gameObject.SetActive(false); Destroy(page.gameObject); }
             page = Rect("Page", canvas.transform, 0, 0, 1, 1);
 #if UNITY_5_3_OR_NEWER
             if (screen == "world") { DrawWorld(); return; }
 #endif
-            Panel(page, 0, 0, 1, 1, new Color(0.025f, 0.055f, 0.065f));
-            Label(page, "Б У Н К Е Р  /  UNITY · ПЕРЕНОС", 0.025f, 0.93f, 0.70f, 0.985f, 23, TextAnchor.MiddleLeft);
+#if UNITY_5_3_OR_NEWER
+            if (camp == null || (screen != "home" && screen != "network" && screen != "profile" && screen != "room"))
+#endif
+                Panel(page, 0, 0, 1, 1, new Color(0.025f, 0.055f, 0.065f));
+            Label(page, "Б У Н К Е Р  ·  ПОСЛЕДНИЙ ШЛЮЗ", 0.025f, 0.93f, 0.70f, 0.985f, 23, TextAnchor.MiddleLeft);
             statusText = Label(page, status, 0.025f, 0.012f, 0.975f, 0.07f, 16, TextAnchor.MiddleLeft);
             if (screen == "home") DrawHome();
+            else if (screen == "network") DrawNetwork();
+            else if (screen == "profile") DrawProfile();
             else if (screen == "room") DrawRoom();
             else if (screen == "game") DrawGame();
         }
 
         private void DrawHome()
         {
-            Panel(page, .02f, .11f, .49f, .90f, new Color(.055f, .12f, .14f));
+            Panel(page, .025f, .16f, .30f, .78f, new Color(.055f, .043f, .035f, .86f));
+            Label(page, nickname, .05f, .69f, .27f, .76f, 18, TextAnchor.MiddleLeft);
+            Button(page, "НАЧАТЬ ИГРУ", .05f, .56f, .27f, .66f, () => {
+#if UNITY_5_3_OR_NEWER
+                BeginLaunch(StartLocal);
+#else
+                StartLocal();
+#endif
+            }, 17);
+            Button(page, "ИГРОКОВ: " + capacity, .05f, .45f, .27f, .53f, () => { capacity = capacity == 6 ? 8 : capacity == 8 ? 10 : 6; Draw(); }, 14);
+            Button(page, "ИНТЕРНЕТ", .05f, .34f, .27f, .42f, () => { screen = "network"; Draw(); }, 14);
+            Button(page, "ПРОФИЛЬ", .05f, .23f, .27f, .31f, () => { screen = "profile"; Draw(); }, 14);
+        }
+        private void DrawProfile()
+        {
+            Panel(page, .025f, .24f, .32f, .75f, new Color(.055f, .043f, .035f, .88f));
+            Label(page, "ИМЯ ИГРОКА", .05f, .63f, .29f, .70f, 17, TextAnchor.MiddleLeft);
+            nameInput = Input(page, nickname, .05f, .52f, .29f, .61f, value => nickname = value);
+            Label(page, "Другие варианты внешности ещё не готовы", .05f, .40f, .29f, .50f, 13, TextAnchor.MiddleLeft);
+            Button(page, "СОХРАНИТЬ", .05f, .29f, .29f, .38f, () => { PlayerPrefs.SetString("bunker.nickname", nickname); PlayerPrefs.Save(); screen = "home"; Draw(); }, 14);
+        }
+        private void DrawNetwork()
+        {
+            Button(page, "НАЗАД", .82f, .93f, .97f, .985f, () => { screen = "home"; Draw(); }, 13);
+            Panel(page, .02f, .11f, .49f, .90f, new Color(.045f, .04f, .035f, .88f));
             Label(page, "СЕТЕВОЙ ТЕСТ · НЕ ПОЛНАЯ ИГРА", .04f, .81f, .47f, .88f, 18, TextAnchor.MiddleLeft);
             Label(page, "Адрес сервера", .04f, .75f, .47f, .80f, 15, TextAnchor.MiddleLeft);
             addressInput = Input(page, address, .04f, .68f, .47f, .75f, value => address = value);
@@ -192,7 +236,7 @@ namespace Bunker.UnityPort
                 Button(page, "ОБНОВИТЬ СПИСОК", .04f, .16f, .27f, .25f, () => transport.Send(new Command { type = "list" }));
                 Button(page, "ОТКЛЮЧИТЬСЯ", .29f, .16f, .47f, .25f, () => { transport.Close(); Draw(); });
             }
-            Panel(page, .51f, .11f, .98f, .90f, new Color(.055f, .12f, .14f));
+            Panel(page, .51f, .11f, .98f, .90f, new Color(.045f, .04f, .035f, .88f));
             if (!transport.Connected)
             {
                 Button(page, "ЛОКАЛЬНЫЙ ТЕСТ РАУНДОВ", .53f, .16f, .81f, .25f, StartLocal, 13);
@@ -268,6 +312,15 @@ namespace Bunker.UnityPort
             { status = "Нет соединения"; Draw(); }
         }
 #if UNITY_5_3_OR_NEWER
+        private void BeginLaunch(Action callback)
+        {
+            if (screen == "loading") return;
+            if (camp == null) { callback(); return; }
+            screen = "loading";
+            fadingMenu = page.gameObject.AddComponent<CanvasGroup>();
+            fadingMenu.interactable = false; fadingMenu.blocksRaycasts = false;
+            camp.BeginTransition(() => { fadingMenu = null; callback(); });
+        }
         private void OpenWorld()
         {
             try
@@ -426,7 +479,7 @@ namespace Bunker.UnityPort
         private void Button(Transform parent, string text, float x1, float y1, float x2, float y2, Action click, int size = 16)
         {
             var rect = Rect("Button", parent, x1, y1, x2, y2);
-            var image = rect.gameObject.AddComponent<Image>(); image.color = new Color(.13f, .27f, .29f);
+            var image = rect.gameObject.AddComponent<Image>(); image.color = new Color(.25f, .17f, .11f, .94f);
             var button = rect.gameObject.AddComponent<Button>(); button.targetGraphic = image;
             button.onClick.AddListener(() => click());
             Label(rect, text, .04f, .05f, .96f, .95f, size, TextAnchor.MiddleCenter);

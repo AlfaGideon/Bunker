@@ -4,7 +4,7 @@ https://github.com/agrimuitobom/landscape/blob/main/presets/tree_small_02.glb
 Rock.glb: Poly Haven boulder_01, Rico Cilliers, converted from
 https://github.com/agrimuitobom/landscape/blob/main/presets/boulder_01.glb
 Stump.glb: Poly Haven tree_stump_01, converted from
-https://github.com/Nelcyon/portfolio/blob/main/assets/models/tree_stump_01.glb
+https://github.com/xustevexu/zombie-game/blob/main/assets/mod/tree_stump_01.glb
 Ground.jpg: Poly Haven Forest Ground 01, Rob Tuytel, from
 https://github.com/naosuke0506-max/forest-game/tree/main/assets/textures/forrest_ground_01
 Bonfire.glb: Quaternius Survival Pack, the repository's existing
