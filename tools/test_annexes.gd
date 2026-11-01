@@ -74,13 +74,22 @@ func run_test() -> void:
 	for sound in ["toilet_flush", "toilet_giggle", "toilet_fart"]:
 		check(ResourceLoader.exists("res://assets/audio/%s.wav" % sound), "Bathroom sound exists: " + sound)
 
-	# Terrain relief: the surface must not be a flat sheet.
+	# Terrain relief: the surface must not be a flat sheet. Sample a wide ring
+	# around the bunker, because the layout seed decides which direction is flat.
+	var ground := load("res://game/scripts/exterior_ground.gd")
 	var high := -100.0
 	var low := 100.0
-	for point in [Vector2(14, 18), Vector2(-22, 12), Vector2(30, -18), Vector2(-26, -24)]:
-		var height: float = load("res://game/scripts/exterior_ground.gd").height_at(room, point)
-		high = maxf(high, height)
-		low = minf(low, height)
+	var samples := 0
+	for ix in range(-4, 5):
+		for iz in range(-4, 5):
+			var point := Vector2(ix * 9.0, iz * 9.0)
+			if point.length() < 18.0:
+				continue
+			var height: float = ground.height_at(room, point)
+			high = maxf(high, height)
+			low = minf(low, height)
+			samples += 1
+	check(samples >= 40, "The terrain is sampled all around the bunker")
 	check(high - low > 0.5, "The ground outside has real relief")
 
 	print("Annex failures: ", failures)
