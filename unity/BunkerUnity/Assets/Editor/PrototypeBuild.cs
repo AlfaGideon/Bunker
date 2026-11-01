@@ -17,8 +17,8 @@ namespace Bunker.UnityPort.Editor
             PlayerSettings.companyName = "Bunker";
             PlayerSettings.productName = "Бункер — Unity прототип";
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "org.bunker.unityprototype");
-            PlayerSettings.bundleVersion = "0.1.0";
-            PlayerSettings.Android.bundleVersionCode = 1;
+            PlayerSettings.bundleVersion = "0.1.1";
+            PlayerSettings.Android.bundleVersionCode = 2;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Bootstrap.unity", true) };

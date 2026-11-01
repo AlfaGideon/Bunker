@@ -7,6 +7,10 @@ tools=$(find "$ANDROID_HOME/build-tools" -name aapt -printf '%h\n' | sort -V | t
 test -n "$tools"
 "$tools/aapt" dump badging "$apk" > /tmp/bunker-unity-badging.txt
 grep -q "package: name='org.bunker.unityprototype'" /tmp/bunker-unity-badging.txt
+if ! grep -q "^launchable-activity: name='com.unity3d.player.UnityPlayerActivity'" /tmp/bunker-unity-badging.txt; then
+  echo '::error::APK has no Unity launcher activity; Android cannot open it.'
+  exit 1
+fi
 "$tools/apksigner" verify "$apk"
 dexdir=$(mktemp -d)
 trap 'rm -rf "$dexdir"' EXIT
