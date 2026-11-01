@@ -1,0 +1,27 @@
+name: Diagnose Unity build log
+on:
+  push:
+    branches: [arena/574beb82-bunker]
+    paths: [.github/workflows/unity-log-diagnosis.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read last Unity editor log from prior failed job
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api /repos/$GH_REPO/actions/jobs/124835570978/logs > /tmp/unity.log
+          python3 - <<'PY'
+          import re
+          text=open('/tmp/unity.log',errors='replace').read().splitlines()
+          section=[line for line in text if '\tBuild separately installed prototype' in line]
+          relevant=[line.split('\t',2)[-1] for line in section if re.search(r'error|fail|license|licensing|entitlement|exception|fatal|abort|quit|batchmode|missing|unable|compil|projectpath|unity editor',line,re.I)]
+          for line in relevant[-40:]:
+              print('::notice::'+line[:1500].replace('%','%25').replace('\r','%0D').replace('\n','%0A'))
+          print('::notice::Filtered diagnostic lines: '+str(len(relevant)))
+          PY
