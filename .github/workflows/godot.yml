@@ -34,6 +34,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_medical_doctor.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_navigation.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_exit_tunnel.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rig.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_game_flow.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_iteration4.gd
@@ -67,6 +68,8 @@ jobs:
           ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/scene.log
       - name: Render first-person view
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_first_person.gd
+      - name: Render hall-side entrance and tunnel bend
+        run: GODOT_TIMEOUT=90 timeout 120 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_exit_entrance.gd
       - name: Render first-person exit tunnel
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_exit_view.gd
       - name: Render menu preview

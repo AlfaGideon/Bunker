@@ -116,12 +116,41 @@ static func build(room: Node3D) -> void:
  for part in [{"at": Vector3(3.8, -0.09, 6), "size": Vector3(1.5, 0.18, 2.4)}, {"at": Vector3(6, -0.09, 6.7), "size": Vector3(5.9, 0.18, 1.5)}]:
   var floor: MeshInstance3D = room._box(part["at"], part["size"], Color("596c76"))
   floor.material_override = Finish.metal(Color("536775"))
- for z in [5.4, 6.7]:
-  for x in [3.05, 4.55]:
-   room._box(Vector3(x, 0.7, z), Vector3(0.12, 1.4, 0.16), Color("7e949f"))
-  room._box(Vector3(3.8, 1.45, z), Vector3(1.6, 0.13, 0.2), Color("6d8796"))
- for z in [5.95, 7.45]:
-  Finish.wall(room, Vector2(6.2, z), Vector2(5.1, 0.15))
+ # Solid walls follow the dog-leg; the inside corner remains passable.
+ # West wall and the back wall meet without seams; the opposite wall ends at
+ # the bend so a departing character can actually turn right into the tunnel.
+ Finish.wall(room, Vector2(3.05, 6.22), Vector2(0.16, 2.5))
+ Finish.wall(room, Vector2(4.55, 5.47), Vector2(0.16, 1.0))
+ Finish.wall(room, Vector2(6.65, 5.95), Vector2(4.25, 0.16))
+ Finish.wall(room, Vector2(5.9, 7.45), Vector2(5.8, 0.16))
+ # A real, opaque pressure door at the entrance, not just a floating frame.
+ # It slides down together with the exterior hatch during local expulsion.
+ room.entrance_hatch = Node3D.new()
+ room.entrance_hatch.name = "EntrancePressureDoor"
+ room.entrance_hatch.position = Vector3(3.8, 0, 5.0)
+ room.add_child(room.entrance_hatch)
+ var backing := MeshInstance3D.new()
+ var backing_mesh := BoxMesh.new()
+ backing_mesh.size = Vector3(1.47, 2.12, 0.12)
+ backing.mesh = backing_mesh
+ backing.position = Vector3(0, 1.06, 0.075)
+ backing.material_override = Finish.metal(Color("334e58"))
+ room.entrance_hatch.add_child(backing)
+ var pressure_door := Art.spawn(room.entrance_hatch, "modular_sci_fi_Door_Single", Vector3(0, 0, 0), Vector3(1.43, 2.08, 0.12))
+ pressure_door.name = "PressureDoorDetail"
+ # Head and jambs seal the gap above and either side of the moving door.
+ var lintel: MeshInstance3D = room._box(Vector3(3.8, 2.40, 5.0), Vector3(1.65, 0.55, 0.24), Color("415d68"))
+ lintel.material_override = Finish.metal(Color("415d68"))
+ for x in [3.01, 4.59]:
+  var jamb: MeshInstance3D = room._box(Vector3(x, 1.10, 5.0), Vector3(0.16, 2.2, 0.24), Color("526b74"))
+  jamb.material_override = Finish.metal(Color("526b74"))
+ var entrance_roof: MeshInstance3D = room._box(Vector3(3.8, 2.72, 6.15), Vector3(1.65, 0.14, 2.5), Color("344c55"))
+ entrance_roof.material_override = Finish.metal(Color("344c55"))
+ entrance_roof.visible = false
+ entrance_roof.set_meta("first_person_ceiling", true)
+ var entrance_light := Finish.glow(room, Vector3(3.8, 2.63, 5.65), Vector3(0.7, 0.03, 0.18), Color("c8f4ff"))
+ entrance_light.visible = false
+ entrance_light.set_meta("first_person_ceiling", true)
  for x in [5.0, 6.5, 8.0]:
   Finish.glow(room, Vector3(x, 0.04, 6.15), Vector3(0.6, 0.02, 0.05), Color("b8dad7"))
  # Close the exit tunnel above the door and cover its first-person roof.

@@ -43,6 +43,7 @@ var ability_buttons: Array[Button] = []
 var warehouse_open := false
 var warehouse_door: Node3D
 var exit_hatch: Node3D
+var entrance_hatch: Node3D
 var camera_tween: Tween
 var camera_gestures := preload("res://game/scripts/camera_gestures.gd").new()
 var warehouse_votes := {}
@@ -879,6 +880,7 @@ func _eliminate(eliminated: int) -> void:
 		actors[eliminated].get_child(0).rotation = Vector3.ZERO
 		npc_rests.erase(eliminated)
 	create_tween().tween_property(exit_hatch, "position:y", -2.0, 0.5)
+	create_tween().tween_property(entrance_hatch, "position:y", -2.2, 0.5)
 	active.erase(eliminated)
 	_update_medical_access()
 	actors[eliminated].get_child(1).modulate = Color("71828c")
@@ -1144,6 +1146,7 @@ func _physics_process(delta: float) -> void:
 			departures.erase(id)
 			if departures.is_empty():
 				create_tween().tween_property(exit_hatch, "position:y", 0.0, 0.5)
+				create_tween().tween_property(entrance_hatch, "position:y", 0.0, 0.5)
 			if id == 0:
 				_show_survival()
 			continue
