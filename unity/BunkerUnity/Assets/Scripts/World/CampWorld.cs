@@ -155,6 +155,16 @@ namespace Bunker.UnityPort.World
             if (Application.isPlaying) Destroy(collider); else DestroyImmediate(collider);
         }
 
+        public void SetOutfit(int index)
+        {
+            if (person == null) return;
+            Color[] colors = { Color.white, new Color(.42f, .53f, .37f), new Color(.38f, .49f, .62f) };
+            var selected = colors[Mathf.Abs(index) % colors.Length];
+            foreach (var renderer in person.GetComponentsInChildren<Renderer>())
+                foreach (var material in renderer.materials)
+                    if (material.name.IndexOf("outfit", StringComparison.OrdinalIgnoreCase) >= 0 && material.HasProperty("_Color"))
+                        material.color = selected;
+        }
         public void BeginTransition(Action finished)
         {
             if (transitionTime >= 0) return;

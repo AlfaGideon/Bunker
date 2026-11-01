@@ -36,6 +36,7 @@ namespace Bunker.UnityPort
         private World.CampWorld camp;
         private CanvasGroup fadingMenu;
         private bool campFailed;
+        private int outfit;
 #endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -53,6 +54,9 @@ namespace Bunker.UnityPort
             font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             address = PlayerPrefs.GetString("bunker.server", address);
             nickname = PlayerPrefs.GetString("bunker.nickname", nickname);
+#if UNITY_5_3_OR_NEWER
+            int.TryParse(PlayerPrefs.GetString("bunker.outfit", "0"), out outfit);
+#endif
             radioAudio = gameObject.AddComponent<RadioAudio>();
             transport = gameObject.AddComponent<LobbyTransport>();
             transport.Status += OnStatus;
@@ -165,7 +169,7 @@ namespace Bunker.UnityPort
             bool needsCamp = screen == "home" || screen == "network" || screen == "profile" || screen == "loading" || screen == "room";
             if (needsCamp && camp == null && !campFailed)
             {
-                try { camp = World.CampWorld.Create(); }
+                try { camp = World.CampWorld.Create(); camp.SetOutfit(outfit); }
                 catch (Exception ex) { campFailed = true; status = "Лагерь не загрузился: " + ex.Message; }
             }
             if (camp != null) camp.gameObject.SetActive(needsCamp);
@@ -208,8 +212,18 @@ namespace Bunker.UnityPort
             Panel(page, .025f, .24f, .32f, .75f, new Color(.055f, .043f, .035f, .88f));
             Label(page, "ИМЯ ИГРОКА", .05f, .63f, .29f, .70f, 17, TextAnchor.MiddleLeft);
             nameInput = Input(page, nickname, .05f, .52f, .29f, .61f, value => nickname = value);
-            Label(page, "Другие варианты внешности ещё не готовы", .05f, .40f, .29f, .50f, 13, TextAnchor.MiddleLeft);
-            Button(page, "СОХРАНИТЬ", .05f, .29f, .29f, .38f, () => { PlayerPrefs.SetString("bunker.nickname", nickname); PlayerPrefs.Save(); screen = "home"; Draw(); }, 14);
+#if UNITY_5_3_OR_NEWER
+            Button(page, "ОДЕЖДА: " + (outfit + 1) + " / 3", .05f, .40f, .29f, .50f, () => {
+                outfit = (outfit + 1) % 3; if (camp != null) camp.SetOutfit(outfit); Draw();
+            }, 13);
+#else
+            Label(page, "Внешность пока не поддерживается", .05f, .40f, .29f, .50f, 13, TextAnchor.MiddleLeft);
+#endif
+            Button(page, "СОХРАНИТЬ", .05f, .29f, .29f, .38f, () => { PlayerPrefs.SetString("bunker.nickname", nickname);
+#if UNITY_5_3_OR_NEWER
+                PlayerPrefs.SetString("bunker.outfit", outfit.ToString());
+#endif
+                PlayerPrefs.Save(); screen = "home"; Draw(); }, 14);
         }
         private void DrawNetwork()
         {
