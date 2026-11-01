@@ -21,6 +21,7 @@ namespace Bunker.UnityPort.Editor
             var controller = root.AddComponent<BunkerTouchController>();
             controller.cameraPivot = camera.transform;
             root.SetActive(true);
+            typeof(BunkerTouchController).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(controller, null);
             controller.SetTopView(true);
             if (camera.transform.localPosition.y < 5) throw new Exception("top view did not move camera");
             controller.SetTopView(false);
