@@ -28,6 +28,21 @@ Check(local.Snapshot().phase == "vote" && local.Snapshot().remaining == 20, "loc
 Check(local.Command("vote", "local_1"), "local vote accepted");
 local.Tick(3); local.Tick(17);
 Check(local.Snapshot().phase == "result" || local.Snapshot().phase == "vote" || local.Snapshot().phase == "end", "local ballot resolves or enters runoff");
+foreach (int size in new[] { 6, 8, 10 })
+{
+    var complete = new LocalMatch(content, scenarios, size, "Host", size);
+    var initial = complete.Snapshot();
+    Check(initial.players.Length == size && initial.players.Select(p => p.cards[0].value).Distinct().Count() == size,
+        $"local {size} players have distinct professions");
+    for (int tick = 0; tick < 6000 && complete.Snapshot().phase != "end"; tick++)
+    {
+        var view = complete.Snapshot();
+        if (view.phase == "reveal" && view.speaker == LocalMatch.HumanId) complete.Command("pass");
+        complete.Tick(1);
+    }
+    var final = complete.Snapshot();
+    Check(final.phase == "end" && final.active.Length == size / 2, $"local {size} player game finishes at capacity");
+}
 var root = Environment.GetEnvironmentVariable("BUNKER_TEST_URL") ?? "http://127.0.0.1:8080";
 Check(LobbyTransport.TryNormalize("wss://example.org/ws", false, out var normalized) && normalized == "https://example.org", "wss normalized to HTTPS");
 Check(!LobbyTransport.TryNormalize("http://example.org", false, out _), "device rejects HTTP");

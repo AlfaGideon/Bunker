@@ -75,7 +75,7 @@ namespace Bunker.UnityPort
                 localRemaining = state.remaining;
                 Draw();
             }
-            localRemaining = Mathf.Max(0, localRemaining - Time.unscaledDeltaTime);
+            else localRemaining = Mathf.Max(0, localRemaining - Time.unscaledDeltaTime);
             if (timerText != null) timerText.text = PhaseName(state.phase) + "  ·  " + Mathf.CeilToInt(localRemaining) + " с";
         }
 
