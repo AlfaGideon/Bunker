@@ -6,6 +6,7 @@ on:
     branches: [arena/574beb82-bunker]
     paths:
       - 'unity/BunkerUnity/**'
+      - 'unity/tools/**'
       - '.github/workflows/unity-android-build.yml'
 permissions:
   contents: read
