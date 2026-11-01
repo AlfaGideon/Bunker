@@ -84,12 +84,14 @@ func run() -> void:
 	check(welcome.screen_prop.position.z < 0.0, "The panel stands behind the fire")
 	check(welcome.screen_prop.position.z > -4.4, "The panel stands in front of the pines")
 	check(welcome.screen_prop.position.x < 0.0, "The panel stands behind the survivor")
-	# The menu card owns the right of the frame: the banner must not hide under it.
-	var centre: Vector2 = welcome.camera.unproject_position(
-		welcome.screen_prop.position + Vector3(0, 1.5, 0))
-	check(centre.x < welcome.panel.get_global_rect().position.x - 60.0,
-		"The panel is fully visible beside the menu card")
-	check(centre.x > 0.0 and centre.y > 0.0, "The panel is inside the camp frame")
+	# The menu card owns the right of the frame: the whole banner must stay clear.
+	var edge: Vector2 = welcome.camera.unproject_position(
+		welcome.screen_prop.position + Vector3(1.6, 1.4, 0))
+	check(edge.x < welcome.panel.get_global_rect().position.x - 8.0,
+		"The whole panel is visible beside the menu card")
+	var left_edge: Vector2 = welcome.camera.unproject_position(
+		welcome.screen_prop.position + Vector3(-1.6, 1.4, 0))
+	check(left_edge.x > 0.0, "The panel's left edge is inside the camp frame")
 	check(welcome.screen_broadcast.channel == 0, "The camp panel idles on the logo splash")
 	check(is_instance_valid(welcome.screen_caption) and welcome.screen_caption.text.contains("нажми"),
 		"The camp caption explains the tap")

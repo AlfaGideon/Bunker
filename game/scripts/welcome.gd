@@ -164,15 +164,15 @@ func build_camp() -> void:
 ## advertising banner and its cinema at once. With no content it holds the game
 ## logo splash; the host can switch it to the anime reel or the ad block.
 func build_screen() -> void:
- # Placed in the free left part of the camp frame: the menu card owns the right
- # side, and the panel has to stay readable as a banner behind the fire.
- screen_prop = Art.spawn(self, "blender_plasma_tv", Vector3(-1.75, 0, -2.60),
-  Vector3(4.0, 2.93, 0.30), false, 0.010)
+ # Behind the fire and the survivor, in front of the pines, and wholly inside the
+ # free left part of the frame: the menu card owns the right half of the screen.
+ screen_prop = Art.spawn(self, "blender_plasma_tv", Vector3(-2.75, 0, -2.55),
+  Vector3(3.2, 2.34, 0.26), false, 0.010)
  screen_broadcast = preload("res://game/scripts/screen_broadcast.gd").new()
  screen_broadcast.mount(self)
  screen_broadcast.attach(screen_prop)
  screen_light = OmniLight3D.new()
- screen_light.position = Vector3(-1.75, 1.55, -2.17)
+ screen_light.position = Vector3(-2.75, 1.35, -2.12)
  screen_light.light_color = Color("cfe8ff")
  screen_light.light_energy = 0.55
  screen_light.omni_range = 5.0
@@ -218,7 +218,7 @@ func _update_screen_hotspot() -> void:
  if not is_instance_valid(ui):
   return
  var bounds: Vector2 = ui.size if ui.size.x > 1.0 else get_viewport().get_visible_rect().size
- var point := camera.unproject_position(Vector3(-1.75, 0.36, -2.45))
+ var point := camera.unproject_position(Vector3(-2.75, 0.24, -2.40))
  var pill := screen_hotspot.size
  var corner := Vector2(point.x - pill.x * 0.5, point.y + 12.0)
  # The menu card owns the right side of the screen: the pill never goes there.
