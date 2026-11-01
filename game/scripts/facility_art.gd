@@ -1,6 +1,7 @@
 extends RefCounted
 const Art = preload("res://game/scripts/scene_art.gd")
 const Finish = preload("res://game/scripts/bunker_finish.gd")
+const Station = preload("res://game/scripts/station_motion.gd")
 
 static func cylinder(room: Node3D, at: Vector3, radius: float, height: float, color: Color) -> MeshInstance3D:
  var node := MeshInstance3D.new()
@@ -40,7 +41,7 @@ static func build(room: Node3D) -> void:
      Art.spawn(room, "house_interior_pack_Kitchen_Fridge", at, Vector3(0.8, 1.8, 0.8))
     elif index == 1:
      # The same galley counter the hall uses, so the kitchen matches it.
-     Art.spawn(room, "blender_food_station", at, Vector3(1.0, 0.92, 0.5), false, 0.010)
+     Station.attach(Art.spawn(room, "blender_food_station", at, Vector3(1.0, 0.92, 0.5), false, 0.010), "steam")
     else:
      room._box(at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95), Color("95a8a8"))
      room._box(at + Vector3(0, 0.94, 0), Vector3(1, 0.08, 1), Color("c5cfbd"))
@@ -110,7 +111,7 @@ static func build(room: Node3D) -> void:
     var weight := cylinder(room, at + Vector3(end, 0.2, 0), 0.19, 0.1, Color("26313a"))
     weight.rotation.z = PI / 2
   elif kind == "workshop":
-   Art.spawn(room, "blender_terminal", at, Vector3(0.84, 1.12, 0.5), false, 0.010)
+   Station.attach(Art.spawn(room, "blender_terminal", at, Vector3(0.84, 1.12, 0.5), false, 0.010), "terminal")
   else:
    room._box(at - Vector3(0, 0.5, 0), Vector3(1.2, 0.4, 0.65), Color("56685a"))
    for i in 5:

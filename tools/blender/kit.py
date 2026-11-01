@@ -22,7 +22,7 @@ def reset() -> None:
 
 
 def material(name: str, color, roughness: float = 0.72, metallic: float = 0.0,
-             emission=None, emission_strength: float = 4.0):
+             emission=None, emission_strength: float = 4.0, alpha: float = 1.0):
     mat = bpy.data.materials.get(name)
     if mat is not None:
         return mat
@@ -37,6 +37,16 @@ def material(name: str, color, roughness: float = 0.72, metallic: float = 0.0,
     if emission is not None:
         bsdf.inputs['Emission Color'].default_value = tuple(emission) + (1.0,)
         bsdf.inputs['Emission Strength'].default_value = emission_strength
+    if alpha < 1.0:
+        # Alpha blend is what lets the exporter write alphaMode=BLEND, so Godot
+        # imports the material as transparent (used for steam and glass).
+        bsdf.inputs['Alpha'].default_value = alpha
+        for attribute, value in (('surface_render_method', 'BLENDED'),
+                                 ('blend_method', 'BLEND')):
+            try:
+                setattr(mat, attribute, value)
+            except (AttributeError, TypeError):
+                pass
     return mat
 
 

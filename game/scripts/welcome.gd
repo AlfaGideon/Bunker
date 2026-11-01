@@ -31,6 +31,7 @@ var name_input: LineEdit
 var appearance_picker: Choice
 var palette_picker: Choice
 var radio_prop: Node3D
+var radio_motion: Node
 var campfire_prop: Node3D
 var radio_lamp: OmniLight3D
 var radio_dial_material: StandardMaterial3D
@@ -162,9 +163,10 @@ func build_radio() -> void:
  radio_prop = Node3D.new()
  radio_prop.position = Vector3(-2.98, 0.37, 0.92)
  add_child(radio_prop)
- Art.spawn(radio_prop, "blender_radio_station", Vector3.ZERO,
+ var receiver := Art.spawn(radio_prop, "blender_radio_station", Vector3.ZERO,
   Vector3(0.62, 0.47, 0.37), false, 0.009)
  _hook_radio_dial()
+ radio_motion = preload("res://game/scripts/station_motion.gd").attach(receiver, "radio")
  radio_lamp = OmniLight3D.new()
  radio_lamp.position = Vector3(0.16, 0.16, 0.30)
  radio_lamp.light_color = Color("ffcf8a")
@@ -204,6 +206,8 @@ func _apply_audio_settings() -> void:
 ## Camp radio: music only, four records, no bunker chatter at all.
 func play_track(index: int) -> void:
  radio_track = posmod(index, Music.count())
+ if is_instance_valid(radio_motion):
+  radio_motion.tune(radio_track)
  var source := load(Music.path(radio_track)) as AudioStreamWAV
  if source == null or not is_instance_valid(radio_music):
   return

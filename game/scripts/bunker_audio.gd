@@ -1,6 +1,7 @@
 extends Node
 
 signal speech_unavailable(message: String)
+signal music_changed(index: int)
 const VOICE_WAIT := 15.0
 
 const Music = preload("res://game/scripts/music_library.gd")
@@ -107,6 +108,7 @@ func play_music(track: int) -> void:
 	music_index = posmod(track, Music.count())
 	radio.stream = _loop(Music.path(music_index))
 	radio.play()
+	music_changed.emit(music_index)
 
 
 func play_transmission() -> void:

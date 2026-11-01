@@ -36,6 +36,7 @@ jobs:
           bash tools/check_godot.sh --headless --path . --script tools/test_medical_doctor.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_navigation.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_room.gd
+          bash tools/check_godot.sh --headless --path . --script tools/test_station_motion.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_exit_tunnel.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_rig.gd
           bash tools/check_godot.sh --headless --path . --script tools/test_game_flow.gd

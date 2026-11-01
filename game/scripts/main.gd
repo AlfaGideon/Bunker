@@ -41,6 +41,7 @@ var abilities := Abilities.new()
 var speech_label: Label
 var ability_buttons: Array[Button] = []
 var warehouse_open := false
+var radio_motion: Node
 var warehouse_door: Node3D
 var exit_hatch: Node3D
 var entrance_hatch: Node3D
@@ -170,6 +171,10 @@ func _ready() -> void:
 	add_child(audio)
 	audio.setup(self, layout["items"]["radio"]["at"])
 	audio.speech_unavailable.connect(_on_speech_unavailable)
+	# The receiver on the table turns its knobs and slides its needle with the record.
+	if is_instance_valid(radio_motion):
+		audio.music_changed.connect(radio_motion.tune)
+		radio_motion.tune(audio.music_index)
 	_build_ui()
 	original_camera = camera.transform
 	apply_settings()

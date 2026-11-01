@@ -71,17 +71,22 @@ def radio_station() -> None:
         parts.append(kit.cube('dial-tick', (0.004, 0.008, 0.014 if index % 2 else 0.024),
                               (x, -0.166, 0.298), mat=dark))
     # A slim brass pointer over the lit scale; a wide block reads as a break.
-    parts.append(kit.cube('needle', (0.008, 0.020, 0.050), (0.085, -0.164, 0.318),
-                          mat=trim))
-    parts.append(kit.cube('needle-core', (0.003, 0.022, 0.044), (0.085, -0.166, 0.318),
-                          mat=dark))
-    # Knobs with visible pointer marks.
+    needle_parts = [kit.cube('needle', (0.008, 0.020, 0.050), (0.085, -0.164, 0.318),
+                             mat=trim),
+                    kit.cube('needle-core', (0.003, 0.022, 0.044), (0.085, -0.166, 0.318),
+                             mat=dark)]
+    needle = kit.join('needle', needle_parts)
+    # Knobs and the tuning needle are separate objects, not part of the merged
+    # body: the game spins the knobs and slides the needle when the track
+    # changes (game/scripts/station_motion.gd).
+    knobs = []
     for x in (-0.185, 0.0, 0.185):
-        parts.append(kit.cylinder('knob', 0.038, 0.028, (x, -0.152, 0.075),
-                                  rotation=(math.pi / 2, 0, 0), mat=trim,
-                                  vertices=20, bevel=0.005))
-        parts.append(kit.cube('knob-mark', (0.007, 0.012, 0.026),
-                              (x, -0.166, 0.095), mat=dark))
+        dial = kit.cylinder('knob', 0.038, 0.028, (x, -0.152, 0.075),
+                            rotation=(math.pi / 2, 0, 0), mat=trim,
+                            vertices=20, bevel=0.005)
+        mark = kit.cube('knob-mark', (0.007, 0.012, 0.026),
+                        (x, -0.166, 0.095), mat=dark)
+        knobs.append(kit.join('knob', [dial, mark]))
     # Power lamp and carry handle.
     parts.append(kit.cylinder('power-lamp', 0.012, 0.014, (0.235, -0.15, 0.318),
                               rotation=(math.pi / 2, 0, 0), mat=_glow(
@@ -100,6 +105,9 @@ def radio_station() -> None:
         parts.append(kit.cube('foot', (0.07, 0.06, 0.018), (side * 0.24, 0.10, 0.008),
                               mat=dark, bevel=0.004))
     kit.join('radio-station', parts)
+    for index, knob in enumerate(knobs):
+        knob.name = 'knob-%d' % index
+    needle.name = 'needle'
 
 
 def food_station() -> None:
@@ -114,8 +122,8 @@ def food_station() -> None:
     cabinet = kit.material('galley-cabinet', (0.20, 0.24, 0.25), roughness=0.55)
     top = kit.material('galley-top', (0.52, 0.55, 0.53), roughness=0.35, metallic=0.5)
     trim = _brass('galley-trim')
-    steam = kit.material('steam', (0.72, 0.75, 0.73), roughness=0.95,
-                         emission=(0.5, 0.5, 0.5), emission_strength=0.25)
+    steam = kit.material('steam-puff', (0.80, 0.83, 0.81), roughness=0.98,
+                         alpha=0.30)
 
     width, depth, height = 1.0, 0.50, 0.88
     parts = [kit.cube('cabinet', (width - 0.06, depth - 0.06, height - 0.10),
@@ -203,7 +211,19 @@ def food_station() -> None:
     parts.append(kit.cube('knife-grip', (0.07, 0.020, 0.016), (0.45, 0.10, deck + 0.028),
                           mat=kit.material('knife-grip', (0.16, 0.13, 0.11),
                                            roughness=0.8), bevel=0.004))
+    # Steam is a separate, transparent object: the game drifts it upwards and
+    # fades it out, so the pot keeps saying "hot" without a frozen blob.
+    puffs = []
+    for index, (radius, lift, spread) in enumerate(((0.088, 0.01, 0.01),
+                                                    (0.076, 0.06, -0.02),
+                                                    (0.060, 0.11, 0.03),
+                                                    (0.044, 0.16, 0.01))):
+        puffs.append(kit.sphere('steam-puff', radius,
+                                (spread, -0.01, pot_bottom + 0.225 + lift),
+                                scale=(1, 1, 0.78), mat=steam, smooth=True))
+    steam_obj = kit.join('steam', puffs)
     kit.join('food-station', parts)
+    steam_obj.name = 'steam'
 
 
 def medkit() -> None:
@@ -337,8 +357,11 @@ def terminal() -> None:
         parts.append(kit.cube('scan-line', (0.36 - index * 0.022, 0.006, 0.008),
                               (0.02, -0.097, crt_z + 0.29 - index * 0.042),
                               rotation=(tilt, 0, 0), mat=scan, bevel=0.002))
-    parts.append(kit.cube('cursor', (0.05, 0.006, 0.022), (0.155, -0.097, crt_z + 0.10),
-                          rotation=(tilt, 0, 0), mat=scan, bevel=0.002))
+    # Separate node so the game can walk it down the screen. Amber, because a
+    # cyan cursor on a cyan screen disappears.
+    cursor = kit.cube('cursor', (0.055, 0.016, 0.024), (0.155, -0.097, crt_z + 0.10),
+                      rotation=(tilt, 0, 0), mat=_glow('terminal-cursor', AMBER, 3.0),
+                      bevel=0.002)
     # Status LEDs on the bezel and cooling vents on both flanks.
     for index, color in enumerate([(0.95, 0.25, 0.20), (0.35, 0.95, 0.45),
                                    (1.0, 0.70, 0.25)]):
@@ -353,6 +376,7 @@ def terminal() -> None:
                                   (side * 0.315, 0.12, crt_z + 0.10 + index * 0.045),
                                   mat=dark, bevel=0.003))
     kit.join('terminal', parts)
+    cursor.name = 'cursor'
 
 
 PROPS = {

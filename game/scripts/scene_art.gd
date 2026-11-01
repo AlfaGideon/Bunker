@@ -34,10 +34,12 @@ static func ink_outline(model: Node3D, thickness: float = 0.012) -> void:
 		shell.name = mesh.name + "_ink"
 		shell.mesh = mesh.mesh
 		shell.material_override = material
-		shell.transform = mesh.transform
+		# Parented to the mesh, not to its parent node: the shell then follows
+		# the knobs and cursors that game/scripts/station_motion.gd animates.
+		shell.transform = Transform3D.IDENTITY
 		shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		shell.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-		mesh.get_parent().add_child(shell)
+		mesh.add_child(shell)
 
 
 static func _bounds(node: Node, result: Array, reference: Transform3D) -> void:
