@@ -7,18 +7,21 @@ namespace Bunker.UnityPort.World
     {
         private AnimationClip idle;
         private float time;
+        private CharacterRigPlayback playback;
         private void Awake()
         {
+            playback = GetComponent<CharacterRigPlayback>();
+            if (playback == null) playback = gameObject.AddComponent<CharacterRigPlayback>();
             foreach (var clip in Resources.LoadAll<AnimationClip>("People/player_anims_cc0"))
                 if (clip.name == "unarmed_idle") { idle = clip; break; }
             if (idle == null) Debug.LogError("Participant idle animation is missing");
-            else idle.SampleAnimation(gameObject, 0f);
+            else playback.Sample(idle, 0f);
         }
         private void Update()
         {
             if (idle == null || idle.length <= 0) return;
             time = (time + Time.deltaTime) % idle.length;
-            idle.SampleAnimation(gameObject, time);
+            playback.Sample(idle, time);
         }
     }
 }

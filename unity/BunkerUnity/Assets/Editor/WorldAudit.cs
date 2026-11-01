@@ -20,6 +20,11 @@ namespace Bunker.UnityPort.Editor
             }, "human");
             if (world.GetComponentsInChildren<WorldPlayerTarget>().Length != 2)
                 throw new Exception("Participants missing from 3D match");
+            var rooms = world.transform.Find("Private bedrooms");
+            if (rooms == null || rooms.Cast<Transform>().Count(t => t.name.StartsWith("Bedroom floor ")) != 3 ||
+                rooms.Cast<Transform>().Count(t => t.name.StartsWith("Locked bedroom ")) != 2 ||
+                rooms.Find("Locked bedroom human") != null)
+                throw new Exception("Private bedrooms or access barriers are incorrect");
             var targets = world.GetComponentsInChildren<WorldInteractionTarget>();
             foreach (var action in new [] { "food", "rest", "radio", "gate", "medical", "exit" })
                 if (!targets.Any(t => t.action == action)) throw new Exception("Missing physical interaction: " + action);
@@ -44,13 +49,18 @@ namespace Bunker.UnityPort.Editor
             var actors = world.GetComponentsInChildren<WorldPlayerTarget>();
             var clip = Resources.LoadAll<AnimationClip>("People/player_anims_cc0").FirstOrDefault(c => c.name == "unarmed_idle");
             if (clip == null) throw new Exception("No idle clip in Resources");
+            var playback = actors[0].GetComponent<CharacterRigPlayback>();
+            var run = Resources.LoadAll<AnimationClip>("People/player_anims_cc0").First(c => c.name == "unarmed_run");
             var bones = actors[0].GetComponentsInChildren<Transform>();
-            clip.SampleAnimation(actors[0].gameObject, 0f);
-            var rotations = bones.Select(b => b.localRotation).ToArray();
-            clip.SampleAnimation(actors[0].gameObject, Mathf.Min(.5f, clip.length * .5f));
-            if (!bones.Where((b, i) => Quaternion.Angle(b.localRotation, rotations[i]) > .1f).Any())
-                throw new Exception("Animation clip did not bind to character skeleton");
-            foreach (var actor in actors) clip.SampleAnimation(actor.gameObject, Mathf.Min(.5f, clip.length * .5f));
+            foreach (var name in new[] { "mixamorig:LeftUpLeg", "mixamorig:RightUpLeg", "mixamorig:LeftArm", "mixamorig:RightArm" })
+            {
+                var bone = bones.First(b => b.name == name);
+                playback.Sample(run, 0f); var initial = bone.localRotation;
+                float largest = 0;
+                for (int i = 1; i < 8; i++) { playback.Sample(run, run.length * i / 8f); largest = Mathf.Max(largest, Quaternion.Angle(initial, bone.localRotation)); }
+                if (largest < 2f) throw new Exception("Run animation does not move " + name + ": " + largest);
+            }
+            foreach (var actor in actors) actor.GetComponent<CharacterRigPlayback>().Sample(clip, Mathf.Min(.5f, clip.length * .5f));
             var camera = world.GetComponentInChildren<Camera>();
             if (camera == null) throw new Exception("World camera missing");
             var target = new RenderTexture(960, 540, 24, RenderTextureFormat.ARGB32);

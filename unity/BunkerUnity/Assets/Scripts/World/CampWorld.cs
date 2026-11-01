@@ -13,6 +13,7 @@ namespace Bunker.UnityPort.World
         private Quaternion[] treeRotations;
         private GameObject person;
         private AnimationClip idle, run;
+        private CharacterRigPlayback playback;
         private Camera campCamera;
         private Vector3 cameraStart, seatStart;
         private float transitionTime = -1f;
@@ -80,6 +81,7 @@ namespace Bunker.UnityPort.World
             fireLight.type = LightType.Point; fireLight.range = 7; fireLight.color = new Color(1f, .45f, .16f); fireLight.intensity = 2;
             person = Place("People/player_base", new Vector3(-.9f, -.38f, 0), Quaternion.Euler(0, 90, 0), 1.75f);
             seatStart = person.transform.position;
+            playback = person.AddComponent<CharacterRigPlayback>(); playback.Initialize();
             idle = Resources.LoadAll<AnimationClip>("People/player_anims_cc0").FirstOrDefault(c => c.name == "unarmed_idle");
             run = Resources.LoadAll<AnimationClip>("People/player_anims_cc0").FirstOrDefault(c => c.name == "unarmed_run");
             if (idle == null || run == null) throw new InvalidOperationException("Camp animation clips missing");
@@ -178,13 +180,13 @@ namespace Bunker.UnityPort.World
             person.transform.position = seatStart + new Vector3(travel * 7.4f, rise * .38f, 0);
             campCamera.transform.position = cameraStart + Vector3.right * (travel * 5.7f);
             if (seconds < 1.3f) ApplyPose(seconds, 1 - rise);
-            else if (run != null) run.SampleAnimation(person, ((seconds - 1.3f) * 1.1f) % Mathf.Max(.01f, run.length));
+            else if (run != null) playback.Sample(run, ((seconds - 1.3f) * 1.1f) % Mathf.Max(.01f, run.length));
         }
         // Provisional seated pose; the upper body continues its idle animation.
         public void ApplyPose(float seconds, float seated = 1f)
         {
             if (person == null || idle == null) return;
-            idle.SampleAnimation(person, idle.length > 0 ? seconds % idle.length : 0);
+            playback.Sample(idle, idle.length > 0 ? seconds % idle.length : 0);
             if (leftThigh != null) leftThigh.localRotation *= Quaternion.Euler(-70 * seated, 0, 0);
             if (rightThigh != null) rightThigh.localRotation *= Quaternion.Euler(-70 * seated, 0, 0);
             if (leftShin != null) leftShin.localRotation *= Quaternion.Euler(75 * seated, 0, 0);

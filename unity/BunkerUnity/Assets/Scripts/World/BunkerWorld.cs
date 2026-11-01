@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -9,7 +10,8 @@ namespace Bunker.UnityPort.World
     public sealed class BunkerWorld : MonoBehaviour
     {
         private Material wallMaterial;
-        private Transform peopleRoot, furnitureRoot;
+        private Transform peopleRoot, furnitureRoot, privateRoomsRoot;
+        private string privateRoomSignature;
         private int furnitureCapacity = -1;
         private BunkerTouchController movement;
         private Camera worldCamera;
@@ -53,7 +55,7 @@ namespace Bunker.UnityPort.World
             {
                 if (i != 0) Module("Wall1", new Vector3(i * 4, 0, 6.5f), Quaternion.identity, true);
                 Module("Wall3", new Vector3(i * 4, 0, -6.5f), Quaternion.identity, true);
-                Module("Wall2", new Vector3(-6.5f, 0, i * 4), Quaternion.Euler(0, 90, 0), true);
+                if (i != 0) Module("Wall2", new Vector3(-6.5f, 0, i * 4), Quaternion.Euler(0, 90, 0), true);
                 if (i != 0) Module("Wall3", new Vector3(6.5f, 0, i * 4), Quaternion.Euler(0, 90, 0), true);
             }
             // Real ceiling luminaires illuminate both the room and wall joins.
@@ -71,6 +73,7 @@ namespace Bunker.UnityPort.World
             {
                 Module("Wall1", new Vector3(side, 0, 6.5f), Quaternion.identity, true, new Vector3(.25f, 1, 1));
                 Module("Wall3", new Vector3(6.5f, 0, side), Quaternion.Euler(0, 90, 0), true, new Vector3(.25f, 1, 1));
+                Module("Wall2", new Vector3(-6.5f, 0, side), Quaternion.Euler(0, 90, 0), true, new Vector3(.25f, 1, 1));
             }
             BuildMedicalRoom();
             BuildExitCorridor();
@@ -81,6 +84,8 @@ namespace Bunker.UnityPort.World
             medicalClosedPosition = medicalDoor.transform.position;
             var exitDoor = Furniture("Door", new Vector3(0, 0, 6.2f), Quaternion.identity, 2.8f, "exit");
             exitDoor.transform.SetParent(transform, true);
+            privateRoomsRoot = new GameObject("Private bedrooms").transform;
+            privateRoomsRoot.SetParent(transform, false);
             peopleRoot = new GameObject("Match participants").transform;
             peopleRoot.SetParent(transform, false);
             var player = new GameObject("Local observer"); player.transform.SetParent(transform, false);
@@ -191,22 +196,69 @@ namespace Bunker.UnityPort.World
                 float angle = (i - (capacity - 1) * .5f) * Mathf.PI / Mathf.Max(1, capacity - 1) * .85f;
                 Furniture("Chair", new Vector3(Mathf.Sin(angle) * 2.05f, 0, .3f + Mathf.Cos(angle) * 2.05f), Quaternion.Euler(0, angle * Mathf.Rad2Deg + 180, 0), .9f, "rest");
             }
-            for (int i = 0; i < (capacity + 1) / 2; i++)
-            {
-                float x = i % 2 == 0 ? -5.1f : 5.1f;
-                float z = -3.6f + (i / 2) * 3.6f;
-                Furniture("Bunk", new Vector3(x, 0, z), Quaternion.Euler(0, i % 2 == 0 ? 90 : -90, 0), 1.85f, "rest");
-            }
             Furniture("Computer", new Vector3(4.6f, 0, 5.2f), Quaternion.Euler(0, -90, 0), 1.4f, "terminal");
             Furniture("Radio", new Vector3(1, .78f, .3f), Quaternion.identity, .25f, "radio");
             Furniture("Bunk", new Vector3(12.5f, 0, 2.8f), Quaternion.Euler(0, 90, 0), 1.85f, "medical");
             Furniture("FirstAid", new Vector3(9, 0, 2.8f), Quaternion.identity, .55f, "medical");
         }
 
+        private GameObject RoomPanel(string name, Vector3 center, Vector3 size)
+        {
+            var panel = GameObject.CreatePrimitive(PrimitiveType.Cube); panel.name = name;
+            panel.transform.SetParent(privateRoomsRoot, false); panel.transform.localPosition = center;
+            panel.transform.localScale = size; panel.GetComponent<Renderer>().sharedMaterial = wallMaterial;
+            return panel;
+        }
+        // Client-side physical privacy, not server authorization: network movement
+        // is not yet synchronized. Every roster entry gets a separate bedroom.
+        private void SyncPrivateRooms(Player[] players, string localId)
+        {
+            var ordered = players.Where(p => p != null && !string.IsNullOrEmpty(p.id))
+                .OrderBy(p => p.seat).ThenBy(p => p.id, StringComparer.Ordinal).ToArray();
+            var signature = localId + "|" + string.Join("|", ordered.Select(p => p.id + ":" + p.name));
+            if (privateRoomSignature == signature) return;
+            privateRoomSignature = signature;
+            foreach (var child in privateRoomsRoot.Cast<Transform>().ToArray()) { child.gameObject.SetActive(false); if (Application.isPlaying) Destroy(child.gameObject); else DestroyImmediate(child.gameObject); }
+            int columns = (ordered.Length + 1) / 2;
+            for (int c = 0; c < columns; c++)
+            {
+                float x = -8.6f - c * 4f;
+                RoomPanel("Bedroom corridor floor", new Vector3(x, -.12f, 0), new Vector3(4, .24f, 3.6f));
+                RoomPanel("Bedroom corridor ceiling", new Vector3(x, 3.05f, 0), new Vector3(4, .1f, 3.6f));
+                var light = new GameObject("Bedroom corridor light").AddComponent<Light>();
+                light.transform.SetParent(privateRoomsRoot, false); light.transform.localPosition = new Vector3(x, 2.8f, 0);
+                light.type = LightType.Point; light.range = 7; light.intensity = 1.1f;
+            }
+            if (ordered.Length % 2 == 1)
+                RoomPanel("Corridor side closure", new Vector3(-8.6f - (columns - 1) * 4f, 1.5f, -1.8f), new Vector3(4, 3, .15f));
+            if (columns > 0) RoomPanel("Corridor end", new Vector3(-6.6f - columns * 4, 1.5f, 0), new Vector3(.2f, 3, 3.6f));
+            for (int i = 0; i < ordered.Length; i++)
+            {
+                var p = ordered[i]; float x = -8.6f - (i / 2) * 4f; float side = i % 2 == 0 ? 1 : -1;
+                float z = side * 3.6f;
+                RoomPanel("Bedroom floor " + p.id, new Vector3(x, -.12f, z), new Vector3(4, .24f, 3.6f));
+                RoomPanel("Bedroom ceiling " + p.id, new Vector3(x, 3.05f, z), new Vector3(4, .1f, 3.6f));
+                RoomPanel("Bedroom back " + p.id, new Vector3(x, 1.5f, side * 5.4f), new Vector3(4, 3, .15f));
+                foreach (float dx in new[] { -2f, 2f }) RoomPanel("Bedroom side " + p.id, new Vector3(x + dx, 1.5f, z), new Vector3(.15f, 3, 3.6f));
+                foreach (float dx in new[] { -1.5f, 1.5f }) RoomPanel("Bedroom front " + p.id, new Vector3(x + dx, 1.5f, side * 1.8f), new Vector3(1, 3, .15f));
+                RoomPanel("Bedroom door lintel " + p.id, new Vector3(x, 2.7f, side * 1.8f), new Vector3(2, .6f, .15f));
+                if (p.id != localId) RoomPanel("Locked bedroom " + p.id, new Vector3(x, 1.05f, side * 1.8f), new Vector3(2, 2.1f, .18f));
+                var bed = Furniture("Bed", new Vector3(x - 1f, 0, z + side * .5f), Quaternion.identity, .65f, "rest");
+                bed.transform.SetParent(privateRoomsRoot, true);
+                var bedside = Furniture("Table", new Vector3(x + 1f, 0, z + side * .55f), Quaternion.identity, .55f);
+                bedside.transform.SetParent(privateRoomsRoot, true);
+                var label = new GameObject("Owner label " + p.id).AddComponent<TextMesh>();
+                label.transform.SetParent(privateRoomsRoot, false); label.transform.localPosition = new Vector3(x, 2.4f, side * 1.68f);
+                label.transform.localRotation = Quaternion.Euler(0, side > 0 ? 180 : 0, 0);
+                label.text = p.name; label.anchor = TextAnchor.MiddleCenter; label.characterSize = .12f; label.fontSize = 32; label.color = Color.white;
+            }
+        }
+
         public void SyncPlayers(Player[] players, string localId)
         {
             if (players == null) players = Array.Empty<Player>();
             SyncFurniture(Mathf.Max(1, players.Length));
+            SyncPrivateRooms(players, localId);
             var wanted = new HashSet<string>();
             int others = 0;
             foreach (var p in players) if (p != null && p.id != localId) others++;
@@ -222,6 +274,7 @@ namespace Bunker.UnityPort.World
                     actor = Instantiate(prefab, peopleRoot);
                     actor.name = "Participant " + p.name;
                     var target = actor.AddComponent<WorldPlayerTarget>(); target.id = p.id;
+                    actor.AddComponent<CharacterRigPlayback>().Initialize();
                     actor.AddComponent<WorldParticipantAnimator>();
                     var collider = actor.AddComponent<CapsuleCollider>();
                     collider.center = new Vector3(0, .9f, 0); collider.height = 1.8f; collider.radius = .3f;
