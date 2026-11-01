@@ -36,6 +36,7 @@
 - Превью: `docs/previews/blender-radio_station.png`,
   `docs/previews/blender-food_station.png` (900 px).
 - `test_release_config.py` — версия 0.48, package `org.bunker.prototype`.
+- Кадр из собранной игры (`visual-stations` в CI) — `docs/previews/stations-ingame.jpg`: приёмник, подносы и терминал стоят на своих местах, контур держится на 1280×720.
 - Godot-тесты, включая `tools/test_stations.gd`, идут в общем прогоне CI.
 
 ## Ограничения
