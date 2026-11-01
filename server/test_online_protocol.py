@@ -106,6 +106,26 @@ class ProtocolTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(next(e for e in events if e['type'] == 'room_closed')['reason'], 'host_left')
         self.assertNotIn(room_id, self.app[LOBBY_KEY].rooms)
 
+    async def test_station_actions_broadcast_to_other_players(self):
+        headers = [await self.open() for _ in range(6)]
+        created = await self.send(headers[0], {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})
+        joined = next(e for e in created if e['type'] == 'joined')
+        room_id, player_id = joined['room']['id'], joined['player_id']
+        for i, h in enumerate(headers[1:]):
+            await self.send(h, {'type': 'join', 'room_id': room_id, 'name': f'P{i}'})
+        await self.send(headers[0], {'type': 'online_start'})
+        for h in headers[1:]:
+            await self.poll(h)
+        await self.send(headers[0], {'type': 'game_action', 'action': 'food'})
+        other = next(e['state'] for e in await self.poll(headers[1]) if e['type'] == 'game_state')
+        self.assertEqual(other['stations']['meals'], 2)
+        self.assertEqual(other['stations']['stamina'][player_id], 70)
+        rejected = await self.send(headers[0], {'type': 'game_action', 'action': 'food'})
+        self.assertEqual(rejected[-1]['code'], 'already_ate')
+        await self.send(headers[1], {'type': 'game_action', 'action': 'radio_tune', 'value': 'bunkers'})
+        other = next(e['state'] for e in await self.poll(headers[0]) if e['type'] == 'game_state')
+        self.assertEqual(other['stations']['radio']['station'], 'bunkers')
+
     async def test_concurrent_commands_have_one_winner(self):
         headers = [await self.open() for _ in range(6)]
         events = await self.send(headers[0], {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})

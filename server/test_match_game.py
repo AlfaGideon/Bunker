@@ -10,6 +10,48 @@ class MatchTest(unittest.TestCase):
         members = [SimpleNamespace(id=str(i), name=f'Player {i}', skin='male') for i in range(6)]
         self.game = Match(members, now=100, rng=random.Random(3))
 
+    def test_station_actions_are_authoritative(self):
+        g = self.game
+        before = g.snapshot('1', 100)['stations']
+        g.command('0', 'food', now=101)
+        after = g.snapshot('1', 101)['stations']
+        self.assertEqual(after['meals'], before['meals'] - 1)
+        self.assertEqual(after['stamina']['0'], 70)
+        with self.assertRaisesRegex(GameError, 'already_ate'):
+            g.command('0', 'food', now=102)
+        g.command('0', 'rest', now=102)
+        self.assertEqual(g.stamina['0'], 90)
+        with self.assertRaisesRegex(GameError, 'already_rested'):
+            g.command('0', 'rest', now=103)
+        g.command('1', 'radio_tune', 'bunkers', 104)
+        self.assertTrue(g.tick(113))
+        radio = g.snapshot('0', 113)['stations']['radio']
+        self.assertEqual(radio, g.snapshot('1', 113)['stations']['radio'])
+        self.assertEqual(len(radio['received']), 1)
+        self.assertEqual(g.deadline, 160)
+        g.command('1', 'radio_power', False, 114)
+        self.assertIsNone(g.radio_next)
+        with self.assertRaisesRegex(GameError, 'invalid_radio'):
+            g.command('1', 'radio_tune', {'unexpected': 'value'}, 115)
+        with self.assertRaisesRegex(GameError, 'not_active'):
+            g.command('stranger', 'food', now=115)
+
+    def test_beacon_validation_and_single_effect(self):
+        g = self.game
+        for p in g.players:
+            p['cards'][0]['value'] = 'Повар'
+        with self.assertRaisesRegex(GameError, 'radio_specialist_required'):
+            g.command('0', 'radio_tune', 'beacon', 101)
+        g.players[1]['cards'][0]['value'] = 'Связист'
+        g.command('0', 'radio_tune', 'beacon', 102)
+        before = dict(g.stock)
+        g.command('0', 'radio_scan', now=103)
+        self.assertEqual(g.stock['food'], before['food'] + 4)
+        self.assertEqual(g.stock['filters'], before['filters'] + 3)
+        with self.assertRaisesRegex(GameError, 'radio_already_scanned'):
+            g.command('1', 'radio_scan', now=104)
+        self.assertEqual(g.radio['message_id'], 1)
+
     def test_private_cards_and_biology(self):
         own = self.game.snapshot('0', 100)['players'][0]
         other = self.game.snapshot('1', 100)['players'][0]

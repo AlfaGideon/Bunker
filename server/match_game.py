@@ -14,6 +14,7 @@ CONTENT_PATH = Path(__file__).resolve().parent.parent / 'data' / 'content.json'
 if not CONTENT_PATH.exists():  # Docker image has a flat /app layout.
     CONTENT_PATH = Path(__file__).with_name('content.json')
 SCENARIOS_PATH = CONTENT_PATH.with_name('scenarios.json')
+RADIO_PATH = CONTENT_PATH.with_name('radio.json')
 
 
 class GameError(Exception):
@@ -61,6 +62,17 @@ class Match:
         self.candidates = []
         self.second_ballot = False
         self.last_result = None
+        self.meals = self.capacity
+        self.stock = {'water': 100, 'food': 100, 'medicine': 32, 'filters': 24}
+        self.stamina = {p['id']: 60 for p in self.players}
+        self.station_event = None
+        self.used_food = {}
+        self.used_rest = {}
+        self.radio_data = json.loads(RADIO_PATH.read_text(encoding='utf-8'))
+        self.radio = {'powered': True, 'station': 'aurora', 'track_index': 0,
+                      'internet_index': 0, 'signal_index': 0, 'scan_round': 0,
+                      'received': [], 'message_id': 0}
+        self.radio_next = None
         self.revision = 1
         self.deadline = (time.monotonic() if now is None else now) + self.SPEECH_SECONDS
 
@@ -143,14 +155,91 @@ class Match:
                     self.votes[bot] = self.rng.choice(self.candidates or self.active)
                     self.revision += 1
                     changed = True
+        if self.radio_next is not None and now >= self.radio_next and self.phase != 'end':
+            broadcasts = self.radio_data['broadcasts']
+            if broadcasts:
+                entry = broadcasts[self.radio['message_id'] % len(broadcasts)]
+                self._radio_message(entry['source'], entry['text'])
+                self.radio_next = now + 20
+                self.revision += 1
+                changed = True
         return changed
+
+    def _radio_message(self, source, text):
+        self.radio['message_id'] += 1
+        self.radio['received'].append({'id': self.radio['message_id'], 'from': source, 'text': text})
+        self.radio['received'] = self.radio['received'][-24:]
+
+    def _radio_specialist(self):
+        return any(p['id'] in self.active and p['cards'][0]['value'] in ('Связист', 'Радиотехник') for p in self.players)
+
+    def _station_action(self, player_id, action, value, now):
+        if self.phase == 'end':
+            raise GameError('match_finished')
+        if action == 'food':
+            if self.used_food.get(player_id) == self.round:
+                raise GameError('already_ate')
+            if self.meals <= 0:
+                raise GameError('no_meals')
+            self.meals -= 1
+            self.used_food[player_id] = self.round
+            self.stamina[player_id] = min(100, self.stamina[player_id] + 10)
+            self.station_event = {'id': self.revision + 1, 'player': player_id, 'action': 'food'}
+        elif action == 'rest':
+            if self.used_rest.get(player_id) == self.round:
+                raise GameError('already_rested')
+            self.used_rest[player_id] = self.round
+            self.stamina[player_id] = min(100, self.stamina[player_id] + 20)
+            self.station_event = {'id': self.revision + 1, 'player': player_id, 'action': 'rest'}
+        elif action == 'radio_power':
+            if not isinstance(value, bool):
+                raise GameError('invalid_radio')
+            self.radio['powered'] = value
+            self.radio_next = now + 9 if value and self.radio['station'] == 'bunkers' else None
+        elif action == 'radio_tune':
+            if not isinstance(value, str) or value not in ('aurora', 'bunkers', 'beacon', 'internet'):
+                raise GameError('invalid_radio')
+            if value == 'beacon' and not self._radio_specialist():
+                raise GameError('radio_specialist_required')
+            same = self.radio['powered'] and self.radio['station'] == value
+            if same and value == 'aurora':
+                self.radio['track_index'] = (self.radio['track_index'] + 1) % 4
+            if same and value == 'internet':
+                self.radio['internet_index'] = (self.radio['internet_index'] + 1) % 4
+            self.radio['station'] = value
+            self.radio['powered'] = True
+            self.radio_next = now + 9 if value == 'bunkers' and not same else self.radio_next if value == 'bunkers' else None
+        elif action == 'radio_scan':
+            if not self._radio_specialist():
+                raise GameError('radio_specialist_required')
+            if not self.radio['powered'] or self.radio['station'] != 'beacon':
+                raise GameError('radio_not_beacon')
+            if self.radio['scan_round'] == self.round:
+                raise GameError('radio_already_scanned')
+            index = self.radio['signal_index']
+            if index >= len(self.radio_data['signals']):
+                raise GameError('radio_exhausted')
+            signal = self.radio_data['signals'][index]
+            self.radio['signal_index'] += 1
+            self.radio['scan_round'] = self.round
+            if signal.get('effect') == 'supplies':
+                self.stock['filters'] += 3
+                self.stock['food'] += 4
+            elif signal.get('effect') == 'stamina':
+                for pid in self.active:
+                    self.stamina[pid] = min(100, self.stamina[pid] + 15)
+            self._radio_message(signal['title'], signal['text'])
+        else:
+            raise GameError('unknown_game_action')
 
     def command(self, player_id, action, value=None, now=None):
         now = time.monotonic() if now is None else now
         self.tick(now)
         if player_id not in self.active:
             raise GameError('not_active')
-        if action == 'reveal':
+        if action in ('food', 'rest', 'radio_power', 'radio_tune', 'radio_scan'):
+            self._station_action(player_id, action, value, now)
+        elif action == 'reveal':
             if self.phase != 'reveal' or self.speaker != player_id or self.revealed_this_turn:
                 raise GameError('not_your_reveal')
             player = next(p for p in self.players if p['id'] == player_id)
@@ -191,4 +280,6 @@ class Match:
                 'phase': self.phase, 'speaker': self.speaker, 'revealed_this_turn': self.revealed_this_turn,
                 'remaining': max(0, self.deadline - now) if self.deadline is not None else 0,
                 'candidates': list(self.candidates), 'second_ballot': self.second_ballot,
-                'my_vote': self.votes.get(viewer), 'result': copy.deepcopy(self.last_result)}
+                'my_vote': self.votes.get(viewer), 'result': copy.deepcopy(self.last_result),
+                'stations': {'meals': self.meals, 'stock': copy.deepcopy(self.stock),
+                             'stamina': copy.deepcopy(self.stamina), 'event': copy.deepcopy(self.station_event), 'radio': copy.deepcopy(self.radio)}}
