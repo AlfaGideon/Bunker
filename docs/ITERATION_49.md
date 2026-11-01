@@ -54,7 +54,7 @@
   `steam-puff` стоит `alphaMode: BLEND`.
 - `gdparse` по изменённым скриптам, `test_release_config.py` — версия 0.49.
 - Godot CI: новый `tools/test_station_motion.gd` в общем прогоне, плюс прежние
-  проверки сцены и кадр `visual-stations`.
+  проверки сцены и кадр `visual-stations` (обновлён в `docs/previews/stations-ingame.jpg`).
 
 ## Ограничения
 
