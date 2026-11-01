@@ -17,6 +17,9 @@ namespace Bunker.UnityPort.Editor
         {
             const string bodyPath = "Assets/Models/People/player_base.glb";
             const string animPath = "Assets/Models/People/player_anims_cc0.glb";
+            AssetDatabase.ImportAsset(bodyPath, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+            AssetDatabase.ImportAsset(animPath, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+            Debug.Log("CHARACTER_IMPORTER " + (AssetImporter.GetAtPath(bodyPath)?.GetType().FullName ?? "none"));
             var body = AssetDatabase.LoadAssetAtPath<GameObject>(bodyPath);
             if (body == null) throw new Exception("Character GLB was not imported as a GameObject");
             var skin = body.GetComponentsInChildren<SkinnedMeshRenderer>(true);
