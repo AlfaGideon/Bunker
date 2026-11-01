@@ -31,6 +31,7 @@ namespace Bunker.UnityPort.Editor
             clip.SampleAnimation(actors[0].gameObject, Mathf.Min(.5f, clip.length * .5f));
             if (!bones.Where((b, i) => Quaternion.Angle(b.localRotation, rotations[i]) > .1f).Any())
                 throw new Exception("Animation clip did not bind to character skeleton");
+            foreach (var actor in actors) clip.SampleAnimation(actor.gameObject, Mathf.Min(.5f, clip.length * .5f));
             var camera = world.GetComponentInChildren<Camera>();
             if (camera == null) throw new Exception("World camera missing");
             var target = new RenderTexture(960, 540, 24, RenderTextureFormat.ARGB32);

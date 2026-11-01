@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace Bunker.UnityPort.World
@@ -13,6 +12,7 @@ namespace Bunker.UnityPort.World
             foreach (var clip in Resources.LoadAll<AnimationClip>("People/player_anims_cc0"))
                 if (clip.name == "unarmed_idle") { idle = clip; break; }
             if (idle == null) Debug.LogError("Participant idle animation is missing");
+            else idle.SampleAnimation(gameObject, 0f);
         }
         private void Update()
         {

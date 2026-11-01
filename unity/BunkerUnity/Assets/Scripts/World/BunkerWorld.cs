@@ -9,7 +9,8 @@ namespace Bunker.UnityPort.World
     public sealed class BunkerWorld : MonoBehaviour
     {
         private Material wallMaterial;
-        private Transform peopleRoot;
+        private Transform peopleRoot, furnitureRoot;
+        private int furnitureCapacity = -1;
         private BunkerTouchController movement;
         private Camera worldCamera;
         private bool overhead;
@@ -60,14 +61,8 @@ namespace Bunker.UnityPort.World
                 light.type = LightType.Point; light.range = 8; light.intensity = 1.5f;
                 light.color = new Color(1, .88f, .72f);
             }
-            Furniture("Table", new Vector3(0, 0, .3f), Quaternion.identity);
-            for (int i = 0; i < 6; i++)
-            {
-                float a = i * Mathf.PI * 2 / 6;
-                Furniture("Chair", new Vector3(Mathf.Sin(a) * 2.1f, 0, .3f + Mathf.Cos(a) * 2.1f), Quaternion.Euler(0, i * 60, 0));
-            }
-            Furniture("Bunk", new Vector3(-5.1f, 0, 4.8f), Quaternion.Euler(0, 90, 0));
-            Furniture("Computer", new Vector3(4.7f, 0, 4.5f), Quaternion.Euler(0, -90, 0));
+            furnitureRoot = new GameObject("Furniture").transform;
+            furnitureRoot.SetParent(transform, false);
             peopleRoot = new GameObject("Match participants").transform;
             peopleRoot.SetParent(transform, false);
             var player = new GameObject("Local observer"); player.transform.SetParent(transform, false);
@@ -100,12 +95,33 @@ namespace Bunker.UnityPort.World
         {
             var prefab = Resources.Load<GameObject>("Furniture/" + id);
             if (prefab == null) throw new InvalidOperationException("Missing furniture: " + id);
-            Instantiate(prefab, position, rotation, transform);
+            Instantiate(prefab, position, rotation, furnitureRoot);
+        }
+
+        private void SyncFurniture(int capacity)
+        {
+            if (capacity == furnitureCapacity) return;
+            furnitureCapacity = capacity;
+            foreach (Transform child in furnitureRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
+            Furniture("Table", new Vector3(0, 0, .3f), Quaternion.identity);
+            for (int i = 0; i < capacity; i++)
+            {
+                float angle = (i - (capacity - 1) * .5f) * Mathf.PI / Mathf.Max(1, capacity - 1) * .85f;
+                Furniture("Chair", new Vector3(Mathf.Sin(angle) * 2.05f, 0, .3f + Mathf.Cos(angle) * 2.05f), Quaternion.Euler(0, angle * Mathf.Rad2Deg + 180, 0));
+            }
+            for (int i = 0; i < (capacity + 1) / 2; i++)
+            {
+                float x = i % 2 == 0 ? -5.1f : 5.1f;
+                float z = -3.6f + (i / 2) * 3.6f;
+                Furniture("Bunk", new Vector3(x, 0, z), Quaternion.Euler(0, i % 2 == 0 ? 90 : -90, 0));
+            }
+            Furniture("Computer", new Vector3(4.6f, 0, 5.2f), Quaternion.Euler(0, -90, 0));
         }
 
         public void SyncPlayers(Player[] players, string localId)
         {
             if (players == null) players = Array.Empty<Player>();
+            SyncFurniture(Mathf.Max(1, players.Length));
             var wanted = new HashSet<string>();
             int others = 0;
             foreach (var p in players) if (p != null && p.id != localId) others++;
@@ -126,8 +142,8 @@ namespace Bunker.UnityPort.World
                     collider.center = new Vector3(0, .9f, 0); collider.height = 1.8f; collider.radius = .3f;
                     people.Add(p.id, actor);
                 }
-                float angle = (index++ * Mathf.PI * 2) / Mathf.Max(1, others);
-                actor.transform.localPosition = new Vector3(Mathf.Sin(angle) * 3, 0, .3f + Mathf.Cos(angle) * 3);
+                float angle = (index++ - (others - 1) * .5f) * Mathf.PI / Mathf.Max(1, others - 1) * .85f;
+                actor.transform.localPosition = new Vector3(Mathf.Sin(angle) * 3.1f, 0, .3f + Mathf.Cos(angle) * 3.1f);
                 actor.transform.rotation = Quaternion.LookRotation(new Vector3(-Mathf.Sin(angle), 0, -Mathf.Cos(angle)));
             }
             var removed = new List<string>();
