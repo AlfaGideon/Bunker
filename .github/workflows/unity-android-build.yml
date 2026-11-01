@@ -62,15 +62,54 @@ jobs:
             -projectPath "$GITHUB_WORKSPACE/unity/BunkerUnity" \
             -executeMethod Bunker.UnityPort.Editor.IrondustPreview.Render
           test -s unity/BunkerUnity/Builds/irondust-audit.jpg
-      - name: Capture preview data
+      - name: Prepare preview data
         run: |
           base64 -w0 unity/BunkerUnity/Builds/irondust-audit.jpg > "$RUNNER_TEMP/preview64"
+          test "$(wc -c < "$RUNNER_TEMP/preview64")" -le 171000
+      - name: Capture preview part 1
+        run: |
           python3 - <<'PYIMAGE'
           import os
           data=open(os.environ['RUNNER_TEMP']+'/preview64').read()
-          if len(data)>9*3800: raise Exception('preview exceeds one-step transfer limit')
-          print('::notice::IMAGEPARTS='+str((len(data)+3799)//3800))
-          for i in range(0,len(data),3800): print('::notice::IMAGEPART%03d='% (i//3800)+data[i:i+3800])
+          for i in range(0,9):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::IMAGEPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture preview part 2
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/preview64').read()
+          for i in range(9,18):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::IMAGEPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture preview part 3
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/preview64').read()
+          for i in range(18,27):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::IMAGEPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture preview part 4
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/preview64').read()
+          for i in range(27,36):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::IMAGEPART%03d=' % i + part)
+          PYIMAGE
+      - name: Capture preview part 5
+        run: |
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/preview64').read()
+          for i in range(36,45):
+              part=data[i*3800:(i+1)*3800]
+              if part: print('::notice::IMAGEPART%03d=' % i + part)
           PYIMAGE
       - name: Build separately installed prototype, not a production update
         run: |
