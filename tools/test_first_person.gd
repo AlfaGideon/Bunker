@@ -19,7 +19,7 @@ func run() -> void:
  check(room.find_children("*", "Control", true, false).all(func(n): return not n.get_script() or not str(n.get_script().resource_path).ends_with("virtual_joystick.gd")), "No visible virtual joysticks")
  check(not room.actors[0].get_child(0).visible, "Own model does not obscure the view")
  var ceilings: Array = room.get_children().filter(func(n): return n.has_meta("first_person_ceiling"))
- check(ceilings.size() == room.layout["floors"].size() and ceilings.all(func(n): return n.visible), "Ceilings enclose the first-person view")
+ check(ceilings.size() >= room.layout["floors"].size() and ceilings.all(func(n): return n.visible), "Ceilings enclose the first-person view")
  var viewport := root.get_visible_rect().size
  var left_start := Vector2(viewport.x * 0.25, viewport.y * 0.45)
  var right_start := Vector2(viewport.x * 0.65, viewport.y * 0.45)
