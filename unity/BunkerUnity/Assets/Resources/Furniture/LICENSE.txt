@@ -3,3 +3,6 @@ From the repository's existing assets/quaternius copies:
 house_interior_pack_Table_RoundLarge.glb, house_interior_pack_Chair_1.glb,
 house_interior_pack_Bed_Bunk.glb and modular_sci_fi_Props_Computer.glb.
 See assets/licenses and assets/manifest.json for existing provenance.
+Door.glb, Radio.glb and FirstAid.glb are from the existing Quaternius
+modular_sci_fi_Door_Single.glb, survival_pack_Radio.glb, and
+survival_pack_FirstAidKit.glb respectively, CC0 1.0.

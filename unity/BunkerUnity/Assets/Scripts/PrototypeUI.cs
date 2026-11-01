@@ -267,6 +267,12 @@ namespace Bunker.UnityPort
                 {
                     world = World.BunkerWorld.Create();
                     world.PlayerSelected += id => { selectedId = id; stationsPage = false; radioPage = false; screen = "game"; Draw(); };
+                    world.ActionRequested += action => {
+                        selectedId = playerId;
+                        if (action == "radio") { screen = "game"; stationsPage = true; radioPage = true; Draw(); }
+                        else if (action == "exit") { status = "Выходной шлюз откроется при исключении — пока не подключено"; Draw(); }
+                        else Action(action);
+                    };
                 }
                 world.SyncPlayers(state.players, playerId);
                 screen = "world";
@@ -283,10 +289,11 @@ namespace Bunker.UnityPort
         {
             if (world == null || state == null) { screen = "game"; Draw(); return; }
             world.SyncPlayers(state.players, playerId);
+            world.SyncStations(state.stations);
             Button(page, "КАРТОЧКИ И ХОД", .66f, .92f, .84f, .99f, () => { screen = "game"; Draw(); }, 12);
             Button(page, "ВИД", .85f, .92f, .98f, .99f, () => world.ToggleView(), 13);
             timerText = Label(page, "", .02f, .92f, .39f, .99f, 18, TextAnchor.MiddleLeft);
-            statusText = Label(page, "3D-тест · движение не синхронизируется", .02f, .01f, .65f, .06f, 13, TextAnchor.MiddleLeft);
+            statusText = Label(page, status + " · движение не синхронизируется", .02f, .01f, .65f, .06f, 13, TextAnchor.MiddleLeft);
         }
 #endif
         private void DrawGame()

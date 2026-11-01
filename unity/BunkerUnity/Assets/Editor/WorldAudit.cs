@@ -20,6 +20,19 @@ namespace Bunker.UnityPort.Editor
             }, "human");
             if (world.GetComponentsInChildren<WorldPlayerTarget>().Length != 2)
                 throw new Exception("Participants missing from 3D match");
+            var targets = world.GetComponentsInChildren<WorldInteractionTarget>();
+            foreach (var action in new [] { "food", "rest", "radio", "gate", "medical", "exit" })
+                if (!targets.Any(t => t.action == action)) throw new Exception("Missing physical interaction: " + action);
+            var table = targets.First(t => t.action == "food");
+            var tableBounds = table.GetComponentsInChildren<Renderer>().Select(r => r.bounds).ToArray();
+            var bounds = tableBounds[0]; foreach (var b in tableBounds) bounds.Encapsulate(b);
+            if (Mathf.Abs(bounds.size.y - .78f) > .05f) throw new Exception("Table not scaled to human size: " + bounds.size.y);
+            var door = targets.First(t => t.action == "gate").transform;
+            float closedY = door.position.y;
+            world.SyncStations(new StationState { medical_open = true });
+            if (door.position.y < closedY + 2f) throw new Exception("Medical door did not follow match state");
+            world.SyncStations(new StationState { medical_open = false });
+            if (Mathf.Abs(door.position.y - closedY) > .01f) throw new Exception("Medical door failed to close");
             if (world.GetComponentsInChildren<MeshCollider>().Length < 10)
                 throw new Exception("Environment collision missing");
             var actors = world.GetComponentsInChildren<WorldPlayerTarget>();
