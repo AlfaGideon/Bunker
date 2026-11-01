@@ -1,0 +1,15 @@
+# Irondust CC0, converted from FBX 6.1; local coordinates, Y up
+o Floor2
+v 2 0 2
+v -2 0 2
+v 2 0 -2
+v -2 0 -2
+vt 0.599323 0.79891
+vt 0.799283 0.79891
+vt 0.599323 0.59895
+vt 0.799283 0.59895
+vn 0 1 -0
+vn 0 1 -0
+vn 0 1 -0
+vn 0 1 -0
+f 2/3/1 1/4/2 3/2/3 4/1/4

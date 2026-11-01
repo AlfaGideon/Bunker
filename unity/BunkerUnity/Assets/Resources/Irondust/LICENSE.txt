@@ -1,0 +1,8 @@
+Sci-fi environment pack by Irondust, CC0 1.0 Universal.
+Source: https://opengameart.org/content/sci-fi-environment-pack
+License: https://creativecommons.org/publicdomain/zero/1.0/
+
+The original white colour atlas was resized to 1024 x 1024 and encoded as JPEG.
+Models were converted from the original ASCII FBX 6.1 to OBJ, preserving local
+geometry, polygon normals, and UVs; Blender Z-up coordinates were rotated to Y-up.
+This asset is under evaluation, not a finished bunker or gameplay scene.

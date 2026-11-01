@@ -55,6 +55,23 @@ jobs:
           license: Personal
           username: ${{ secrets.UNITY_USERNAME }}
           password: ${{ secrets.UNITY_PASSWORD }}
+      - name: Render candidate imported assets in Unity
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+          xvfb-run -a "$UNITY_EDITOR_PATH" -batchmode -force-glcore -quit -logFile - \
+            -projectPath "$GITHUB_WORKSPACE/unity/BunkerUnity" \
+            -executeMethod Bunker.UnityPort.Editor.IrondustPreview.Render
+          test -s unity/BunkerUnity/Builds/irondust-audit.jpg
+      - name: Capture preview data
+        run: |
+          base64 -w0 unity/BunkerUnity/Builds/irondust-audit.jpg > "$RUNNER_TEMP/preview64"
+          python3 - <<'PYIMAGE'
+          import os
+          data=open(os.environ['RUNNER_TEMP']+'/preview64').read()
+          if len(data)>9*3800: raise Exception('preview exceeds one-step transfer limit')
+          print('::notice::IMAGEPARTS='+str((len(data)+3799)//3800))
+          for i in range(0,len(data),3800): print('::notice::IMAGEPART%03d='% (i//3800)+data[i:i+3800])
+          PYIMAGE
       - name: Build separately installed prototype, not a production update
         run: |
           set +e
