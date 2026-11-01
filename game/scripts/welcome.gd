@@ -282,8 +282,12 @@ func _update_screen_caption() -> void:
   return
  if screen_operator():
   screen_caption.text = screen_broadcast.caption()
+  if is_instance_valid(screen_hotspot):
+   screen_hotspot.tooltip_text = "Телевизор: сменить канал"
  else:
   screen_caption.text = "ТЕЛЕВИЗОР · " + screen_broadcast.channel_name() + "\nуправляет ведущий"
+  if is_instance_valid(screen_hotspot):
+   screen_hotspot.tooltip_text = "Телевизор: канал переключает ведущий комнаты"
 
 
 func _update_screen_hotspot() -> void:

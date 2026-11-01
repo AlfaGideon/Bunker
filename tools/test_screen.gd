@@ -125,6 +125,7 @@ func run() -> void:
 	check(not welcome.screen_operator(), "Only the host drives the panel in a lobby")
 	welcome.cycle_screen()
 	check(welcome.screen_broadcast.channel == 1, "A guest cannot switch the channel")
+	check(welcome.screen_hotspot.tooltip_text.contains("ведущий"), "A guest is told who runs the panel")
 	welcome.lobby_room = {"host_id": "me"}
 	check(welcome.screen_operator(), "The host drives the panel")
 
