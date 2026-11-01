@@ -142,8 +142,25 @@ jobs:
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --council
       - name: Render kitchen and shared food
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --facilities
+  visual-stations:
+    # Its own job so the close-up of the interaction stations keeps a fresh
+    # annotation budget: Actions caps notices per job, and the shared visual
+    # jobs already spend theirs on seven other shots.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: checks
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: bash tools/check_godot.sh --headless --editor --path . --quit
       - name: Render the Blender interaction stations
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_scene.gd -- --stations
+
   visual-character-card:
     runs-on: ubuntu-latest
     timeout-minutes: 10
