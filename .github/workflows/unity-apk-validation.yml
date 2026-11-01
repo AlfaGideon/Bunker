@@ -1,0 +1,35 @@
+name: Inspect Unity prototype APK
+on:
+  push:
+    branches: [arena/574beb82-bunker]
+    paths: [.github/workflows/unity-apk-validation.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bunker-unity-prototype-android
+          run-id: 41303889406
+          github-token: ${{ github.token }}
+          path: /tmp/unity-apk
+      - name: Check APK integrity, package, signature and Java bridge
+        run: |
+          set -euo pipefail
+          apk=/tmp/unity-apk/bunker-unity-prototype.apk
+          test -s "$apk"
+          unzip -tq "$apk" | tail -1
+          tools=$(find "$ANDROID_HOME/build-tools" -name aapt -printf '%h\n' | sort -V | tail -1)
+          "$tools/aapt" dump badging "$apk" > /tmp/badging.txt
+          grep -q "package: name='org.bunker.unityprototype'" /tmp/badging.txt
+          "$tools/apksigner" verify "$apk"
+          unzip -l "$apk" | grep -E 'classes[0-9]*\.dex|libunity\.so|globalgamemanagers' > /tmp/apkfiles.txt
+          grep -q 'libunity.so' /tmp/apkfiles.txt
+          grep -q 'classes.*dex' /tmp/apkfiles.txt
+          hash=$(sha256sum "$apk" | cut -d' ' -f1)
+          bytes=$(stat -c %s "$apk")
+          package=$(grep '^package:' /tmp/badging.txt | cut -c 1-250)
+          echo "::notice::APK size: $bytes bytes; SHA-256: $hash; $package"
