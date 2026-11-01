@@ -52,6 +52,19 @@ func run() -> void:
 	check(broadcast.screen_material() != null and broadcast.screen_material().albedo_texture != null,
 		"The glass carries the live viewport texture")
 
+	# --- the ad slot --------------------------------------------------------
+	broadcast.set_channel(2)
+	var banner: Texture2D = load("res://assets/branding/logo.png")
+	broadcast.set_ad(banner, "СУХПАЁК У ЦЕХА")
+	check(broadcast.has_ad(), "A real banner can be pushed into the panel")
+	check(broadcast.still.texture == banner, "The ad block shows the pushed banner")
+	check(broadcast.title.text.contains("СУХПАЁК"), "The ad block names the pushed banner")
+	check(broadcast.caption().contains("СУХПАЁК"), "The camp caption follows the ad")
+	broadcast.clear_ad()
+	check(not broadcast.has_ad(), "The panel goes back to the empty billboard")
+	check(broadcast.still.texture != banner, "The empty billboard is back on the glass")
+	broadcast.set_channel(0)
+
 	# --- the cinema crew ----------------------------------------------------
 	var cinema: Array = Rules.ROLES.get("cinema", [])
 	check(cinema.size() >= 3, "A whole cinema crew can run the panel")

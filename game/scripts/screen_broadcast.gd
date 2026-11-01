@@ -46,6 +46,10 @@ var reel_index := 0
 var reel_clock := 0.0
 var reduced_motion := false
 var material: StandardMaterial3D
+# Ads are the reason this panel exists, so any banner can be pushed into it later
+# without touching the scene: set_ad(picture, line) replaces the empty billboard.
+var ad_texture: Texture2D
+var ad_line := ""
 
 var _shade_material: ShaderMaterial
 var _textures := {}
@@ -177,11 +181,33 @@ func channel_name() -> String:
 	return BADGES[channel]
 
 
+## Puts a real advertisement on the panel. Pass a texture and an optional line of
+## text; the ad block keeps running the scanlines and the ticker on top of it.
+func set_ad(picture: Texture2D, line: String = "") -> void:
+	ad_texture = picture
+	ad_line = line.strip_edges()
+	if channel == 2:
+		_apply_channel()
+
+
+func clear_ad() -> void:
+	ad_texture = null
+	ad_line = ""
+	if channel == 2:
+		_apply_channel()
+
+
+func has_ad() -> bool:
+	return ad_texture != null
+
+
 func caption() -> String:
 	if channel == 0:
 		return "ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА · нажми — включить кино"
 	if channel == 1:
 		return "ТЕЛЕВИЗОР · АНИМЕ «ОГНИ МЁРТВОГО ГОРОДА»\nнажми — рекламный блок"
+	if ad_texture != null:
+		return "ТЕЛЕВИЗОР · РЕКЛАМА: " + (ad_line if not ad_line.is_empty() else "ролик") + "\nнажми — вернуть заставку"
 	return "ТЕЛЕВИЗОР · РЕКЛАМА · место под будущие ролики\nнажми — вернуть заставку"
 
 
@@ -195,7 +221,7 @@ func _apply_channel() -> void:
 			still.pivot_offset = Vector2(SIZE) * 0.5
 			still.scale = Vector2.ONE
 		"ads":
-			still.texture = _texture(AD)
+			still.texture = ad_texture if ad_texture != null else _texture(AD)
 			still.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			still.pivot_offset = Vector2(SIZE) * 0.5
 			still.scale = Vector2.ONE
@@ -205,7 +231,10 @@ func _apply_channel() -> void:
 			still.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			still.pivot_offset = Vector2(SIZE) * 0.5
 			still.scale = Vector2.ONE
-	title.text = TITLES[channel]
+	if channel == 2 and ad_texture != null:
+		title.text = "РЕКЛАМА" + (" • " + ad_line.to_upper() if not ad_line.is_empty() else "")
+	else:
+		title.text = TITLES[channel]
 	badge.text = "● " + BADGES[channel]
 	badge.add_theme_color_override("font_color",
 		Color("7ff0a8") if channel == 0 else Color("ff8a5c") if channel == 1 else Color("ffd06a"))
