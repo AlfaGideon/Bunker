@@ -29,6 +29,10 @@ jobs:
           unzip -l "$apk" | grep -E 'classes[0-9]*\.dex|libunity\.so|globalgamemanagers' > /tmp/apkfiles.txt
           grep -q 'libunity.so' /tmp/apkfiles.txt
           grep -q 'classes.*dex' /tmp/apkfiles.txt
+          mkdir -p /tmp/unity-dex
+          unzip -q "$apk" 'classes*.dex' -d /tmp/unity-dex
+          for dex in /tmp/unity-dex/*.dex; do "$tools/dexdump" -f "$dex"; done > /tmp/dexdump.txt
+          grep -q 'Lorg/bunker/unityprototype/RadioSpeech;' /tmp/dexdump.txt
           hash=$(sha256sum "$apk" | cut -d' ' -f1)
           bytes=$(stat -c %s "$apk")
           package=$(grep '^package:' /tmp/badging.txt | cut -c 1-250)
