@@ -39,6 +39,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
+      - name: Free runner space for Unity and Android modules
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h /
       - name: Support current Unity Hub Linux path
         run: sudo ln -s /usr/lib/unityhub /opt/unityhub
       - name: Install Unity Editor and Android modules on the runner
