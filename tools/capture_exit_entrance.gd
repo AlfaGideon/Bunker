@@ -26,8 +26,13 @@ func capture() -> void:
  for i in 15: await process_frame
  room.menu.visible = false
  if not room.first_person: room.toggle_first_person()
- await screenshot(room, "ENTRANCE_FRONT", Vector3(3.8, 0, 2.9), PI)
- await screenshot(room, "ENTRANCE_ANGLE", Vector3(2.6, 0, 3.1), -2.55)
- room.entrance_hatch.position.y = -2.2
- await screenshot(room, "TUNNEL_BEND", Vector3(3.75, 0, 5.35), -PI / 2.0)
+ var args := OS.get_cmdline_user_args()
+ var view := args[0] if not args.is_empty() else "front"
+ if view == "angle":
+  await screenshot(room, "ENTRANCE_ANGLE", Vector3(2.6, 0, 3.1), -2.55)
+ elif view == "bend":
+  room.entrance_hatch.position.y = -2.2
+  await screenshot(room, "TUNNEL_BEND", Vector3(3.75, 0, 5.35), -PI / 2.0)
+ else:
+  await screenshot(room, "ENTRANCE_FRONT", Vector3(3.8, 0, 2.9), PI)
  quit()
