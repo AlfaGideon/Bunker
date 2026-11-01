@@ -7,7 +7,7 @@
     "com.unity.modules.unitywebrequest": "1.0.0",
     "com.unity.cloud.gltfast": "5.2.0",
     "com.unity.modules.physics": "1.0.0",
-    "com.atteneder.ktx": "https://github.com/atteneder/KtxUnity.git#a3d6d62eea01fa0b0c3b06a2b78b7cc278dffb08",
-    "com.unity.modules.animation": "1.0.0"
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.cloud.ktx": "3.2.2"
   }
 }

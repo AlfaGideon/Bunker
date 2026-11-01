@@ -55,8 +55,6 @@ jobs:
           license: Personal
           username: ${{ secrets.UNITY_USERNAME }}
           password: ${{ secrets.UNITY_PASSWORD }}
-      - name: Enable Git LFS for KTX texture package
-        run: git lfs install
       - name: Verify touch camera and character imports in Unity
         run: |
           set +e
