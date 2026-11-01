@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Verify reproducible FBX conversion
+        run: python unity/tools/test_convert_irondust.py
       - name: Compile Unity client against test stubs and test existing server protocol
         run: |
           python server/app.py > /tmp/bunker-unity-server.log 2>&1 &
