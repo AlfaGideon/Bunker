@@ -101,7 +101,7 @@ namespace Bunker.UnityPort
             if (error == null)
             {
                 try { session = JsonUtility.FromJson<SessionResponse>(text); }
-                catch (ArgumentException) { error = "Некорректный ответ сервера"; }
+                catch (ArgumentException) { error = "Ошибка: некорректный ответ сервера"; }
             }
             if (error != null || session == null || string.IsNullOrEmpty(session.session))
             {
@@ -126,7 +126,7 @@ namespace Bunker.UnityPort
                 }
                 Envelope envelope = null;
                 try { envelope = JsonUtility.FromJson<Envelope>(text); }
-                catch (ArgumentException) { error = "Некорректный ответ сервера"; }
+                catch (ArgumentException) { error = "Ошибка: некорректный ответ сервера"; }
                 if (error != null || envelope == null || envelope.events == null)
                 {
                     terminalError = error ?? "Ошибка: некорректные события сервера";
