@@ -23,8 +23,16 @@ jobs:
           sudo apt-get install -y -qq libxrender1 libxi6 libsm6 libice6 libxfixes3 \
             libxxf86vm1 libxkbcommon0 libgl1 libegl1
           pip install --quiet 'bpy==4.2.0'
+      - name: Check the module
+        run: python -c "import bpy; print('Blender', bpy.app.version_string)"
       - name: Rebuild every prop
-        run: python tools/blender/build.py --out builds/blender --preview builds/blender-preview
+        run: |
+          set -o pipefail
+          python tools/blender/build.py --out builds/blender --preview builds/blender-preview > /tmp/blender.log 2>&1 || {
+            python -c "from pathlib import Path;print('::error::'+Path('/tmp/blender.log').read_text(errors='replace')[-3500:].replace('%','%25').replace(chr(10),'%0A'))"
+            exit 1
+          }
+          tail -n 20 /tmp/blender.log
       - name: Compare with the committed assets
         run: |
           set -euo pipefail
