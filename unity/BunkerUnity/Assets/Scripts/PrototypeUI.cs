@@ -86,7 +86,7 @@ namespace Bunker.UnityPort
         {
             status = message;
             if (statusText != null) statusText.text = status;
-            if (transport.Connected && screen == "home")
+            if (transport.Connected && screen == "home" && message == "Подключено")
             {
                 transport.Send(new Command { type = "list" });
                 Draw();

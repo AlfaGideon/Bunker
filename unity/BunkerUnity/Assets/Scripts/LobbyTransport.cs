@@ -112,6 +112,7 @@ namespace Bunker.UnityPort
             token = session.session;
             Connected = true;
             Status?.Invoke("Подключено");
+            string terminalError = null;
             while (!closing)
             {
                 text = null; error = null;
@@ -120,7 +121,7 @@ namespace Bunker.UnityPort
                 yield return Request(hasCommand ? "send" : "poll", message, value => text = value, value => error = value);
                 if (error != null)
                 {
-                    Status?.Invoke(error);
+                    terminalError = error;
                     break;
                 }
                 Envelope envelope = null;
@@ -128,7 +129,7 @@ namespace Bunker.UnityPort
                 catch (ArgumentException) { error = "Некорректный ответ сервера"; }
                 if (error != null || envelope == null || envelope.events == null)
                 {
-                    Status?.Invoke(error ?? "Некорректные события сервера");
+                    terminalError = error ?? "Ошибка: некорректные события сервера";
                     break;
                 }
                 foreach (var item in envelope.events)
@@ -142,6 +143,7 @@ namespace Bunker.UnityPort
             outgoing.Clear();
             pump = null;
             if (closing) Status?.Invoke("Соединение закрыто");
+            else if (terminalError != null) Status?.Invoke(terminalError);
         }
     }
 }

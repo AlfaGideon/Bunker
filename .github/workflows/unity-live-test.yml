@@ -1,0 +1,28 @@
+name: Unity live HTTPS compatibility
+on:
+  push:
+    paths:
+      - '.github/workflows/unity-live-test.yml'
+      - 'unity/ProtocolTests/**'
+      - 'unity/BunkerUnity/Assets/Scripts/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Exercise two-client Unity DTO protocol against deployed server
+        env:
+          BUNKER_TEST_URL: https://alfagideon.blitz.cloud
+        run: |
+          set -o pipefail
+          dotnet run --project unity/ProtocolTests/ProtocolTests.csproj 2>&1 | tee /tmp/live-test.log || {
+            python3 -c 'from pathlib import Path; print("::error::"+Path("/tmp/live-test.log").read_text()[-6000:].replace("%","%25").replace("\n","%0A"))'
+            exit 1
+          }
