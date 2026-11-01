@@ -8,6 +8,11 @@ namespace Bunker.UnityPort.Editor
 {
     public static class CharacterAssetAudit
     {
+        public static void VerifyAll()
+        {
+            TouchControllerAudit.Verify();
+            Verify();
+        }
         public static void Verify()
         {
             const string bodyPath = "Assets/Models/People/player_base.glb";
