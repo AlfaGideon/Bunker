@@ -114,8 +114,12 @@ namespace Bunker.UnityPort
                 case "game_state":
                     if (item.state == null || item.state.players == null) break;
                     if (state != null && item.state.revision < state.revision) break;
+                    bool newMatch = state == null;
                     state = item.state; localRemaining = state.remaining; if (screen != "world") screen = "game";
                     if (string.IsNullOrEmpty(selectedId)) selectedId = playerId;
+#if UNITY_5_3_OR_NEWER
+                    if (newMatch) { OpenWorld(); break; }
+#endif
                     Draw(); break;
                 case "room_closed":
                     radioAudio.ResetRadio(); room = null; state = null; playerId = ""; screen = "home";
@@ -218,7 +222,12 @@ namespace Bunker.UnityPort
                 playerId = LocalMatch.HumanId; selectedId = playerId;
                 state = localMatch.Snapshot(); localRemaining = state.remaining;
                 screen = "game"; stationsPage = false; radioPage = false;
-                status = "Оффлайн-тест правил, не полная игра"; Draw();
+                status = "Локальная партия";
+#if UNITY_5_3_OR_NEWER
+                OpenWorld();
+#else
+                Draw();
+#endif
             }
             catch (Exception ex) { status = "Не удалось загрузить данные: " + ex.Message; Draw(); }
         }
