@@ -43,6 +43,11 @@ var screen_prop: Node3D
 var screen_broadcast: RefCounted
 var screen_hotspot: Button
 var screen_caption: Label
+## The panel's parking spot: behind the fire (z = 1) and the survivor (z = 0),
+## in front of the pines (z = -4.5). The banner is fitted into the frame from here.
+const SCREEN_ANCHOR := Vector3(-2.60, 0.0, -2.80)
+const SCREEN_SIZE := Vector3(3.4, 2.49, 0.28)
+var screen_fitted := false
 var screen_light: OmniLight3D
 var lobby_client: Node
 var lobby_url := "wss://alfagideon.blitz.cloud/ws"
@@ -166,17 +171,79 @@ func build_camp() -> void:
 func build_screen() -> void:
  # Behind the fire and the survivor, in front of the pines, and wholly inside the
  # free left part of the frame: the menu card owns the right half of the screen.
- screen_prop = Art.spawn(self, "blender_plasma_tv", Vector3(-2.75, 0, -2.55),
-  Vector3(3.2, 2.34, 0.26), false, 0.010)
+ screen_prop = Art.spawn(self, "blender_plasma_tv", SCREEN_ANCHOR,
+  SCREEN_SIZE, false, 0.010)
  screen_broadcast = preload("res://game/scripts/screen_broadcast.gd").new()
  screen_broadcast.mount(self)
  screen_broadcast.attach(screen_prop)
  screen_light = OmniLight3D.new()
- screen_light.position = Vector3(-2.75, 1.35, -2.12)
  screen_light.light_color = Color("cfe8ff")
  screen_light.light_energy = 0.55
  screen_light.omni_range = 5.0
  add_child(screen_light)
+
+
+## Where the silhouette of the banner falls on the screen right now.
+func screen_rect() -> Rect2:
+ if not is_instance_valid(screen_prop) or camera == null:
+  return Rect2()
+ var box := AABB()
+ var first := true
+ var nodes: Array[Node] = [screen_prop]
+ nodes.append_array(screen_prop.find_children("*", "MeshInstance3D", true, false))
+ for node in nodes:
+  var mesh_node := node as MeshInstance3D
+  if mesh_node == null or mesh_node.mesh == null:
+   continue
+  var world: AABB = mesh_node.global_transform * mesh_node.get_aabb()
+  box = world if first else box.merge(world)
+  first = false
+ if first:
+  return Rect2()
+ var rect := Rect2()
+ for corner in 8:
+  var point := box.position + Vector3(
+   box.size.x if corner & 1 else 0.0,
+   box.size.y if corner & 2 else 0.0,
+   box.size.z if corner & 4 else 0.0)
+  var projected := camera.unproject_position(point)
+  rect = Rect2(projected, Vector2.ZERO) if corner == 0 else rect.expand(projected)
+ return rect
+
+
+## A banner has to read as a banner on every phone: behind the fire and the
+## survivor, in front of the pines, and entirely inside the free part of the frame.
+## The camp is orthographic, so the slide is a plain world move along the camera's
+## right axis and the only other knob is the size of the panel itself.
+func fit_screen_banner() -> void:
+ if not is_instance_valid(screen_prop) or not is_instance_valid(panel) or camera == null:
+  return
+ screen_prop.position = SCREEN_ANCHOR
+ screen_prop.scale = Vector3.ONE
+ var right: Vector3 = camera.basis.x.normalized()
+ var view: Vector2 = get_viewport().get_visible_rect().size
+ var limit: float = panel.get_global_rect().position.x - 18.0
+ for step in 140:
+  var rect := screen_rect()
+  if rect.size == Vector2.ZERO:
+   break
+  if rect.position.y < 10.0 or rect.end.y > view.y - 10.0:
+   screen_prop.scale *= 0.97
+   continue
+  if rect.end.x > limit:
+   screen_prop.position -= right * 0.06
+   if screen_prop.position.z > -0.7:
+    break
+   continue
+  if rect.position.x < 10.0:
+   screen_prop.position += right * 0.06
+   continue
+  break
+ if is_instance_valid(screen_light):
+  var rect := screen_rect()
+  screen_light.position = screen_prop.position + Vector3(0, rect.size.y * 0.0016, 0.45)
+  screen_light.omni_range = 4.5
+ _update_screen_hotspot()
 
 
 ## In a local camp the panel has one driver — you. In a network lobby it belongs
@@ -218,7 +285,8 @@ func _update_screen_hotspot() -> void:
  if not is_instance_valid(ui):
   return
  var bounds: Vector2 = ui.size if ui.size.x > 1.0 else get_viewport().get_visible_rect().size
- var point := camera.unproject_position(Vector3(-2.75, 0.24, -2.40))
+ var rect := screen_rect()
+ var point := Vector2(rect.position.x + rect.size.x * 0.5, rect.end.y)
  var pill := screen_hotspot.size
  var corner := Vector2(point.x - pill.x * 0.5, point.y + 12.0)
  # The menu card owns the right side of the screen: the pill never goes there.
@@ -334,6 +402,10 @@ func update_avatar() -> void:
  animator.advance(0.01)
 
 func _process(delta: float) -> void:
+ if not screen_fitted and is_instance_valid(screen_prop) and is_instance_valid(panel):
+  # The card is laid out on the first frame, not during _ready.
+  screen_fitted = true
+  fit_screen_banner()
  clock += delta
  if invite_bridge != null:
   invite_check_timer += delta
@@ -393,6 +465,9 @@ func build_ui() -> void:
  ui.add_child(logo)
  build_radio_ui()
  build_screen_ui()
+ fit_screen_banner()
+ if not get_viewport().size_changed.is_connected(fit_screen_banner):
+  get_viewport().size_changed.connect(fit_screen_banner)
  panel = PanelContainer.new()
  panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
  panel.offset_left = -660

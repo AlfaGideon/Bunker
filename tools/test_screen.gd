@@ -81,17 +81,18 @@ func run() -> void:
 	check(is_instance_valid(welcome.screen_prop), "The camp has a plasma panel")
 	check(str(welcome.screen_prop.get_meta("source", "")).ends_with("assets/blender/plasma_tv.glb"),
 		"The camp panel is the modelled prop")
-	check(welcome.screen_prop.position.z < 0.0, "The panel stands behind the fire")
+	check(welcome.screen_prop.position.z < -0.5, "The panel stands behind the fire and the survivor")
 	check(welcome.screen_prop.position.z > -4.4, "The panel stands in front of the pines")
 	check(welcome.screen_prop.position.x < 0.0, "The panel stands behind the survivor")
 	# The menu card owns the right of the frame: the whole banner must stay clear.
-	var edge: Vector2 = welcome.camera.unproject_position(
-		welcome.screen_prop.position + Vector3(1.6, 1.4, 0))
-	check(edge.x < welcome.panel.get_global_rect().position.x - 8.0,
+	var banner: Rect2 = welcome.screen_rect()
+	var frame := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+	check(banner.size != Vector2.ZERO, "The panel casts a silhouette in the frame")
+	check(banner.position.x > 0.0 and banner.end.x < frame.size.x, "The panel fits the frame width")
+	check(banner.position.y > 0.0 and banner.end.y < frame.size.y, "The panel fits the frame height")
+	check(banner.end.x < welcome.panel.get_global_rect().position.x - 8.0,
 		"The whole panel is visible beside the menu card")
-	var left_edge: Vector2 = welcome.camera.unproject_position(
-		welcome.screen_prop.position + Vector3(-1.6, 1.4, 0))
-	check(left_edge.x > 0.0, "The panel's left edge is inside the camp frame")
+	check(banner.size.x > frame.size.x * 0.12, "The panel reads as a big banner")
 	check(welcome.screen_broadcast.channel == 0, "The camp panel idles on the logo splash")
 	check(is_instance_valid(welcome.screen_caption) and welcome.screen_caption.text.contains("нажми"),
 		"The camp caption explains the tap")
