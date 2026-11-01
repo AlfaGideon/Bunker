@@ -15,8 +15,8 @@ namespace Bunker.UnityPort.Editor
         }
         public static void Verify()
         {
-            const string bodyPath = "Assets/Models/People/player_base.glb";
-            const string animPath = "Assets/Models/People/player_anims_cc0.glb";
+            const string bodyPath = "Assets/Resources/People/player_base.glb";
+            const string animPath = "Assets/Resources/People/player_anims_cc0.glb";
             AssetDatabase.ImportAsset(bodyPath, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
             AssetDatabase.ImportAsset(animPath, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
             Debug.Log("CHARACTER_IMPORTER " + (AssetImporter.GetAtPath(bodyPath)?.GetType().FullName ?? "none"));

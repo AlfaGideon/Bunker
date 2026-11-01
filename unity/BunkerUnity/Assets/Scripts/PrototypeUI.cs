@@ -31,6 +31,9 @@ namespace Bunker.UnityPort
         private bool stationsPage;
         private bool radioPage;
         private string screen = "home";
+#if UNITY_5_3_OR_NEWER
+        private World.BunkerWorld world;
+#endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Create()
@@ -70,7 +73,7 @@ namespace Bunker.UnityPort
 
         private void Update()
         {
-            if (state == null || screen != "game") return;
+            if (state == null || (screen != "game" && screen != "world")) return;
             radioAudio.Restore(state.stations?.radio);
             if (localMatch != null && localMatch.Tick(Time.unscaledDeltaTime))
             {
@@ -111,7 +114,7 @@ namespace Bunker.UnityPort
                 case "game_state":
                     if (item.state == null || item.state.players == null) break;
                     if (state != null && item.state.revision < state.revision) break;
-                    state = item.state; localRemaining = state.remaining; screen = "game";
+                    state = item.state; localRemaining = state.remaining; if (screen != "world") screen = "game";
                     if (string.IsNullOrEmpty(selectedId)) selectedId = playerId;
                     Draw(); break;
                 case "room_closed":
@@ -144,9 +147,15 @@ namespace Bunker.UnityPort
         private void Draw()
         {
             if (canvas == null) return;
-            if (screen == "game" && state != null) radioAudio.Restore(state.stations?.radio);
+            if ((screen == "game" || screen == "world") && state != null) radioAudio.Restore(state.stations?.radio);
+#if UNITY_5_3_OR_NEWER
+            if (world != null) world.gameObject.SetActive(screen == "world");
+#endif
             if (page != null) { page.gameObject.SetActive(false); Destroy(page.gameObject); }
             page = Rect("Page", canvas.transform, 0, 0, 1, 1);
+#if UNITY_5_3_OR_NEWER
+            if (screen == "world") { DrawWorld(); return; }
+#endif
             Panel(page, 0, 0, 1, 1, new Color(0.025f, 0.055f, 0.065f));
             Label(page, "Б У Н К Е Р  /  UNITY · ПЕРЕНОС", 0.025f, 0.93f, 0.70f, 0.985f, 23, TextAnchor.MiddleLeft);
             statusText = Label(page, status, 0.025f, 0.012f, 0.975f, 0.07f, 16, TextAnchor.MiddleLeft);
@@ -249,9 +258,43 @@ namespace Bunker.UnityPort
             if (!transport.Send(new Command { type = "game_action", action = action, value = value }))
             { status = "Нет соединения"; Draw(); }
         }
+#if UNITY_5_3_OR_NEWER
+        private void OpenWorld()
+        {
+            try
+            {
+                if (world == null)
+                {
+                    world = World.BunkerWorld.Create();
+                    world.PlayerSelected += id => { selectedId = id; stationsPage = false; radioPage = false; screen = "game"; Draw(); };
+                }
+                world.SyncPlayers(state.players, playerId);
+                screen = "world";
+                Draw();
+            }
+            catch (Exception ex)
+            {
+                if (world != null) { Destroy(world.gameObject); world = null; }
+                status = "Не удалось открыть 3D-тест: " + ex.Message;
+                screen = "game"; Draw();
+            }
+        }
+        private void DrawWorld()
+        {
+            if (world == null || state == null) { screen = "game"; Draw(); return; }
+            world.SyncPlayers(state.players, playerId);
+            Button(page, "КАРТОЧКИ И ХОД", .66f, .92f, .84f, .99f, () => { screen = "game"; Draw(); }, 12);
+            Button(page, "ВИД", .85f, .92f, .98f, .99f, () => world.ToggleView(), 13);
+            timerText = Label(page, "", .02f, .92f, .39f, .99f, 18, TextAnchor.MiddleLeft);
+            statusText = Label(page, "3D-тест · движение не синхронизируется", .02f, .01f, .65f, .06f, 13, TextAnchor.MiddleLeft);
+        }
+#endif
         private void DrawGame()
         {
             if (state == null) return;
+#if UNITY_5_3_OR_NEWER
+            Button(page, "3D · ТЕСТ", .68f, .93f, .81f, .985f, OpenWorld, 13);
+#endif
             Button(page, "В МЕНЮ", .82f, .93f, .97f, .985f, () => {
                 if (localMatch != null) { radioAudio.ResetRadio(); localMatch = null; state = null; playerId = ""; selectedId = ""; screen = "home"; status = "Локальный тест завершён"; Draw(); }
                 else transport.Send(new Command { type = "leave" });
