@@ -25,6 +25,7 @@ namespace Bunker.UnityPort
         private Room room;
         private Room[] rooms = Array.Empty<Room>();
         private MatchState state;
+        private LocalMatch localMatch;
         private float localRemaining;
         private bool stationsPage;
         private bool radioPage;
@@ -68,6 +69,12 @@ namespace Bunker.UnityPort
         private void Update()
         {
             if (state == null || screen != "game") return;
+            if (localMatch != null && localMatch.Tick(Time.unscaledDeltaTime))
+            {
+                state = localMatch.Snapshot();
+                localRemaining = state.remaining;
+                Draw();
+            }
             localRemaining = Mathf.Max(0, localRemaining - Time.unscaledDeltaTime);
             if (timerText != null) timerText.text = PhaseName(state.phase) + "  ·  " + Mathf.CeilToInt(localRemaining) + " с";
         }
@@ -94,7 +101,7 @@ namespace Bunker.UnityPort
                 case "error": status = "Сервер: " + ErrorName(item.code); Draw(); break;
                 case "rooms": rooms = item.rooms ?? Array.Empty<Room>(); if (screen == "home") Draw(); break;
                 case "joined":
-                    playerId = item.player_id; room = item.room; state = null; screen = "room";
+                    localMatch = null; playerId = item.player_id; room = item.room; state = null; screen = "room";
                     status = "Комната создана или подключена"; Draw(); break;
                 case "room": room = item.room; if (screen == "room") Draw(); break;
                 case "online_game_start": status = "Партия запускается…"; break;
@@ -169,6 +176,11 @@ namespace Bunker.UnityPort
                 Button(page, "ОТКЛЮЧИТЬСЯ", .29f, .16f, .47f, .25f, () => { transport.Close(); Draw(); });
             }
             Panel(page, .51f, .11f, .98f, .90f, new Color(.055f, .12f, .14f));
+            if (!transport.Connected)
+            {
+                Button(page, "ЛОКАЛЬНЫЙ ТЕСТ РАУНДОВ", .53f, .16f, .81f, .25f, StartLocal, 13);
+                Button(page, "ИГРОКИ: " + capacity, .82f, .16f, .96f, .25f, () => { capacity = capacity == 6 ? 8 : capacity == 8 ? 10 : 6; Draw(); }, 13);
+            }
             Label(page, "ОТКРЫТЫЕ КОМНАТЫ", .53f, .81f, .96f, .88f, 20, TextAnchor.MiddleLeft);
             if (rooms.Length == 0) Label(page, "Пока нет комнат", .53f, .70f, .96f, .78f, 17, TextAnchor.MiddleLeft);
             for (int i = 0; i < Math.Min(6, rooms.Length); i++)
@@ -176,6 +188,23 @@ namespace Bunker.UnityPort
                 var found = rooms[i]; float top = .79f - i * .095f;
                 Button(page, found.title + "  " + found.count + "/" + found.capacity, .53f, top - .08f, .96f, top, () => Join(found.id));
             }
+        }
+        private void StartLocal()
+        {
+            var content = Resources.Load<TextAsset>("content");
+            var scenarios = Resources.Load<TextAsset>("scenarios");
+            if (content == null || scenarios == null) { status = "Не найдены игровые данные"; Draw(); return; }
+            try
+            {
+                var pool = JsonUtility.FromJson<ContentData>(content.text);
+                var list = JsonUtility.FromJson<ScenarioList>("{\"items\":" + scenarios.text + "}");
+                localMatch = new LocalMatch(pool, list.items, capacity, nickname, Environment.TickCount);
+                playerId = LocalMatch.HumanId; selectedId = playerId;
+                state = localMatch.Snapshot(); localRemaining = state.remaining;
+                screen = "game"; stationsPage = false; radioPage = false;
+                status = "Оффлайн-тест: только речи и голосование, не полная игра"; Draw();
+            }
+            catch (Exception ex) { status = "Не удалось загрузить данные: " + ex.Message; Draw(); }
         }
         private void Join(string id)
         {
@@ -203,12 +232,22 @@ namespace Bunker.UnityPort
         }
         private void Action(string action, string value = null)
         {
+            if (localMatch != null)
+            {
+                if (!localMatch.Command(action, value)) status = "Действие сейчас недоступно";
+                else status = "Оффлайн-тест: действие выполнено";
+                state = localMatch.Snapshot(); localRemaining = state.remaining; Draw(); return;
+            }
             if (!transport.Send(new Command { type = "game_action", action = action, value = value }))
             { status = "Нет соединения"; Draw(); }
         }
         private void DrawGame()
         {
             if (state == null) return;
+            Button(page, "В МЕНЮ", .82f, .93f, .97f, .985f, () => {
+                if (localMatch != null) { localMatch = null; state = null; playerId = ""; selectedId = ""; screen = "home"; status = "Локальный тест завершён"; Draw(); }
+                else transport.Send(new Command { type = "leave" });
+            }, 13);
             Panel(page, .02f, .09f, .30f, .90f, new Color(.055f, .12f, .14f));
             Panel(page, .32f, .09f, .98f, .90f, new Color(.055f, .12f, .14f));
             timerText = Label(page, "", .04f, .81f, .28f, .88f, 18, TextAnchor.MiddleLeft);
@@ -254,7 +293,7 @@ namespace Bunker.UnityPort
         {
             if (state.stations == null)
             {
-                Label(page, "Сервер не поддерживает станции: обновите сервер.", .35f, .57f, .95f, .70f, 18, TextAnchor.MiddleLeft);
+                Label(page, localMatch != null ? "Станции ещё не перенесены в локальный тест." : "Сервер не поддерживает станции: обновите сервер.", .35f, .57f, .95f, .70f, 18, TextAnchor.MiddleLeft);
                 return;
             }
             var st = state.stations;

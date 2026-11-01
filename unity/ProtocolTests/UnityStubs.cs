@@ -23,7 +23,8 @@ namespace UnityEngine
     public struct Vector2 { public Vector2(float x, float y) { } public static Vector2 zero => new Vector2(); }
     public struct Color { public Color(float r, float g, float b, float a = 1) { } }
     public class Font : Object { }
-    public static class Resources { public static T GetBuiltinResource<T>(string name) where T : new() => new T(); }
+    public class TextAsset : Object { public string text; }
+    public static class Resources { public static T GetBuiltinResource<T>(string name) where T : new() => new T(); public static T Load<T>(string name) where T : class => null; }
     public enum ScreenOrientation { LandscapeLeft }
     public static class Screen { public static ScreenOrientation orientation; public static int sleepTimeout; }
     public static class SleepTimeout { public static int NeverSleep = -1; }

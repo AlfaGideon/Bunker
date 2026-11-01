@@ -8,6 +8,26 @@ static void Check(bool condition, string message)
     if (!condition) throw new Exception(message);
     Console.WriteLine("PASS " + message);
 }
+var localJsonOptions = new JsonSerializerOptions { IncludeFields = true };
+var dataPath = Path.Combine("unity", "BunkerUnity", "Assets", "Resources");
+var content = JsonSerializer.Deserialize<ContentData>(File.ReadAllText(Path.Combine(dataPath, "content.json")), localJsonOptions);
+var scenarios = JsonSerializer.Deserialize<Scenario[]>(File.ReadAllText(Path.Combine(dataPath, "scenarios.json")), localJsonOptions);
+var local = new LocalMatch(content, scenarios, 6, "Host", 123);
+var localState = local.Snapshot();
+Check(localState.players.Length == 6 && localState.players.All(p => p.cards.Count(c => c.revealed) == 1), "local 6-player setup and only public profession");
+Check(localState.players[1].cards.Where(c => !c.revealed).All(c => c.value == null), "local opponents hidden");
+local.Tick(12);
+var ownCard = local.Snapshot().players[0].cards.First(c => !c.revealed);
+Check(local.Command("reveal", ownCard.id) && local.Snapshot().remaining == 48, "local reveal preserves speech timer");
+Check(!local.Command("reveal", ownCard.id), "local repeat reveal rejected");
+Check(local.Command("pass"), "local speaker can pass");
+for (int i = 0; i < 5; i++) local.Tick(5.1f);
+Check(local.Snapshot().phase == "discussion" && Math.Abs(local.Snapshot().remaining - 60) < .1f, "local bots reveal and discussion starts at 60 seconds");
+local.Tick(60);
+Check(local.Snapshot().phase == "vote" && local.Snapshot().remaining == 20, "local ballot starts at 20 seconds");
+Check(local.Command("vote", "local_1"), "local vote accepted");
+local.Tick(3); local.Tick(17);
+Check(local.Snapshot().phase == "result" || local.Snapshot().phase == "vote" || local.Snapshot().phase == "end", "local ballot resolves or enters runoff");
 var root = Environment.GetEnvironmentVariable("BUNKER_TEST_URL") ?? "http://127.0.0.1:8080";
 Check(LobbyTransport.TryNormalize("wss://example.org/ws", false, out var normalized) && normalized == "https://example.org", "wss normalized to HTTPS");
 Check(!LobbyTransport.TryNormalize("http://example.org", false, out _), "device rejects HTTP");
