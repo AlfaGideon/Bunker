@@ -8,9 +8,10 @@ test -n "$tools"
 "$tools/aapt" dump badging "$apk" > /tmp/bunker-unity-badging.txt
 grep -q "package: name='org.bunker.unityprototype'" /tmp/bunker-unity-badging.txt
 "$tools/apksigner" verify "$apk"
-unzip -l "$apk" | grep -q 'libunity.so'
 dexdir=$(mktemp -d)
 trap 'rm -rf "$dexdir"' EXIT
+unzip -l "$apk" > "$dexdir/files.txt"
+grep -q 'libunity.so' "$dexdir/files.txt"
 unzip -q "$apk" 'classes*.dex' -d "$dexdir"
 for dex in "$dexdir"/*.dex; do "$tools/dexdump" -f "$dex"; done > "$dexdir/dexdump.txt"
 grep -q 'Lorg/bunker/unityprototype/RadioSpeech;' "$dexdir/dexdump.txt"
