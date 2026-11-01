@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           for name in campfire crate radio radio_station food_station medkit terminal \
-                       bed toilet operating_table pantry_shelf boulder chair; do
+                       bed toilet operating_table pantry_shelf boulder chair plasma_tv; do
             built="builds/blender/$name.glb"
             committed="assets/blender/$name.glb"
             test -f "$built" || { echo "::error::$name was not built"; exit 1; }

@@ -10,6 +10,18 @@ class MatchTest(unittest.TestCase):
         members = [SimpleNamespace(id=str(i), name=f'Player {i}', skin='male') for i in range(6)]
         self.game = Match(members, now=100, rng=random.Random(3))
 
+    def test_cinema_needs_a_projectionist(self):
+        g = self.game
+        with self.assertRaisesRegex(GameError, 'wrong_profession'):
+            g.command('1', 'cinema', now=101)
+        g.players[0]['cards'][0]['value'] = 'Киномеханик'
+        before = dict(g.stamina)
+        g.command('0', 'cinema', now=102)
+        for pid in g.active:
+            self.assertEqual(g.stamina[pid], min(100, before[pid] + 6))
+        with self.assertRaisesRegex(GameError, 'station_used'):
+            g.command('0', 'cinema', now=103)
+
     def test_chair_rests_once_per_round(self):
         g = self.game
         start = g.stamina['0']

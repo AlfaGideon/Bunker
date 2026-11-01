@@ -67,7 +67,8 @@ def main() -> int:
                        'operating_table': ((0, 0, 0.85), 3.70, 2.35),
                        'pantry_shelf': ((0, 0, 0.95), 3.70, 2.50),
                        'boulder': ((0, 0, 0.34), 2.70, 1.60),
-                       'chair': ((0, 0, 0.50), 2.45, 1.55)}.get(
+                       'chair': ((0, 0, 0.50), 2.45, 1.55),
+                       'plasma_tv': ((0, 0, 1.45), 9.20, 4.60)}.get(
                            name, ((0, 0, 0.3), 2.1, 1.45))
             # A per-prop fourth value overrides the default camera azimuth so
             # props with an open door or an off-centre silhouette still frame.

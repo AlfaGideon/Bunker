@@ -60,6 +60,12 @@ func run_test() -> void:
 	check(int(found.get("res://assets/blender/operating_table.glb", 0)) >= 1, "The theatre has a table")
 	check(int(found.get("res://assets/blender/pantry_shelf.glb", 0)) >= 1, "The pantry has shelving")
 	check(int(found.get("res://assets/blender/chair.glb", 0)) >= 1, "The hall has a chair")
+	check(int(found.get("res://assets/blender/plasma_tv.glb", 0)) >= 1, "The hall has the plasma panel")
+	check(room.hall_screen != null, "The panel is live in the hall")
+	check(room.hall_screen.channel == 0, "The hall panel idles on the logo splash")
+	room.hall_screen.set_channel(1)
+	check(room.hall_screen.has_content(), "The hall panel can play the reel")
+	room.hall_screen.set_channel(0)
 	check(room.layout["items"].has("chair"), "The chair can be used")
 	check(not found.has("res://assets/quaternius/house_interior_pack_Bed_Single.glb"),
 		"The old sofa-shaped bed is gone")

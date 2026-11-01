@@ -41,7 +41,7 @@ const GROUPS := {
 	"care": ["Массажист", "Сексолог", "Косметолог", "Парикмахер"],
 	"nightlife": ["Бармен", "Татуировщик", "Астролог", "Парфюмер", "Стендап-комик", "Диджей"],
 	"craft": ["Часовщик", "Кузнец", "Гончар", "Стеклодув", "Таксидермист"],
-	"show": ["Клоун", "Тамада", "Фотограф"]
+	"show": ["Клоун", "Тамада", "Фотограф", "Киномеханик", "Билетёр", "Киновед"]
 }
 
 # A specific pictogram for the professions whose work is easy to recognise.
@@ -66,7 +66,8 @@ const ICONS := {
 	"Стендап-комик": "speech", "Диджей": "radio",
 	"Клоун": "star", "Тамада": "speech", "Сомелье": "flask", "Часовщик": "gear",
 	"Кузнец": "hammer", "Гончар": "pot", "Стеклодув": "flask", "Пчеловод": "leaf",
-	"Фотограф": "eye", "Таксидермист": "paw"
+	"Фотограф": "eye", "Таксидермист": "paw",
+	"Киномеханик": "reel", "Билетёр": "ticket", "Киновед": "reel"
 }
 
 # Each profession gets its own printed motto; the palette still comes from
@@ -97,7 +98,8 @@ const TAGS := {
 	"Клоун": "СМЕХ И ГРИМАСА", "Тамада": "ПРАЗДНИК И ТОСТ", "Сомелье": "ВКУС И ВИНО",
 	"Часовщик": "ВРЕМЯ И ТОЧНОСТЬ", "Кузнец": "ОГОНЬ И МЕТАЛЛ", "Гончар": "ГЛИНА И ФОРМА",
 	"Стеклодув": "СТЕКЛО И ПЛАМЯ", "Пчеловод": "МЁД И УЛЬИ", "Фотограф": "КАДР И СВЕТ",
-	"Таксидермист": "ЧУЧЕЛА И ПАМЯТЬ"
+	"Таксидермист": "ЧУЧЕЛА И ПАМЯТЬ",
+	"Киномеханик": "ПЛЁНКА И СВЕТ", "Билетёр": "ВХОД И ПОРЯДОК", "Киновед": "КИНО И ПАМЯТЬ"
 }
 
 const PARAMETER_ICONS := {
@@ -200,7 +202,10 @@ const PORTRAITS := {
 	"Стеклодув": "glassblower",
 	"Пчеловод": "beekeeper",
 	"Фотограф": "photographer",
-	"Таксидермист": "taxidermist"
+	"Таксидермист": "taxidermist",
+	"Киномеханик": "projectionist",
+	"Билетёр": "ticket_clerk",
+	"Киновед": "film_expert"
 }
 
 static var _textures := {}
@@ -387,6 +392,24 @@ static func draw_icon(canvas: CanvasItem, at: Vector2, r: float, icon: String, c
 			var drop_outline := PackedVector2Array([drop[0], drop[1], drop[2], drop[3], drop[4], drop[5], drop[0]])
 			canvas.draw_polyline(drop_outline, color, t, true)
 			canvas.draw_arc(at + Vector2(-r * 0.10, r * 0.24), r * 0.16, 0.5, 2.4, 12, Color(color, 0.7), t * 0.6, true)
+		"reel":
+			canvas.draw_arc(at, r * 0.66, 0, TAU, 40, color, t, true)
+			canvas.draw_arc(at, r * 0.16, 0, TAU, 20, Color(color, 0.7), t * 0.8, true)
+			for i in 4:
+				var angle := TAU * float(i) / 4.0 + 0.6
+				var hole := at + Vector2(cos(angle), sin(angle)) * r * 0.40
+				canvas.draw_circle(hole, r * 0.11, Color(color, 0.22))
+				canvas.draw_arc(hole, r * 0.11, 0, TAU, 16, color, t * 0.7, true)
+			canvas.draw_line(at + Vector2(r * 0.46, -r * 0.52), at + Vector2(r * 0.78, -r * 0.86), faint, t * 0.7, true)
+		"ticket":
+			var stub := Rect2(at + Vector2(-r * 0.74, -r * 0.40), Vector2(r * 1.48, r * 0.80))
+			canvas.draw_rect(stub, Color(color, 0.14))
+			canvas.draw_rect(stub, color, false, t)
+			canvas.draw_line(at + Vector2(r * 0.22, -r * 0.40), at + Vector2(r * 0.22, r * 0.40), faint, t * 0.9, true)
+			for i in 3:
+				var y := -r * 0.18 + float(i) * r * 0.18
+				canvas.draw_line(at + Vector2(-r * 0.56, y), at + Vector2(-r * 0.08, y), faint, t * 0.6, true)
+			canvas.draw_circle(at + Vector2(r * 0.48, 0), r * 0.10, Color(color, 0.75))
 		"radio":
 			canvas.draw_rect(Rect2(at + Vector2(-r * 0.56, -r * 0.10), Vector2(r * 1.12, r * 0.66)), Color(color, 0.12))
 			canvas.draw_rect(Rect2(at + Vector2(-r * 0.56, -r * 0.10), Vector2(r * 1.12, r * 0.66)), color, false, t)

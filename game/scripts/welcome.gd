@@ -39,6 +39,11 @@ var radio_music: AudioStreamPlayer
 var radio_track := 0
 var radio_hotspot: Button
 var radio_caption: Label
+var screen_prop: Node3D
+var screen_broadcast: RefCounted
+var screen_hotspot: Button
+var screen_caption: Label
+var screen_light: OmniLight3D
 var lobby_client: Node
 var lobby_url := "wss://alfagideon.blitz.cloud/ws"
 var lobby_room: Dictionary = {}
@@ -82,6 +87,7 @@ func _ready() -> void:
  lobby_client.status_changed.connect(_lobby_status)
  build_camp()
  build_radio()
+ build_screen()
  build_ui()
  update_avatar()
  start_radio()
@@ -153,6 +159,75 @@ func build_camp() -> void:
  add_child(camera)
  camera.look_at(Vector3(0.7, 1.2, 0))
  camera.current = true
+
+## The big plasma panel behind the fire, in front of the pines: the camp's
+## advertising banner and its cinema at once. With no content it holds the game
+## logo splash; the host can switch it to the anime reel or the ad block.
+func build_screen() -> void:
+ # Placed in the free left part of the camp frame: the menu card owns the right
+ # side, and the panel has to stay readable as a banner behind the fire.
+ screen_prop = Art.spawn(self, "blender_plasma_tv", Vector3(-1.75, 0, -2.60),
+  Vector3(4.0, 2.93, 0.30), false, 0.010)
+ screen_broadcast = preload("res://game/scripts/screen_broadcast.gd").new()
+ screen_broadcast.mount(self)
+ screen_broadcast.attach(screen_prop)
+ screen_light = OmniLight3D.new()
+ screen_light.position = Vector3(-1.75, 1.55, -2.17)
+ screen_light.light_color = Color("cfe8ff")
+ screen_light.light_energy = 0.55
+ screen_light.omni_range = 5.0
+ add_child(screen_light)
+
+
+## In a local camp the panel has one driver — you. In a network lobby it belongs
+## to the host: running the evening is his job. Cinema professions read the reel
+## better than anyone, so they are allowed to switch it too.
+func screen_operator() -> bool:
+ if lobby_room.is_empty():
+  return true
+ if lobby_player_id == str(lobby_room.get("host_id", "")):
+  return true
+ var cinema := preload("res://game/scripts/screen_broadcast.gd").CINEMA
+ return str(profile.custom_parameters.get("profession", "")) in cinema
+
+
+func cycle_screen() -> void:
+ if screen_broadcast == null:
+  return
+ if not screen_operator():
+  _update_screen_caption()
+  if is_instance_valid(error_label):
+   error_label.text = "Панелью управляет ведущий: попросите его переключить канал."
+  return
+ screen_broadcast.next()
+ _update_screen_caption()
+
+
+func _update_screen_caption() -> void:
+ if not is_instance_valid(screen_caption) or screen_broadcast == null:
+  return
+ if screen_operator():
+  screen_caption.text = screen_broadcast.caption()
+ else:
+  screen_caption.text = "ТЕЛЕВИЗОР · " + screen_broadcast.channel_name() + "\nуправляет ведущий"
+
+
+func _update_screen_hotspot() -> void:
+ if not is_instance_valid(screen_hotspot) or not is_instance_valid(screen_prop) or camera == null:
+  return
+ if not is_instance_valid(ui):
+  return
+ var bounds: Vector2 = ui.size if ui.size.x > 1.0 else get_viewport().get_visible_rect().size
+ var point := camera.unproject_position(Vector3(-1.75, 0.36, -2.45))
+ var pill := screen_hotspot.size
+ var corner := Vector2(point.x - pill.x * 0.5, point.y + 12.0)
+ # The menu card owns the right side of the screen: the pill never goes there.
+ var limit := bounds.x - pill.x - 12.0
+ if is_instance_valid(panel):
+  limit = minf(limit, panel.get_global_rect().position.x - pill.x - 16.0)
+ corner.x = clampf(corner.x, 12.0, maxf(12.0, limit))
+ corner.y = clampf(corner.y, 12.0, maxf(12.0, bounds.y - pill.y - 12.0))
+ screen_hotspot.position = corner.round()
 
 ## A working receiver by the bench: in the camp it only plays music, while the
 ## bunker's own radio also catches other bunkers.
@@ -277,7 +352,13 @@ func _process(delta: float) -> void:
   radio_lamp.light_energy = 0.45 if profile.reduced_motion else 0.4 + 0.18 * (0.5 + 0.5 * sin(clock * 2.3))
  if is_instance_valid(radio_dial_material):
   radio_dial_material.emission_energy_multiplier = 1.2 if profile.reduced_motion else 1.1 + 0.5 * (0.5 + 0.5 * sin(clock * 2.3))
+ if screen_broadcast != null:
+  screen_broadcast.reduced_motion = profile.reduced_motion
+  screen_broadcast.tick(delta)
+ if is_instance_valid(screen_light):
+  screen_light.light_energy = 0.55 if profile.reduced_motion else 0.5 + 0.12 * (0.5 + 0.5 * sin(clock * 1.7))
  _update_radio_hotspot()
+ _update_screen_hotspot()
 
 func label(text: String, size: int = 18) -> Label:
  var node := Label.new()
@@ -311,6 +392,7 @@ func build_ui() -> void:
  logo.size = Vector2(380, 175)
  ui.add_child(logo)
  build_radio_ui()
+ build_screen_ui()
  panel = PanelContainer.new()
  panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
  panel.offset_left = -660
@@ -373,6 +455,38 @@ func build_radio_ui() -> void:
  radio_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
  radio_hotspot.add_child(radio_caption)
  _update_radio_caption()
+
+
+## The camp panel is tapped through its own caption pill under the screen, so
+## no control is ever drawn over the picture itself.
+func build_screen_ui() -> void:
+ screen_hotspot = Button.new()
+ screen_hotspot.focus_mode = Control.FOCUS_NONE
+ screen_hotspot.custom_minimum_size = Vector2(288, 54)
+ screen_hotspot.size = Vector2(288, 54)
+ screen_hotspot.tooltip_text = "Телевизор: сменить канал"
+ screen_hotspot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+ for state in ["normal", "hover", "pressed", "focus"]:
+  var pill := StyleBoxFlat.new()
+  pill.bg_color = Color(0.035, 0.07, 0.08, 0.86) if state == "normal" else Color(0.06, 0.12, 0.13, 0.94)
+  pill.border_color = Color(0.45, 0.85, 0.85, 0.45) if state == "normal" else Color(0.55, 0.95, 0.95, 0.85)
+  pill.set_border_width_all(1)
+  pill.set_corner_radius_all(11)
+  for edge in ["left", "right", "top", "bottom"]:
+   pill.set("content_margin_" + edge, 4)
+  screen_hotspot.add_theme_stylebox_override(state, pill)
+ screen_hotspot.pressed.connect(cycle_screen)
+ ui.add_child(screen_hotspot)
+ screen_caption = Label.new()
+ screen_caption.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ screen_caption.add_theme_font_size_override("font_size", 12)
+ screen_caption.add_theme_color_override("font_color", Color("bfe6df"))
+ screen_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+ screen_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+ screen_caption.clip_text = true
+ screen_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ screen_hotspot.add_child(screen_caption)
+ _update_screen_caption()
 
 
 func add_control(node: Control) -> void:
@@ -462,7 +576,10 @@ func home() -> void:
   camera.size = 5.2
   camera.position = Vector3(6, 4.2, 10)
   radio_hotspot.visible = true
+  if is_instance_valid(screen_hotspot):
+   screen_hotspot.visible = true
   camera.look_at(Vector3(0.7, 1.2, 0))
+  _update_screen_caption()
   update_avatar()
  page = "home"
  clear()
@@ -508,6 +625,10 @@ func _show_lobby_actors() -> void:
  camera.look_at(Vector3(0, 0.9, 1))
  camera.position += camera.basis.x * camera.size * get_viewport().get_visible_rect().size.aspect() * 0.24
  radio_hotspot.visible = false
+ # The panel stays: in a lobby the host runs it and everyone watches.
+ if is_instance_valid(screen_hotspot):
+  screen_hotspot.visible = true
+  _update_screen_caption()
  # The local avatar stays seated on the original bench. Other survivors form
  # an arc on the far side of the fire, never between the fire and the camera.
  var fire := Vector3(0, 0, 1)

@@ -34,6 +34,15 @@ static func build(room: Node3D) -> void:
 		var bunk := Art.spawn(room, "blender_bed", Vector3(at.x - 0.7, 0, at.z), Vector3(2.0, 0.66, 0.95), false, 0.008)
 		bunk.rotation.y = 0.0
 	Art.spawn(room, "blender_chair", Vector3(4.6, 0, 1.45), Vector3(0.86, 1.02, 0.84), false, 0.008)
+	# A real panel, not a poster: the glass is a live viewport that holds the
+	# logo splash until a projectionist starts a screening.
+	var panel := Art.spawn(room, "blender_plasma_tv", Vector3(6.6, 0, -4.58),
+		Vector3(3.1, 2.27, 0.24), false, 0.010)
+	var broadcast = load("res://game/scripts/screen_broadcast.gd").new()
+	broadcast.mount(room)
+	broadcast.attach(panel)
+	room.hall_screen = broadcast
+	room._world_label("КИНО • ПЛАЗМА", Vector3(6.6, 2.62, -4.60), 18)
 	var terminal: Vector3 = plan["items"]["terminal"]["at"]
 	var console := Art.spawn(room, "blender_terminal", Vector3(terminal.x, 0, terminal.z),
 		Vector3(0.84, 1.12, 0.5), false, 0.010)

@@ -214,7 +214,8 @@ class Match:
             'supply': ('Логист', 'Спасатель', 'Водитель', 'Слесарь', 'Электрик', 'Инженер-механик'),
             'gym': ('Тренер', 'Спасатель', 'Пожарный', 'Инструктор первой помощи'),
             'workshop': ('Инженер-механик', 'Сварщик', 'Слесарь', 'Плотник', 'Электрик'),
-            'greenhouse': ('Агроном', 'Биолог', 'Эколог', 'Оператор теплицы', 'Зоотехник')}
+            'greenhouse': ('Агроном', 'Биолог', 'Эколог', 'Оператор теплицы', 'Зоотехник'),
+            'cinema': ('Киномеханик', 'Билетёр', 'Киновед')}
         if action == 'warehouse_gate':
             if self.warehouse_open:
                 raise GameError('warehouse_open')
@@ -274,13 +275,17 @@ class Match:
                     self.stock['filters'] += 2
                 elif action == 'gym':
                     self.stamina[player_id] = min(100, self.stamina[player_id] + 10)
+                elif action == 'cinema':
+                    # The projectionist runs the reel: the whole hall rests for a moment.
+                    for pid in self.active:
+                        self.stamina[pid] = min(100, self.stamina[pid] + 6)
                 self.station_used[action] = self.round
         self.station_event = {'id': self.revision + 1, 'player': player_id, 'action': action}
 
     def _station_action(self, player_id, action, value, now):
         if self.phase == 'end':
             raise GameError('match_finished')
-        if action in ('gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse'):
+        if action in ('gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse', 'cinema'):
             self._room_action(player_id, action)
         elif action == 'food':
             if self.used_food.get(player_id) == self.round:
@@ -349,7 +354,7 @@ class Match:
         self.tick(now)
         if player_id not in self.active:
             raise GameError('not_active')
-        if action in ('food', 'rest', 'chair', 'radio_power', 'radio_tune', 'radio_scan', 'gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse'):
+        if action in ('food', 'rest', 'chair', 'radio_power', 'radio_tune', 'radio_scan', 'gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse', 'cinema'):
             self._station_action(player_id, action, value, now)
         elif action == 'reveal':
             if self.phase != 'reveal' or self.speaker != player_id or self.revealed_this_turn:

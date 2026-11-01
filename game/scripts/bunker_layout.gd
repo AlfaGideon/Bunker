@@ -35,6 +35,9 @@ static func generate(seed_value: int, capacity: int = 4) -> Dictionary:
   blockers.append(Rect2(-8.35, z - 0.6, 2.5, 1.2))
  items["chair"] = {"title": "Кресло — посидеть", "at": Vector3(4.6, 0.55, 1.5), "goal": Vector3(4.6, 0, 2.95)}
  blockers.append(Rect2(4.1, 0.95, 1.5, 1.35))
+ # Plasma panel on the hall wall: the crew's own cinema, run by the projectionist.
+ items["cinema"] = {"title": "Плазма — включить кино", "at": Vector3(6.6, 1.55, -4.62), "goal": Vector3(6.6, 0, -2.95)}
+ blockers.append(Rect2(4.55, -5.0, 4.1, 0.75))
  for index in kinds.size():
   var kind: String = kinds[index]
   var slot: String = slots[index]

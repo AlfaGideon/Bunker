@@ -12,7 +12,8 @@ const ROLES := {
  "greenhouse": ["Агроном", "Биолог", "Эколог", "Оператор теплицы", "Зоотехник"],
  "operating": ["Врач", "Фельдшер"],
  "pantry": ["Повар", "Пекарь", "Технолог пищевого производства"],
- "bathroom": []
+ "bathroom": [],
+ "cinema": ["Киномеханик", "Билетёр", "Киновед"]
 }
 
 static func profession(player: Dictionary) -> String:

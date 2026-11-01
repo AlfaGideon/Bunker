@@ -57,6 +57,7 @@ python3 -m venv .venv-blender
 | `operating_table` | `assets/blender/operating_table.glb` | операционная: стол на стойке, подушки, ремни, лоток с инструментом и лампа над столом |
 | `pantry_shelf` | `assets/blender/pantry_shelf.glb` | кладовая: стеллаж с банками, мешками, жестянками и коробками |
 | `boulder` | `assets/blender/boulder.glb` | валун для внешнего мира: сколотые грани, снежная шапка |
+| `plasma_tv` | `assets/blender/plasma_tv.glb` | плазменная панель 4 × 2,3 м на стойках: подсветка кромки, звуковая панель, красный «в эфире», зелёный индикатор, вентиляция и кабели. Материал `tv-screen` игра заменяет живым вьюпортом |
 
 Контур («чернильная» обводка) не запекается в модель: его добавляет Godot. `BunkerArt.spawn(parent, "blender_<имя>", позиция, размер, false, 0.010)` — последний аргумент включает `ink_outline()` из `game/scripts/scene_art.gd`.
 

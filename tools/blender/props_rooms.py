@@ -259,6 +259,58 @@ def blanket_fabric():
     return kit.material('chair-throw', (0.52, 0.24, 0.20), roughness=0.94)
 
 
+def plasma_tv() -> None:
+    """Big plasma panel on a banner stand.
+
+    The screen faces -Y in Blender, which is +Z in Godot: the camp camera looks
+    down -Z, so the panel greets the camp fire. The glass surface is a separate
+    material named `tv-screen`, and the game swaps it for a live viewport.
+    """
+    shell = _metal('tv-shell', (0.13, 0.15, 0.16), 0.34, 0.6)
+    edge = _metal('tv-edge', (0.24, 0.27, 0.28), 0.28, 0.55)
+    glass = kit.material('tv-screen', (0.02, 0.04, 0.05), roughness=0.12, metallic=0.25)
+    on_air = kit.material('tv-on-air', (0.85, 0.18, 0.12), roughness=0.4)
+    on_air.node_tree.nodes['Principled BSDF'].inputs['Emission Color'].default_value = (1.0, 0.16, 0.10, 1)
+    on_air.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 2.2
+    power = kit.material('tv-power', (0.35, 0.85, 0.55), roughness=0.4)
+    power.node_tree.nodes['Principled BSDF'].inputs['Emission Color'].default_value = (0.35, 1.0, 0.6, 1)
+    power.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 1.4
+    rubber = kit.material('tv-rubber', (0.09, 0.10, 0.10), roughness=0.85)
+
+    parts = [
+        # Panel shell and the glass itself.
+        kit.cube('tv-frame', (3.98, 0.14, 2.32), (0, 0, 1.74), mat=shell, bevel=0.025),
+        kit.cube('tv-screen', (3.80, 0.02, 2.14), (0, -0.075, 1.74), mat=glass, bevel=0.006),
+        # Thin lit edge: reads as a modern panel even at a distance.
+        kit.cube('tv-edge-top', (3.98, 0.03, 0.03), (0, -0.07, 2.89), mat=edge),
+        kit.cube('tv-edge-bottom', (3.98, 0.03, 0.03), (0, -0.07, 0.59), mat=edge),
+        # Indicator lamps on the right of the bezel.
+        kit.cube('tv-on-air', (0.16, 0.04, 0.05), (1.80, -0.085, 2.78), mat=on_air),
+        kit.cube('tv-power', (0.06, 0.04, 0.05), (1.60, -0.085, 2.78), mat=power),
+        # Soundbar under the panel.
+        kit.cube('tv-soundbar', (3.20, 0.11, 0.13), (0, -0.05, 0.47), mat=edge, bevel=0.02),
+        # Standing frame: two legs, feet and a brace, like a trade-show banner.
+        kit.cube('tv-leg', (0.10, 0.10, 0.60), (-1.26, 0.02, 0.30), mat=shell, bevel=0.01),
+        kit.cube('tv-leg', (0.10, 0.10, 0.60), (1.26, 0.02, 0.30), mat=shell, bevel=0.01),
+        kit.cube('tv-foot', (0.54, 0.76, 0.07), (-1.26, 0.0, 0.035), mat=shell, bevel=0.015),
+        kit.cube('tv-foot', (0.54, 0.76, 0.07), (1.26, 0.0, 0.035), mat=shell, bevel=0.015),
+        kit.cube('tv-brace', (2.52, 0.06, 0.07), (0, 0.02, 0.16), mat=edge, bevel=0.008),
+        # Back: vents and a service hatch so the panel reads from both sides.
+        kit.cube('tv-back', (3.86, 0.05, 2.20), (0, 0.10, 1.74), mat=shell, bevel=0.012),
+        kit.cube('tv-hatch', (0.70, 0.03, 0.46), (0.9, 0.135, 1.30), mat=edge, bevel=0.008),
+    ]
+    for index, z in enumerate((2.10, 2.02, 1.94)):
+        parts.append(kit.cube('tv-vent', (2.10, 0.03, 0.02), (0.0, 0.135, z), mat=edge))
+    # Cables dropping from the back of the panel to the floor.
+    parts.append(kit.cylinder('tv-cable', 0.018, 1.10, (-1.52, 0.16, 0.62),
+                              rotation=(math.radians(4), 0, math.radians(3)), mat=rubber,
+                              vertices=8))
+    parts.append(kit.cylinder('tv-cable', 0.014, 0.86, (-1.72, 0.20, 0.46),
+                              rotation=(math.radians(2), 0, math.radians(-4)), mat=rubber,
+                              vertices=8))
+    kit.join('plasma_tv', parts)
+
+
 PROPS = {
     'bed': bed,
     'toilet': toilet,
@@ -266,4 +318,5 @@ PROPS = {
     'pantry_shelf': pantry_shelf,
     'boulder': boulder,
     'chair': chair,
+    'plasma_tv': plasma_tv,
 }

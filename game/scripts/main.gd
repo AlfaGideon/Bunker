@@ -42,6 +42,7 @@ var speech_label: Label
 var ability_buttons: Array[Button] = []
 var warehouse_open := false
 var radio_motion: Node
+var hall_screen: RefCounted
 var annex_doors: Dictionary = {}
 var annex_labels: Dictionary = {}
 var annex_open: Dictionary = {}
@@ -322,6 +323,8 @@ func _apply_online_stations(stations: Dictionary) -> void:
 
 
 func _process(delta: float) -> void:
+	if hall_screen != null:
+		hall_screen.tick(delta)
 	if not online_active or not is_instance_valid(online_session):
 		return
 	online_session.state.tick(delta)
@@ -789,6 +792,8 @@ func _advance() -> void:
 				_begin_speaker()
 				_update_medical_access()
 				_update_annex_access()
+				if hall_screen != null:
+					hall_screen.set_channel(0)
 				log_label.text = "Новый раунд. Откройте следующую характеристику. " + supplies.last_report
 		"end":
 			log_label.text = "Демонстрация завершена. Можно начать заново."
@@ -1311,7 +1316,7 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 			return
 		if key == "radio":
 			radio_panel.open()
-		elif key in ["food", "gate", "medical", "terminal", "kitchen", "warehouse_gate", "supply", "gym", "workshop", "greenhouse", "chair"] or key.begins_with("bed"):
+		elif key in ["food", "gate", "medical", "terminal", "kitchen", "warehouse_gate", "supply", "gym", "workshop", "greenhouse", "chair", "cinema"] or key.begins_with("bed"):
 			online_session.station_action("rest" if key.begins_with("bed") else key)
 			log_label.text = "Ожидание подтверждения сервера…"
 		return
@@ -1384,6 +1389,16 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 			visual.position = Vector3(0.7, 0.7, 0)
 			rest_remaining = 3.0
 			log_label.text = "Отдых на койке… (3 секунды)"
+		"cinema":
+			if used_actions.get("cinema", 0) == round_number:
+				log_label.text = "Киносеанс в этом раунде уже был."
+				return
+			used_actions["cinema"] = round_number
+			if hall_screen != null:
+				hall_screen.set_channel(1)
+			if operator == 0:
+				stamina = mini(100, stamina + 6)
+			log_label.text = "Плазма ожила: «Огни мёртвого города», серия 1. Зал притих, бодрость +6."
 		"chair":
 			if used_actions.get("chair", 0) == round_number:
 				log_label.text = "В этом раунде кресло уже выручало."
