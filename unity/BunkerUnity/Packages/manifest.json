@@ -6,7 +6,6 @@
     "com.unity.modules.jsonserialize": "1.0.0",
     "com.unity.modules.unitywebrequest": "1.0.0",
     "com.unity.cloud.gltfast": "5.2.0",
-    "com.unity.modules.physics": "1.0.0",
-    "com.unity.modules.inputlegacy": "1.0.0"
+    "com.unity.modules.physics": "1.0.0"
   }
 }
