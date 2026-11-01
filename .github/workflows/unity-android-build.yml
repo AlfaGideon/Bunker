@@ -60,6 +60,11 @@ jobs:
           "$UNITY_EDITOR_PATH" -batchmode -nographics -quit -logFile - \
             -projectPath "$GITHUB_WORKSPACE/unity/BunkerUnity" -buildTarget Android \
             -executeMethod Bunker.UnityPort.Editor.TouchControllerAudit.Verify
+      - name: Verify character and animation imports in Unity
+        run: |
+          "$UNITY_EDITOR_PATH" -batchmode -nographics -quit -logFile - \
+            -projectPath "$GITHUB_WORKSPACE/unity/BunkerUnity" -buildTarget Android \
+            -executeMethod Bunker.UnityPort.Editor.CharacterAssetAudit.Verify
       - name: Build separately installed prototype, not a production update
         run: |
           set +e

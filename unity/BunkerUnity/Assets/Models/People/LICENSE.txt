@@ -1,0 +1,15 @@
+Candidate character and animation files
+
+player_base.glb and player_anims_cc0.glb from
+https://github.com/sthak34-sudo/UIC-campus-game/tree/149944d01f54bfbd681220fd799a176363995a93/client/public/models/characters
+
+The source project's author describes the model as a MakeHuman/MPFB2 body
+under CC0, and the clips as Quaternius Universal Animation Library (CC0)
+retargeted to that body, in:
+https://github.com/sthak34-sudo/UIC-campus-game/pull/24
+https://quaternius.com/packs/universalanimationlibrary.html
+
+This is an evaluation candidate. Verify attribution and redistribution of
+all individual body, hair, clothing and texture components before releasing a
+public APK. Import, clip binding, rendering and Android performance are not yet
+verified. This one model does not cover required genders or ages.
