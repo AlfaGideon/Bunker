@@ -16,11 +16,10 @@ jobs:
     steps:
       - id: check
         env:
-          LICENSE: ${{ secrets.UNITY_LICENSE }}
-          EMAIL: ${{ secrets.UNITY_EMAIL }}
+          EMAIL: ${{ secrets.UNITY_USERNAME }}
           PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
-          if [ -n "$LICENSE" ] && [ -n "$EMAIL" ] && [ -n "$PASSWORD" ]; then
+          if [ -n "$EMAIL" ] && [ -n "$PASSWORD" ]; then
             echo 'configured=true' >> "$GITHUB_OUTPUT"
           else
             echo 'configured=false' >> "$GITHUB_OUTPUT"
@@ -31,24 +30,28 @@ jobs:
     if: needs.license-check.outputs.configured == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    concurrency: unity-personal-activation
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-      - name: Build separately installed prototype, not a production update
-        uses: game-ci/unity-builder@4423ee75828dff56037d1d1cfdac6b68e3a6ba00 # v4.8.2
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      - name: Install Unity Editor and Android modules on the runner
+        uses: buildalon/unity-setup@30fcbcb56c10ea5d64298e970d952b8d29bc268b # v2.6.0
         with:
-          projectPath: unity/BunkerUnity
-          unityVersion: 2022.3.62f1
-          targetPlatform: Android
-          buildMethod: Bunker.UnityPort.Editor.PrototypeBuild.BuildAndroid
-          versioning: Custom
-          version: 0.1.0
-          androidExportType: androidPackage
+          unity-version: 2022.3.62f1
+          build-targets: Android
+          modules: android-sdk-ndk-tools, android-open-jdk
+      - name: Activate Unity Personal on the runner
+        uses: buildalon/activate-unity-license@e0d245d0787b7b9931b56ccbde3b508f6b70f1af # v2.2.2
+        with:
+          license: Personal
+          username: ${{ secrets.UNITY_USERNAME }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+      - name: Build separately installed prototype, not a production update
+        run: |
+          "$UNITY_EDITOR_PATH" -batchmode -nographics -quit -logFile - \
+            -projectPath "$GITHUB_WORKSPACE/unity/BunkerUnity" -buildTarget Android \
+            -executeMethod Bunker.UnityPort.Editor.PrototypeBuild.BuildAndroid
       - name: Save test APK
         uses: actions/upload-artifact@v4
         with:
