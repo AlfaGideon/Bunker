@@ -34,7 +34,7 @@ jobs:
       - name: Verify the rebuilt props
         run: |
           set -euo pipefail
-          for name in campfire crate radio; do
+          for name in campfire crate radio radio_station food_station medkit terminal; do
             built="builds/blender/$name.glb"
             committed="assets/blender/$name.glb"
             test -f "$built" || { echo "::error::$name was not built"; exit 1; }

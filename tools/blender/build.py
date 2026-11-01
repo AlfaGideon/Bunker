@@ -18,8 +18,10 @@ import bpy  # noqa: E402
 
 import kit  # noqa: E402
 import props_camp  # noqa: E402
+import props_tech  # noqa: E402
 
-PROPS = props_camp.PROPS
+PROPS = dict(props_camp.PROPS)
+PROPS.update(props_tech.PROPS)
 
 
 def parse() -> argparse.Namespace:
@@ -53,9 +55,16 @@ def main() -> int:
             PROPS[name]()
             framing = {'campfire': ((0, 0, 0.42), 2.1, 1.45),
                        'crate': ((0, 0, 0.22), 1.35, 0.95),
-                       'radio': ((0, 0, 0.19), 1.05, 0.72)}.get(
+                       'radio': ((0, 0, 0.19), 1.05, 0.72),
+                       'radio_station': ((0, 0, 0.32), 1.25, 0.95),
+                       'food_station': ((0, 0, 0.78), 2.45, 1.95),
+                       'medkit': ((-0.12, 0, 0.30), 1.75, 1.02),
+                       'terminal': ((0, 0, 0.58), 1.75, 1.30)}.get(
                            name, ((0, 0, 0.3), 2.1, 1.45))
+            # A per-prop fourth value overrides the default camera azimuth so
+            # props with an open door or an off-centre silhouette still frame.
             kit.studio(target=framing[0], radius=framing[1], height=framing[2],
+                       angle=framing[3] if len(framing) > 3 else -0.9,
                        resolution=options.resolution)
             kit.render(os.path.join(options.preview, 'blender-' + name + '.png'))
     for name, path, size in built:

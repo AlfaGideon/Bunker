@@ -87,6 +87,16 @@ func capture() -> void:
 		room.camera.position = focus + Vector3(7, 9, 13)
 		room.camera.look_at(focus)
 		shot_prefix = "FACILITYSHOT"
+	if args.has("--stations"):
+		# The three Blender interaction stations in the shared hall, close up.
+		room.ui_root.visible = false
+		room.set_physics_process(false)
+		var table: Vector3 = room.layout["table"]
+		var focus := table + Vector3(0.9, 0.7, 0.5)
+		room.camera.size = 4.6
+		room.camera.position = focus + Vector3(4.4, 4.2, 6.4)
+		room.camera.look_at(focus)
+		shot_prefix = "STATIONSHOT"
 	if args.has("--characters"):
 		room.ui_root.visible = false
 		room.set_physics_process(false)

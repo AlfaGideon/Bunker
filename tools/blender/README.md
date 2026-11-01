@@ -48,12 +48,18 @@ python3 -m venv .venv-blender
 | `campfire` | `assets/blender/campfire.glb` | костёр в главном меню: кольцо камней, обгоревшие поленья, угли, тренога с котелком |
 | `crate` | `assets/blender/crate.glb` | ящик под приёмником |
 | `radio` | `assets/blender/radio.glb` | приёмник у костра: решётка, светящаяся шкала, ручки, антенна, ручка для переноски |
+| `radio_station` | `assets/blender/radio_station.glb` | приёмник на общем столе в зале и у костра в меню: латунные ободы динамиков, янтарная шкала, лампа, антенна |
+| `food_station` | `assets/blender/food_station.glb` | кухонный пост в зале и на кухне: тумба, плита со светящимся кольцом, открытый котёл, половник, миски, жестянки, пар |
+| `medkit` | `assets/blender/medkit.glb` | настенный шкаф в медотсеке: три полки со склянками, тёплая лампа, дверца с крестом |
+| `terminal` | `assets/blender/terminal.glb` | консоль в зале и в мастерской: наклонный CRT, бирюзовый экран со строками, клавиатура, решётки |
+
+Контур («чернильная» обводка) не запекается в модель: его добавляет Godot. `BunkerArt.spawn(parent, "blender_<имя>", позиция, размер, false, 0.010)` — последний аргумент включает `ink_outline()` из `game/scripts/scene_art.gd`.
 
 Превью для документации — `docs/previews/blender-*.png` (Cycles, CPU, 800 px).
 
 ## Как добавить новый пропс
 
-1. Написать функцию в `tools/blender/props_camp.py`, добавить её в словарь `PROPS`.
+1. Написать функцию в `tools/blender/props_camp.py` (или `props_tech.py`), добавить её в словарь `PROPS` и кадр в `framing` внутри `build.py`.
 2. Запустить сборку (см. выше) — появится `assets/blender/<имя>.glb`.
 3. В игре вызвать `BunkerArt.spawn(parent, "blender_<имя>", позиция, размер)`.
 4. Закоммитить скрипт, `.glb` и превью.

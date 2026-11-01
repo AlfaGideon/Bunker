@@ -162,7 +162,8 @@ func build_radio() -> void:
  radio_prop = Node3D.new()
  radio_prop.position = Vector3(-2.98, 0.37, 0.92)
  add_child(radio_prop)
- Art.spawn(radio_prop, "blender_radio", Vector3.ZERO, Vector3(0.5, 0.33, 0.26))
+ Art.spawn(radio_prop, "blender_radio_station", Vector3.ZERO,
+  Vector3(0.62, 0.47, 0.37), false, 0.009)
  _hook_radio_dial()
  radio_lamp = OmniLight3D.new()
  radio_lamp.position = Vector3(0.16, 0.16, 0.30)

@@ -15,14 +15,21 @@ static func build(room: Node3D) -> void:
 	var desk := Art.spawn(room, "house_interior_pack_Table_RoundLarge", table, Vector3(3.1, 0.9, 1.7))
 	for mesh in desk.find_children("*", "MeshInstance3D", true, false):
 		mesh.material_override = Finish.metal(Color("35434e"))
-	Art.spawn(room, "survival_pack_Radio", plan["items"]["radio"]["at"] - Vector3(0, 0.14, 0), Vector3(0.5, 0.3, 0.25))
+	# The Blender receiver stands on the table itself, so the model the player
+	# taps is the model they see; the ink hull gives it the stylised edge.
+	Art.spawn(room, "blender_radio_station", Vector3(table.x - 0.7, 0.91, table.z),
+		Vector3(0.64, 0.48, 0.38), false, 0.010)
+	# Galley counter at the south edge of the table: pot, bowls, tins on one deck.
+	Art.spawn(room, "blender_food_station", Vector3(table.x + 2.05, 0, table.z + 1.05),
+		Vector3(1.0, 0.92, 0.5), false, 0.010)
 	for key in plan["beds"]:
 		var at: Vector3 = plan["items"][key]["at"]
 		Art.spawn(room, "house_interior_pack_Bed_Single", Vector3(at.x, 0, at.z), Vector3(1.9, 0.65, 0.9))
 	var medical_at: Vector3 = plan["items"]["medical"]["at"]
 	Art.spawn(room, "survival_pack_FirstAidKit", medical_at + Vector3(0, 0.03, 0), Vector3(0.45, 0.25, 0.3))
 	var terminal: Vector3 = plan["items"]["terminal"]["at"]
-	Art.spawn(room, "modular_sci_fi_Props_ComputerSmall", Vector3(terminal.x, 0, terminal.z), Vector3(1.0, 1.5, 0.8))
+	Art.spawn(room, "blender_terminal", Vector3(terminal.x, 0, terminal.z),
+		Vector3(0.84, 1.12, 0.5), false, 0.010)
 	var supply: Vector3 = plan["items"]["supply"]["at"]
 	Art.spawn(room, "modular_sci_fi_Props_Chest", Vector3(supply.x, 0, supply.z), Vector3(1.1, 0.8, 0.8))
 	room._world_label("СНАБЖЕНИЕ • СКЛАД", supply + Vector3(0, 0.65, 0), 22)

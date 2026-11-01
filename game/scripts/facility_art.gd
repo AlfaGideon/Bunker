@@ -28,16 +28,22 @@ static func build(room: Node3D) -> void:
     room._box(at + Vector3(0, 0.65, 0), Vector3(0.85, 1.3, 0.8), Color("b4cfd0"))
     for y in [0.3, 0.65, 1.0]:
      room._box(at + Vector3(0, y, 0.42), Vector3(0.6, 0.04, 0.04), Color("51777c"))
+    if index == 2:
+     # Open first-aid cabinet on the module wall: shelves, bottles, red cross.
+     Art.spawn(room, "blender_medkit", at + Vector3(0.0, 0.66, -0.42),
+      Vector3(0.52, 0.6, 0.2), false, 0.008)
     if index == 0:
      Finish.glow(room, at + Vector3(0, 1.55, 0), Vector3(0.55, 0.1, 0.08), Color("dd6b61"))
      Finish.glow(room, at + Vector3(0, 1.55, 0), Vector3(0.1, 0.55, 0.08), Color("dd6b61"))
    elif kind == "kitchen":
-    room._box(at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95), Color("95a8a8"))
-    room._box(at + Vector3(0, 0.94, 0), Vector3(1, 0.08, 1), Color("c5cfbd"))
     if index == 0:
      Art.spawn(room, "house_interior_pack_Kitchen_Fridge", at, Vector3(0.8, 1.8, 0.8))
+    elif index == 1:
+     # The same galley counter the hall uses, so the kitchen matches it.
+     Art.spawn(room, "blender_food_station", at, Vector3(1.0, 0.92, 0.5), false, 0.010)
     else:
-     cylinder(room, at + Vector3(0, 1.05, 0), 0.2, 0.16, Color("5d797f"))
+     room._box(at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95), Color("95a8a8"))
+     room._box(at + Vector3(0, 0.94, 0), Vector3(1, 0.08, 1), Color("c5cfbd"))
    elif kind == "supply" or kind == "workshop":
     for y in [0.15, 0.75, 1.35]:
      room._box(at + Vector3(0, y, 0), Vector3(1, 0.08, 0.9), Color("75848a"))
@@ -104,7 +110,7 @@ static func build(room: Node3D) -> void:
     var weight := cylinder(room, at + Vector3(end, 0.2, 0), 0.19, 0.1, Color("26313a"))
     weight.rotation.z = PI / 2
   elif kind == "workshop":
-   Art.spawn(room, "modular_sci_fi_Props_Computer", at - Vector3(0, 0.8, 0), Vector3(1.1, 1.1, 0.6))
+   Art.spawn(room, "blender_terminal", at, Vector3(0.84, 1.12, 0.5), false, 0.010)
   else:
    room._box(at - Vector3(0, 0.5, 0), Vector3(1.2, 0.4, 0.65), Color("56685a"))
    for i in 5:

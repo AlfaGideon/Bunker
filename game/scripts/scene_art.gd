@@ -4,6 +4,41 @@ extends RefCounted
 const FOLDER := "res://assets/quaternius/"
 const BLENDER := "res://assets/blender/"
 
+# Ink outline: an inverted hull drawn unshaded, which is what makes the Blender
+# props read as animated film rather than grey boxes. Godot's built-in
+# BaseMaterial3D grow flag is not uniform across renderers, so the expansion
+# happens explicitly in the vertex stage.
+const INK_SHADER := """shader_type spatial;
+render_mode unshaded, cull_front, shadows_disabled;
+uniform vec4 ink : source_color = vec4(0.024, 0.055, 0.055, 1.0);
+uniform float thickness = 0.012;
+void vertex() {
+	VERTEX += NORMAL * thickness;
+}
+void fragment() {
+	ALBEDO = ink.rgb;
+}
+"""
+
+
+static func ink_outline(model: Node3D, thickness: float = 0.012) -> void:
+	var shader := Shader.new()
+	shader.code = INK_SHADER
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("thickness", thickness)
+	for mesh in model.find_children("*", "MeshInstance3D", true, false):
+		if mesh.mesh == null or not mesh.is_visible_in_tree():
+			continue
+		var shell := MeshInstance3D.new()
+		shell.name = mesh.name + "_ink"
+		shell.mesh = mesh.mesh
+		shell.material_override = material
+		shell.transform = mesh.transform
+		shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		shell.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		mesh.get_parent().add_child(shell)
+
 
 static func _bounds(node: Node, result: Array, reference: Transform3D) -> void:
 	if node is MeshInstance3D and node.mesh != null and node.visible:
@@ -17,7 +52,7 @@ static func _bounds(node: Node, result: Array, reference: Transform3D) -> void:
 
 
 static func spawn(parent: Node3D, filename: String, at: Vector3,
-		size: Vector3, uniform: bool = false) -> Node3D:
+		size: Vector3, uniform: bool = false, ink: float = 0.0) -> Node3D:
 	var wrapper := Node3D.new()
 	parent.add_child(wrapper)
 	var source := FOLDER + filename + ".glb"
@@ -46,5 +81,7 @@ static func spawn(parent: Node3D, filename: String, at: Vector3,
 	model.scale *= factor
 	model.position = Vector3(-(bounds.position.x + bounds.size.x * 0.5) * factor.x,
 		-bounds.position.y * factor.y, -(bounds.position.z + bounds.size.z * 0.5) * factor.z)
+	if ink > 0.0:
+		ink_outline(model, ink)
 	wrapper.position = at
 	return wrapper

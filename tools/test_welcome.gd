@@ -20,7 +20,7 @@ func run() -> void:
  var radio_source := ""
  for child in welcome.radio_prop.get_children():
   radio_source = str(child.get_meta("source", radio_source))
- check(radio_source.ends_with("assets/blender/radio.glb"), "Camp receiver is a modelled prop")
+ check(radio_source.ends_with("assets/blender/radio_station.glb"), "Camp receiver is a modelled prop")
  check(is_instance_valid(welcome.radio_music) and welcome.radio_music.playing, "Camp radio is playing music")
  check(welcome.radio_music.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "Camp music loops")
  check(welcome.radio_music.stream.get_length() >= 20.0, "Camp music is a real piece, not a blip")
