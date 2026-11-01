@@ -222,21 +222,28 @@ func fit_screen_banner() -> void:
  screen_prop.scale = Vector3.ONE
  var right: Vector3 = camera.basis.x.normalized()
  var view: Vector2 = get_viewport().get_visible_rect().size
- var limit: float = panel.get_global_rect().position.x - 18.0
- for step in 140:
+ var limit: float = maxf(panel.get_global_rect().position.x - 18.0, view.x * 0.42)
+ for step in 160:
   var rect := screen_rect()
   if rect.size == Vector2.ZERO:
    break
+  if screen_prop.scale.x < 0.22:
+   break
+  # Too tall, or too wide for the free slot: a banner that gets cut is not a
+  # banner, so shrink it before sliding it around.
   if rect.position.y < 10.0 or rect.end.y > view.y - 10.0:
    screen_prop.scale *= 0.97
    continue
+  if rect.size.x > limit - 26.0:
+   screen_prop.scale *= 0.97
+   continue
   if rect.end.x > limit:
-   screen_prop.position -= right * 0.06
+   screen_prop.position -= right * 0.04
    if screen_prop.position.z > -0.7:
     break
    continue
-  if rect.position.x < 10.0:
-   screen_prop.position += right * 0.06
+  if rect.position.x < 14.0:
+   screen_prop.position += right * 0.04
    continue
   break
  if is_instance_valid(screen_light):

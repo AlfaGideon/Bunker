@@ -88,10 +88,12 @@ func run() -> void:
 	var banner: Rect2 = welcome.screen_rect()
 	var frame := Rect2(Vector2.ZERO, root.get_visible_rect().size)
 	check(banner.size != Vector2.ZERO, "The panel casts a silhouette in the frame")
-	check(banner.position.x > 0.0 and banner.end.x < frame.size.x, "The panel fits the frame width")
-	check(banner.position.y > 0.0 and banner.end.y < frame.size.y, "The panel fits the frame height")
+	check(banner.position.x > 0.0 and banner.end.x < frame.size.x,
+		"The panel fits the frame width: %s in %s" % [banner, frame])
+	check(banner.position.y > 0.0 and banner.end.y < frame.size.y,
+		"The panel fits the frame height: %s in %s" % [banner, frame])
 	check(banner.end.x < welcome.panel.get_global_rect().position.x - 8.0,
-		"The whole panel is visible beside the menu card")
+		"The whole panel is visible beside the menu card: %s vs %s" % [banner, welcome.panel.get_global_rect()])
 	check(banner.size.x > frame.size.x * 0.12, "The panel reads as a big banner")
 	check(welcome.screen_broadcast.channel == 0, "The camp panel idles on the logo splash")
 	check(is_instance_valid(welcome.screen_caption) and welcome.screen_caption.text.contains("нажми"),
