@@ -53,8 +53,10 @@ func run() -> void:
 		var nav := Navigation.new(plan)
 		var start := nav.nearest_walkable(Vector3(-2.5, 0, 1.8))
 		check(not nav.is_walkable(plan["items"]["medical"]["goal"]), "Medical inaccessible while locked")
+		var annexes: Dictionary = plan.get("annexes", {})
 		for key in plan["items"]:
-			if key in ["medical", "supply"]:
+			# Sealed rooms and the warehouse are covered below, once opened.
+			if key in ["medical", "supply"] or annexes.has(key):
 				continue
 			var route := nav.path_between(start, plan["items"][key]["goal"])
 			check(not route.is_empty(), "Seed %d: reachable %s" % [seed_value, key])
@@ -62,6 +64,15 @@ func run() -> void:
 				check(nav.is_walkable(point), "Path follows shared geometry")
 		nav.unlock_medical()
 		check(not nav.path_between(start, plan["items"]["medical"]["goal"]).is_empty(), "Medical reachable after unlocking")
+		# An attached room is sealed until its door opens; then the corridor must
+		# actually reach it from the hall.
+		for kind in annexes:
+			check(nav.path_between(start, plan["items"][kind]["goal"]).is_empty(),
+				"Seed %d: sealed %s" % [seed_value, kind])
+			nav.open_annex(kind)
+			check(not nav.path_between(start, plan["items"][kind]["goal"]).is_empty(),
+				"Seed %d: reachable %s through its corridor" % [seed_value, kind])
+			nav.close_annex(kind)
 	check(variants.size() == 3, "Three layout variants")
 	for kind in positions:
 		check(positions[kind].size() == 4, "Every mandatory room moves to all four sides: " + kind)

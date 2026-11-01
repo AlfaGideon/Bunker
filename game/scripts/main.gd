@@ -131,7 +131,7 @@ func _ready() -> void:
 	camera_gestures.setup(self)
 	if OS.has_feature("android"):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	online_session = get_tree().get_meta("online_session", null)
+	online_session = get_tree().get_meta("online_session") if get_tree().has_meta("online_session") else null
 	online_active = is_instance_valid(online_session) and not online_session.state.players.is_empty()
 	if online_active:
 		scenario = online_session.state.scenario.duplicate(true)
@@ -365,7 +365,7 @@ func _online_error(code: String) -> void:
 
 func _exit_tree() -> void:
 	if online_active and is_instance_valid(online_session):
-		if get_tree().get_meta("online_session", null) == online_session:
+		if (get_tree().get_meta("online_session") if get_tree().has_meta("online_session") else null) == online_session:
 			get_tree().remove_meta("online_session")
 		online_session.close_session()
 
