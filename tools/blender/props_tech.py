@@ -41,7 +41,7 @@ def radio_station() -> None:
     shell = kit.material('radio-shell', (0.20, 0.26, 0.22), roughness=0.55)
     trim = _brass('radio-trim')
     dark = kit.material('radio-dark', STEEL_DARK, roughness=0.6, metallic=0.3)
-    glow = _glow('radio-glass', AMBER, 2.2)
+    glow = _glow('radio-glass', AMBER, 1.5)
     cap = kit.material('radio-cone', (0.46, 0.47, 0.42), roughness=0.65)
 
     parts = [kit.cube('body', (0.54, 0.28, 0.34), (0, 0, 0.19), mat=shell,
@@ -65,8 +65,16 @@ def radio_station() -> None:
                           mat=dark, bevel=0.008))
     parts.append(kit.cube('dial-glass', (0.44, 0.01, 0.05), (0, -0.158, 0.318),
                           mat=glow, bevel=0.004))
-    parts.append(kit.cube('needle', (0.006, 0.02, 0.062), (0.085, -0.166, 0.318),
+    # Frequency scale: without ticks the lit window is just a yellow bar.
+    for index in range(7):
+        x = -0.18 + index * 0.06
+        parts.append(kit.cube('dial-tick', (0.004, 0.008, 0.014 if index % 2 else 0.024),
+                              (x, -0.166, 0.298), mat=dark))
+    # A slim brass pointer over the lit scale; a wide block reads as a break.
+    parts.append(kit.cube('needle', (0.008, 0.020, 0.050), (0.085, -0.164, 0.318),
                           mat=trim))
+    parts.append(kit.cube('needle-core', (0.003, 0.022, 0.044), (0.085, -0.166, 0.318),
+                          mat=dark))
     # Knobs with visible pointer marks.
     for x in (-0.185, 0.0, 0.185):
         parts.append(kit.cylinder('knob', 0.038, 0.028, (x, -0.152, 0.075),
@@ -106,7 +114,7 @@ def food_station() -> None:
     cabinet = kit.material('galley-cabinet', (0.20, 0.24, 0.25), roughness=0.55)
     top = kit.material('galley-top', (0.52, 0.55, 0.53), roughness=0.35, metallic=0.5)
     trim = _brass('galley-trim')
-    steam = kit.material('steam', (0.90, 0.92, 0.90), roughness=0.95,
+    steam = kit.material('steam', (0.72, 0.75, 0.73), roughness=0.95,
                          emission=(0.5, 0.5, 0.5), emission_strength=0.25)
 
     width, depth, height = 1.0, 0.50, 0.88
@@ -178,13 +186,23 @@ def food_station() -> None:
                                   mat=tin, vertices=16, bevel=0.006))
         parts.append(kit.cylinder('tin-label', 0.045, 0.032, (x, y, deck + 0.052),
                                   mat=label, vertices=16))
-    # Stylised steam: three pale puffs, the cheapest way to say "hot food".
-    for dx, dz, radius, lift in ((-0.05, 0.02, 0.072, 0.06),
-                                 (0.06, -0.02, 0.052, 0.16),
-                                 (0.14, 0.04, 0.036, 0.25)):
-        parts.append(kit.sphere('steam', radius,
-                                (dx, dz, pot_bottom + 0.22 + lift),
-                                scale=(1, 1, 0.72), mat=steam))
+    # Heat is told by the glowing burner ring; a chain of pale spheres read as
+    # floating eggs, so the counter gets solid dressing instead: a folded cloth
+    # and a knife on the cutting board.
+    cloth = kit.material('galley-cloth', (0.60, 0.58, 0.50), roughness=0.9)
+    for index in range(2):
+        parts.append(kit.cube('cloth', (0.16, 0.13, 0.014),
+                              (-0.02, -0.115, deck + 0.011 + index * 0.014),
+                              rotation=(0, 0, math.radians(8 * (index + 1))),
+                              mat=cloth, bevel=0.005))
+    board = kit.material('galley-board', (0.40, 0.29, 0.19), roughness=0.8)
+    parts.append(kit.cube('board', (0.24, 0.15, 0.022), (0.36, 0.10, deck + 0.011),
+                          mat=board, bevel=0.006))
+    parts.append(kit.cube('knife-blade', (0.13, 0.024, 0.006), (0.36, 0.10, deck + 0.026),
+                          mat=iron_worn, bevel=0.002))
+    parts.append(kit.cube('knife-grip', (0.07, 0.020, 0.016), (0.45, 0.10, deck + 0.028),
+                          mat=kit.material('knife-grip', (0.16, 0.13, 0.11),
+                                           roughness=0.8), bevel=0.004))
     kit.join('food-station', parts)
 
 
