@@ -18,6 +18,7 @@ namespace Bunker.UnityPort
     {
         public const string HumanId = "local_0";
         private readonly Random random;
+        private readonly int seed;
         private readonly List<Player> players = new List<Player>();
         private readonly List<string> active = new List<string>();
         private readonly Dictionary<string, string> votes = new Dictionary<string, string>();
@@ -42,6 +43,7 @@ namespace Bunker.UnityPort
                 data.facts == null || data.facts.Length == 0 || data.qualities == null || data.qualities.Length == 0 ||
                 scenarios == null || scenarios.Length == 0 || (count != 6 && count != 8 && count != 10))
                 throw new ArgumentException("Неполные игровые данные");
+            this.seed = seed;
             random = new Random(seed);
             capacity = count / 2;
             scenario = scenarios[random.Next(scenarios.Length)];
@@ -178,7 +180,7 @@ namespace Bunker.UnityPort
                 id = p.id, name = p.name, appearance = p.appearance, bot = p.bot, seat = p.seat,
                 cards = p.cards.Select(c => NewCard(c.id, c.label, p.id == HumanId || c.revealed ? c.value : null, c.revealed)).ToArray()
             }).ToArray();
-            return new MatchState { revision = revision, scenario = scenario, players = visible, active = active.ToArray(),
+            return new MatchState { revision = revision, seed = seed, scenario = scenario, players = visible, active = active.ToArray(),
                 capacity = capacity, round = round, phase = phase, speaker = Speaker, remaining = Math.Max(0, remaining),
                 revealed_this_turn = revealedThisTurn, candidates = candidates.ToArray(), second_ballot = secondBallot,
                 my_vote = votes.TryGetValue(HumanId, out var target) ? target : null, result = result,

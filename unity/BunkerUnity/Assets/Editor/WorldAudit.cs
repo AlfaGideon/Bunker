@@ -20,6 +20,15 @@ namespace Bunker.UnityPort.Editor
             }, "human");
             if (world.GetComponentsInChildren<WorldPlayerTarget>().Length != 2)
                 throw new Exception("Participants missing from 3D match");
+            world.SyncLayout(100);
+            var optional = world.transform.Find("Seeded optional rooms");
+            if (optional == null || optional.Find("Kitchen floor") == null || optional.Find("Warehouse floor") == null)
+                throw new Exception("Seeded connected rooms missing");
+            var barrier = optional.Find("Warehouse locked").gameObject;
+            world.SyncStations(new StationState { warehouse_open = false });
+            if (!barrier.activeSelf) throw new Exception("Warehouse open without vote");
+            world.SyncStations(new StationState { warehouse_open = true });
+            if (barrier.activeSelf) throw new Exception("Warehouse did not follow vote result");
             var rooms = world.transform.Find("Private bedrooms");
             if (rooms == null || rooms.Cast<Transform>().Count(t => t.name.StartsWith("Bedroom floor ")) != 3 ||
                 rooms.Cast<Transform>().Count(t => t.name.StartsWith("Locked bedroom ")) != 2 ||

@@ -10,7 +10,9 @@ namespace Bunker.UnityPort.World
     public sealed class BunkerWorld : MonoBehaviour
     {
         private Material wallMaterial;
-        private Transform peopleRoot, furnitureRoot, privateRoomsRoot;
+        private Transform peopleRoot, furnitureRoot, privateRoomsRoot, optionalRoomsRoot;
+        private int? layoutSeed;
+        private GameObject warehouseBarrier;
         private string privateRoomSignature;
         private int furnitureCapacity = -1;
         private BunkerTouchController movement;
@@ -54,7 +56,7 @@ namespace Bunker.UnityPort.World
             for (int i = -1; i <= 1; i++)
             {
                 if (i != 0) Module("Wall1", new Vector3(i * 4, 0, 6.5f), Quaternion.identity, true);
-                Module("Wall3", new Vector3(i * 4, 0, -6.5f), Quaternion.identity, true);
+                if (i != 0) Module("Wall3", new Vector3(i * 4, 0, -6.5f), Quaternion.identity, true);
                 if (i != 0) Module("Wall2", new Vector3(-6.5f, 0, i * 4), Quaternion.Euler(0, 90, 0), true);
                 if (i != 0) Module("Wall3", new Vector3(6.5f, 0, i * 4), Quaternion.Euler(0, 90, 0), true);
             }
@@ -72,6 +74,7 @@ namespace Bunker.UnityPort.World
             foreach (float side in new[] { -1.5f, 1.5f })
             {
                 Module("Wall1", new Vector3(side, 0, 6.5f), Quaternion.identity, true, new Vector3(.25f, 1, 1));
+                Module("Wall3", new Vector3(side, 0, -6.5f), Quaternion.identity, true, new Vector3(.25f, 1, 1));
                 Module("Wall3", new Vector3(6.5f, 0, side), Quaternion.Euler(0, 90, 0), true, new Vector3(.25f, 1, 1));
                 Module("Wall2", new Vector3(-6.5f, 0, side), Quaternion.Euler(0, 90, 0), true, new Vector3(.25f, 1, 1));
             }
@@ -84,6 +87,8 @@ namespace Bunker.UnityPort.World
             medicalClosedPosition = medicalDoor.transform.position;
             var exitDoor = Furniture("Door", new Vector3(0, 0, 6.2f), Quaternion.identity, 2.8f, "exit");
             exitDoor.transform.SetParent(transform, true);
+            optionalRoomsRoot = new GameObject("Seeded optional rooms").transform;
+            optionalRoomsRoot.SetParent(transform, false);
             privateRoomsRoot = new GameObject("Private bedrooms").transform;
             privateRoomsRoot.SetParent(transform, false);
             peopleRoot = new GameObject("Match participants").transform;
@@ -183,6 +188,7 @@ namespace Bunker.UnityPort.World
             medicalOpen = stations != null && stations.medical_open;
             if (medicalDoor != null)
                 medicalDoor.transform.position = medicalClosedPosition + (medicalOpen ? Vector3.up * 3f : Vector3.zero);
+            if (warehouseBarrier != null) warehouseBarrier.SetActive(stations == null || !stations.warehouse_open);
         }
 
         private void SyncFurniture(int capacity)
@@ -200,6 +206,43 @@ namespace Bunker.UnityPort.World
             Furniture("Radio", new Vector3(1, .78f, .3f), Quaternion.identity, .25f, "radio");
             Furniture("Bunk", new Vector3(12.5f, 0, 2.8f), Quaternion.Euler(0, 90, 0), 1.85f, "medical");
             Furniture("FirstAid", new Vector3(9, 0, 2.8f), Quaternion.identity, .55f, "medical");
+        }
+
+        private GameObject OptionalPanel(string name, Vector3 center, Vector3 size)
+        {
+            var panel = GameObject.CreatePrimitive(PrimitiveType.Cube); panel.name = name;
+            panel.transform.SetParent(optionalRoomsRoot, false); panel.transform.localPosition = center;
+            panel.transform.localScale = size; panel.GetComponent<Renderer>().sharedMaterial = wallMaterial;
+            return panel;
+        }
+        // The seed swaps the two connected rooms; stock access follows match state.
+        public void SyncLayout(int seed)
+        {
+            if (layoutSeed == seed) return;
+            layoutSeed = seed;
+            foreach (var child in optionalRoomsRoot.Cast<Transform>().ToArray())
+            { child.gameObject.SetActive(false); if (Application.isPlaying) Destroy(child.gameObject); else DestroyImmediate(child.gameObject); }
+            OptionalPanel("Connector floor", new Vector3(0, -.12f, -10), new Vector3(4, .24f, 7));
+            OptionalPanel("Connector ceiling", new Vector3(0, 3.05f, -10), new Vector3(4, .1f, 7));
+            OptionalPanel("Connector end", new Vector3(0, 1.5f, -13.5f), new Vector3(4, 3, .15f));
+            int kitchenSide = (new System.Random(seed).Next(2) == 0) ? -1 : 1;
+            foreach (int side in new[] { -1, 1 })
+            {
+                bool kitchen = side == kitchenSide;
+                string title = kitchen ? "Kitchen" : "Warehouse";
+                float x = side * 4;
+                OptionalPanel(title + " floor", new Vector3(x, -.12f, -10), new Vector3(4, .24f, 7));
+                OptionalPanel(title + " ceiling", new Vector3(x, 3.05f, -10), new Vector3(4, .1f, 7));
+                OptionalPanel(title + " outside wall", new Vector3(side * 6, 1.5f, -10), new Vector3(.15f, 3, 7));
+                foreach (float z in new[] { -6.5f, -13.5f }) OptionalPanel(title + " end wall", new Vector3(x, 1.5f, z), new Vector3(4, 3, .15f));
+                foreach (float z in new[] { -7.75f, -12.25f }) OptionalPanel(title + " doorway wall", new Vector3(side * 2, 1.5f, z), new Vector3(.15f, 3, 2.5f));
+                OptionalPanel(title + " lintel", new Vector3(side * 2, 2.7f, -10), new Vector3(.15f, .6f, 2));
+                if (!kitchen) warehouseBarrier = OptionalPanel("Warehouse locked", new Vector3(side * 2, 1.05f, -10), new Vector3(.2f, 2.1f, 2));
+                var furniture = Furniture(kitchen ? "Table" : "Computer", new Vector3(x, 0, -10.4f), Quaternion.identity, kitchen ? .78f : 1.4f, kitchen ? "cook" : null);
+                furniture.transform.SetParent(optionalRoomsRoot, true);
+                var lamp = new GameObject(title + " light").AddComponent<Light>(); lamp.transform.SetParent(optionalRoomsRoot, false);
+                lamp.transform.localPosition = new Vector3(x, 2.75f, -10); lamp.type = LightType.Point; lamp.range = 7; lamp.intensity = 1.25f;
+            }
         }
 
         private GameObject RoomPanel(string name, Vector3 center, Vector3 size)

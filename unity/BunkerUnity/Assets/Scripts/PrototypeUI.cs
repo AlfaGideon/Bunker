@@ -365,6 +365,7 @@ namespace Bunker.UnityPort
         {
             if (world == null || state == null) { screen = "game"; Draw(); return; }
             world.SyncPlayers(state.players, playerId);
+            world.SyncLayout(state.seed);
             world.SyncStations(state.stations);
             Button(page, "КАРТОЧКИ И ХОД", .66f, .92f, .84f, .99f, () => { screen = "game"; Draw(); }, 12);
             Button(page, "ВИД", .85f, .92f, .98f, .99f, () => world.ToggleView(), 13);
