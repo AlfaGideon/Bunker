@@ -62,6 +62,13 @@ static func build(room: Node3D) -> void:
   ceiling.material_override = Finish.metal(Color("273c44"))
   ceiling.visible = false
   ceiling.set_meta("first_person_ceiling", true)
+  # Recessed diffusers remain visible only with the first-person ceiling.
+  var fixture := Finish.glow(room, Vector3(center.x, 2.625, center.y), Vector3(minf(rect.size.x * 0.45, 2.4), 0.035, 0.23), Color("caefff"))
+  fixture.visible = false
+  fixture.set_meta("first_person_ceiling", true)
+  var rim: MeshInstance3D = room._box(Vector3(center.x, 2.65, center.y), Vector3(minf(rect.size.x * 0.45 + 0.16, 2.56), 0.05, 0.38), Color("8da8b0"))
+  rim.visible = false
+  rim.set_meta("first_person_ceiling", true)
   edge(room, rect.position, Vector2.RIGHT, Vector2.UP, rect.size.x)
   edge(room, Vector2(rect.position.x, rect.end.y), Vector2.RIGHT, Vector2.DOWN, rect.size.x)
   edge(room, rect.position, Vector2.DOWN, Vector2.LEFT, rect.size.y)

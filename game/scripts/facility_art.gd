@@ -63,6 +63,12 @@ static func build(room: Node3D) -> void:
  room._box(exam - Vector3(0.65, -0.05, 0), Vector3(0.5, 0.15, 0.75), Color("d2e2dc"))
  for x in [-0.7, 0.7]:
   room._box(exam + Vector3(x, -0.45, 0), Vector3(0.09, 0.7, 0.7), Color("76999f"))
+ # Medical bedside diagnostic display and illuminated controls.
+ room._box(exam + Vector3(0.72, 0.35, -0.38), Vector3(0.08, 0.8, 0.08), Color("78939c"))
+ room._box(exam + Vector3(0.72, 0.78, -0.38), Vector3(0.66, 0.43, 0.12), Color("1a343f"))
+ Finish.glow(room, exam + Vector3(0.72, 0.78, -0.30), Vector3(0.52, 0.30, 0.025), Color("4faeb8"))
+ for button in range(3):
+  Finish.glow(room, exam + Vector3(0.55 + button * 0.17, 0.57, -0.30), Vector3(0.07, 0.035, 0.025), Color("b6e7e2"))
  var kitchen: Vector3 = plan["items"]["kitchen"]["at"]
  room._box(kitchen - Vector3(0, 0.4, 0), Vector3(1.2, 0.8, 0.65), Color("727f83"))
  for x in [-0.3, 0.3]:
@@ -115,9 +121,20 @@ static func build(room: Node3D) -> void:
    room._box(Vector3(x, 0.7, z), Vector3(0.12, 1.4, 0.16), Color("7e949f"))
   room._box(Vector3(3.8, 1.45, z), Vector3(1.6, 0.13, 0.2), Color("6d8796"))
  for z in [5.95, 7.45]:
-  Finish.wall(room, Vector2(6.1, z), Vector2(4.7, 0.15))
+  Finish.wall(room, Vector2(6.2, z), Vector2(5.1, 0.15))
  for x in [5.0, 6.5, 8.0]:
   Finish.glow(room, Vector3(x, 0.04, 6.15), Vector3(0.6, 0.02, 0.05), Color("b8dad7"))
+ # Close the exit tunnel above the door and cover its first-person roof.
+ var tunnel_roof: MeshInstance3D = room._box(Vector3(6.15, 2.72, 6.7), Vector3(5.25, 0.14, 1.65), Color("344c55"))
+ tunnel_roof.visible = false
+ tunnel_roof.set_meta("first_person_ceiling", true)
+ var tunnel_light := Finish.glow(room, Vector3(6.2, 2.63, 6.7), Vector3(2.0, 0.03, 0.2), Color("c8f4ff"))
+ tunnel_light.visible = false
+ tunnel_light.set_meta("first_person_ceiling", true)
+ room._box(Vector3(8.75, 2.25, 6.7), Vector3(0.2, 0.85, 1.65), Color("344c55"))
+ # Side jambs seal the ends without blocking the moving hatch.
+ for z in [5.95, 7.45]:
+  room._box(Vector3(8.75, 1.0, z), Vector3(0.2, 2.0, 0.20), Color("344c55"))
  room.exit_hatch = Art.spawn(room, "modular_sci_fi_Door_Single", Vector3(8.7, 0, 6.7), Vector3(1.4, 1.7, 0.18))
  room.exit_hatch.rotation.y = PI / 2
  room._box(Vector3(9.1, -0.14, 6.7), Vector3(0.5, 0.15, 1.4), Color("60717a"))

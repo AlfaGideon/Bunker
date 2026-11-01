@@ -52,10 +52,51 @@ class MatchTest(unittest.TestCase):
             g.command('1', 'radio_scan', now=104)
         self.assertEqual(g.radio['message_id'], 1)
 
+    def test_room_permissions_shared_resources_and_doctor_gate(self):
+        g = self.game
+        g.players[0]['cards'][0]['value'] = 'Врач'
+        g.players[1]['cards'][0]['value'] = 'Повар'
+        g.players[2]['cards'][0]['value'] = 'Логист'
+        with self.assertRaisesRegex(GameError, 'medical_first_round'):
+            g.command('0', 'gate', now=101)
+        with self.assertRaisesRegex(GameError, 'wrong_profession'):
+            g.command('2', 'kitchen', now=101)
+        initial = g.meals
+        g.command('1', 'kitchen', now=101)
+        self.assertEqual(g.snapshot('0', 101)['stations']['meals'], initial + g.capacity + 2)
+        with self.assertRaisesRegex(GameError, 'station_used'):
+            g.command('1', 'kitchen', now=102)
+        with self.assertRaisesRegex(GameError, 'warehouse_closed'):
+            g.command('2', 'supply', now=102)
+        for pid in ('0', '1', '2', '3'):
+            g.command(pid, 'warehouse_gate', now=103)
+        self.assertTrue(g.warehouse_open)
+        g.command('2', 'supply', now=104)
+        with self.assertRaisesRegex(GameError, 'supply_taken'):
+            g.command('2', 'supply', now=105)
+        g.round = 2
+        g.command('0', 'gate', now=106)
+        g.command('0', 'medical', now=107)
+        view = g.snapshot('1', 107)['stations']
+        self.assertTrue(view['medical_open'])
+        self.assertEqual(view['medicines'], 1)
+        self.assertEqual(view['stamina']['0'], 75)
+        self.assertTrue(view['warehouse_open'])
+
+    def test_round_resource_charges_preserve_hidden_health(self):
+        g = self.game
+        before = dict(g.stock)
+        g._charge_round()
+        self.assertLess(g.stock['food'], before['food'])
+        self.assertLess(g.stock['water'], before['water'])
+        self.assertEqual(g.stamina['0'], 48)
+        other = g.snapshot('1', 100)['players'][0]
+        self.assertNotIn('cost', next(c for c in other['cards'] if c['id'] == 'health'))
+
     def test_private_cards_and_biology(self):
         own = self.game.snapshot('0', 100)['players'][0]
         other = self.game.snapshot('1', 100)['players'][0]
-        self.assertEqual(sum(c['revealed'] for c in own['cards']), 2)
+        self.assertEqual(sum(c['revealed'] for c in own['cards']), 1)
         for own_card, public_card in zip(own['cards'], other['cards']):
             self.assertIn('value', own_card)
             if not own_card['revealed']:

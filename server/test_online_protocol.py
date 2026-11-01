@@ -126,6 +126,26 @@ class ProtocolTest(unittest.IsolatedAsyncioTestCase):
         other = next(e['state'] for e in await self.poll(headers[0]) if e['type'] == 'game_state')
         self.assertEqual(other['stations']['radio']['station'], 'bunkers')
 
+    async def test_kitchen_updates_all_sessions_and_rejects_wrong_role(self):
+        headers = [await self.open() for _ in range(6)]
+        joined = next(e for e in await self.send(headers[0], {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6}) if e['type'] == 'joined')
+        room_id = joined['room']['id']
+        for i, h in enumerate(headers[1:]):
+            await self.send(h, {'type': 'join', 'room_id': room_id, 'name': f'P{i}'})
+        await self.send(headers[0], {'type': 'online_start'})
+        game = self.app[LOBBY_KEY].rooms[room_id].game
+        for player in game.players:
+            player['cards'][0]['value'] = 'Повар' if player['id'] == joined['player_id'] else 'Врач'
+        for h in headers[1:]:
+            await self.poll(h)
+        err = await self.send(headers[1], {'type': 'game_action', 'action': 'kitchen'})
+        self.assertEqual(err[-1]['code'], 'wrong_profession')
+        await self.send(headers[0], {'type': 'game_action', 'action': 'kitchen'})
+        remote = next(e['state'] for e in await self.poll(headers[1]) if e['type'] == 'game_state')
+        self.assertEqual(remote['stations']['meals'], 8)
+        self.assertEqual(remote['stations']['stock']['food'], 96)
+        self.assertEqual(sum(c['revealed'] for c in remote['players'][0]['cards']), 1)
+
     async def test_concurrent_commands_have_one_winner(self):
         headers = [await self.open() for _ in range(6)]
         events = await self.send(headers[0], {'type': 'create', 'name': 'Host', 'title': 'Room', 'capacity': 6})

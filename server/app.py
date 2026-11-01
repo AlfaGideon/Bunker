@@ -393,7 +393,7 @@ async def index(request):
 
 
 async def health(request):
-    return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False, 'online_turns': True})
+    return web.json_response({'status': 'ok', 'service': 'bunker-lobby', 'gameplay_sync': False, 'online_turns': True, 'online_stations': 2})
 
 
 async def invite_page(request):

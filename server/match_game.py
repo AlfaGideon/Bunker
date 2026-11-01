@@ -48,8 +48,6 @@ class Match:
                 if key == 'health':
                     card['cost'] = copy.deepcopy(chosen['cost'])
                 cards.append(card)
-            # One additional characteristic is public at the start.
-            self.rng.choice(cards[1:])['revealed'] = True
             self.players.append({'id': member.id, 'name': member.name, 'appearance': member.skin,
                                  'sex': sex, 'age': int(age.split()[0]), 'cards': cards, 'bot': member.id in self.bot_ids, 'seat': seat})
         self.active = [p['id'] for p in self.players]
@@ -65,6 +63,15 @@ class Match:
         self.meals = self.capacity
         self.stock = {'water': 100, 'food': 100, 'medicine': 32, 'filters': 24}
         self.stamina = {p['id']: 60 for p in self.players}
+        self.medical_open = False
+        self.medicines = 2
+        self.systems_ready = False
+        self.warehouse_open = False
+        self.warehouse_votes = {}
+        self.supply_taken = False
+        self.inventory = {'repair': 1, 'tools': 0, 'weapons': 0}
+        self.station_used = {}
+        self.shortage = False
         self.station_event = None
         self.used_food = {}
         self.used_rest = {}
@@ -109,6 +116,8 @@ class Match:
         self.last_result = {'status': 'eliminated', 'player': eliminated, 'totals': totals,
                             'votes': counted, 'random': len(leaders) > 1}
         self.active.remove(eliminated)
+        if not self._has_doctor():
+            self.medical_open = False
         self.phase = 'end' if len(self.active) <= self.capacity else 'result'
         self.deadline = None if self.phase == 'end' else now + self.RESULT_SECONDS
 
@@ -126,6 +135,7 @@ class Match:
                 self._finish_vote(at)
             elif self.phase == 'result':
                 self.round += 1
+                self._charge_round()
                 self.phase = 'reveal'
                 self.speaker_index = 0
                 self.revealed_this_turn = False
@@ -173,10 +183,105 @@ class Match:
     def _radio_specialist(self):
         return any(p['id'] in self.active and p['cards'][0]['value'] in ('Связист', 'Радиотехник') for p in self.players)
 
+    def _has_doctor(self):
+        return any(p['id'] in self.active and p['cards'][0]['value'] == 'Врач' for p in self.players)
+
+    def _charge_round(self):
+        costs = {'water': len(self.active) * 2, 'food': len(self.active) * 2, 'medicine': 0, 'filters': 0}
+        if self.scenario.get('weather') == 'heat':
+            costs['water'] += len(self.active)
+        if self.scenario.get('weather') in ('radiation', 'toxic', 'volcano', 'sand'):
+            costs['filters'] += 2
+        for p in self.players:
+            if p['id'] in self.active:
+                health = next(c for c in p['cards'] if c['id'] == 'health')
+                for key, amount in health.get('cost', {}).items():
+                    if key in costs:
+                        costs[key] += int(amount)
+        self.shortage = any(costs[k] > self.stock[k] for k in costs)
+        for key in costs:
+            self.stock[key] = max(0, self.stock[key] - costs[key])
+        for pid in self.active:
+            self.stamina[pid] = max(0, self.stamina[pid] - (20 if self.shortage else 12))
+
+    def _room_action(self, player_id, action):
+        roles = {
+            'gate': ('Врач',),
+            'medical': ('Врач', 'Фельдшер', 'Медсестра', 'Фармацевт', 'Ветеринар', 'Инструктор первой помощи'),
+            'terminal': ('Электрик', 'Инженер-механик', 'Связист', 'Программист', 'Техник вентиляции', 'Энергетик', 'Радиотехник', 'Слесарь'),
+            'kitchen': ('Повар', 'Пекарь', 'Технолог пищевого производства'),
+            'supply': ('Логист', 'Спасатель', 'Водитель', 'Слесарь', 'Электрик', 'Инженер-механик'),
+            'gym': ('Тренер', 'Спасатель', 'Пожарный', 'Инструктор первой помощи'),
+            'workshop': ('Инженер-механик', 'Сварщик', 'Слесарь', 'Плотник', 'Электрик'),
+            'greenhouse': ('Агроном', 'Биолог', 'Эколог', 'Оператор теплицы', 'Зоотехник')}
+        if action == 'warehouse_gate':
+            if self.warehouse_open:
+                raise GameError('warehouse_open')
+            self.warehouse_votes[player_id] = True
+            # Test bots participate in the decision; they vote only once.
+            for bot in self.bot_ids.intersection(self.active):
+                if bot not in self.warehouse_votes:
+                    self.warehouse_votes[bot] = self.rng.choice([True, False])
+            self.warehouse_open = sum(self.warehouse_votes.get(p, False) for p in self.active) > len(self.active) / 2
+        else:
+            player = next(p for p in self.players if p['id'] == player_id)
+            if player['cards'][0]['value'] not in roles[action]:
+                raise GameError('wrong_profession')
+            if action == 'gate':
+                if self.round < 2:
+                    raise GameError('medical_first_round')
+                if self.medical_open:
+                    raise GameError('medical_already_open')
+                self.medical_open = True
+            elif action == 'supply':
+                if not self.warehouse_open:
+                    raise GameError('warehouse_closed')
+                if self.supply_taken:
+                    raise GameError('supply_taken')
+                self.supply_taken = True
+                self.inventory['tools'] += 2
+                self.inventory['weapons'] += 2
+                for k, amount in {'water': 20, 'food': 15, 'medicine': 5, 'filters': 4}.items():
+                    self.stock[k] += amount
+            elif action == 'terminal':
+                if self.systems_ready:
+                    raise GameError('systems_ready')
+                self.systems_ready = True
+                self.inventory['repair'] -= 1
+            else:
+                if action == 'medical' and not self.medical_open:
+                    raise GameError('medical_closed')
+                if self.station_used.get(action) == self.round:
+                    raise GameError('station_used')
+                if action == 'medical':
+                    if self.medicines <= 0:
+                        raise GameError('no_medicines')
+                    self.medicines -= 1
+                    self.stamina[player_id] = min(100, self.stamina[player_id] + (5 if self.shortage else 15))
+                elif action == 'kitchen':
+                    if self.stock['food'] < 4 or self.stock['water'] < 2:
+                        raise GameError('not_enough_supplies')
+                    self.stock['food'] -= 4
+                    self.stock['water'] -= 2
+                    self.meals += self.capacity + 2
+                elif action == 'greenhouse':
+                    if self.stock['water'] < 3:
+                        raise GameError('not_enough_supplies')
+                    self.stock['water'] -= 3
+                    self.stock['food'] += 4
+                elif action == 'workshop':
+                    self.stock['filters'] += 2
+                elif action == 'gym':
+                    self.stamina[player_id] = min(100, self.stamina[player_id] + 10)
+                self.station_used[action] = self.round
+        self.station_event = {'id': self.revision + 1, 'player': player_id, 'action': action}
+
     def _station_action(self, player_id, action, value, now):
         if self.phase == 'end':
             raise GameError('match_finished')
-        if action == 'food':
+        if action in ('gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse'):
+            self._room_action(player_id, action)
+        elif action == 'food':
             if self.used_food.get(player_id) == self.round:
                 raise GameError('already_ate')
             if self.meals <= 0:
@@ -189,7 +294,7 @@ class Match:
             if self.used_rest.get(player_id) == self.round:
                 raise GameError('already_rested')
             self.used_rest[player_id] = self.round
-            self.stamina[player_id] = min(100, self.stamina[player_id] + 20)
+            self.stamina[player_id] = min(100, self.stamina[player_id] + (10 if self.shortage else 20))
             self.station_event = {'id': self.revision + 1, 'player': player_id, 'action': 'rest'}
         elif action == 'radio_power':
             if not isinstance(value, bool):
@@ -237,7 +342,7 @@ class Match:
         self.tick(now)
         if player_id not in self.active:
             raise GameError('not_active')
-        if action in ('food', 'rest', 'radio_power', 'radio_tune', 'radio_scan'):
+        if action in ('food', 'rest', 'radio_power', 'radio_tune', 'radio_scan', 'gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse'):
             self._station_action(player_id, action, value, now)
         elif action == 'reveal':
             if self.phase != 'reveal' or self.speaker != player_id or self.revealed_this_turn:
@@ -282,4 +387,4 @@ class Match:
                 'candidates': list(self.candidates), 'second_ballot': self.second_ballot,
                 'my_vote': self.votes.get(viewer), 'result': copy.deepcopy(self.last_result),
                 'stations': {'meals': self.meals, 'stock': copy.deepcopy(self.stock),
-                             'stamina': copy.deepcopy(self.stamina), 'event': copy.deepcopy(self.station_event), 'radio': copy.deepcopy(self.radio)}}
+                             'stamina': copy.deepcopy(self.stamina), 'medical_open': self.medical_open, 'medicines': self.medicines, 'warehouse_open': self.warehouse_open, 'warehouse_votes': sum(self.warehouse_votes.get(p, False) for p in self.active), 'systems_ready': self.systems_ready, 'inventory': copy.deepcopy(self.inventory), 'shortage': self.shortage, 'event': copy.deepcopy(self.station_event), 'radio': copy.deepcopy(self.radio)}}

@@ -250,6 +250,29 @@ func _apply_online_stations(stations: Dictionary) -> void:
 	if stations.is_empty():
 		return
 	meals = int(stations.get("meals", meals))
+	medicines = int(stations.get("medicines", medicines))
+	systems_ready = bool(stations.get("systems_ready", systems_ready))
+	supplies.shortage = bool(stations.get("shortage", false))
+	if stations.get("inventory") is Dictionary:
+		inventory = stations["inventory"].duplicate(true)
+	if stations.has("medical_open") and bool(stations.medical_open) != medical_open:
+		medical_open = bool(stations.medical_open)
+		if medical_open:
+			navigation.unlock_medical()
+			med_cover.visible = false
+			med_label.text = "МЕДБЛОК • ОТКРЫТ"
+			med_light.light_energy = 1.2
+			create_tween().tween_property(med_gate, "position:y", -1.2, 0.6)
+		else:
+			med_cover.visible = true
+			navigation.lock_medical()
+			med_label.text = "МЕДБЛОК • ЗАКРЫТ"
+			med_light.light_energy = 0.0
+			create_tween().tween_property(med_gate, "position:y", layout["modules"]["medical"]["gate"].y, 0.6)
+	if stations.has("warehouse_open") and bool(stations.warehouse_open) and not warehouse_open:
+		warehouse_open = true
+		navigation.unlock_warehouse()
+		create_tween().tween_property(warehouse_door, "position:y", -2.0, 0.7)
 	var stock: Variant = stations.get("stock", {})
 	if stock is Dictionary and not stock.is_empty():
 		supplies.stock = stock.duplicate(true)
@@ -262,7 +285,8 @@ func _apply_online_stations(stations: Dictionary) -> void:
 		var index: int = online_session.state.index_for(str(event.get("player", "")))
 		if index >= 0 and index < online_session.state.players.size():
 			var player_name := str(online_session.state.players[index].get("name", "Участник"))
-			log_label.text = player_name + (" поел. Осталось порций: %d." % meals if str(event.get("action", "")) == "food" else " отдохнул.")
+			var action_names := {"food": "поел. Осталось порций: %d." % meals, "rest": "отдохнул.", "gate": "открыл медблок.", "medical": "прошёл осмотр.", "terminal": "восстановил системы.", "kitchen": "приготовил еду. Порций: %d." % meals, "warehouse_gate": "проголосовал за склад. За: %d." % int(stations.get("warehouse_votes", 0)), "supply": "получил снабжение.", "gym": "потренировался.", "workshop": "обслужил оборудование.", "greenhouse": "собрал урожай."}
+			log_label.text = player_name + " " + str(action_names.get(str(event.get("action", "")), "выполнил действие."))
 	var receiver: Variant = stations.get("radio", {})
 	if not receiver is Dictionary or receiver.is_empty():
 		return
@@ -323,8 +347,10 @@ func _online_player_away(player_id: String) -> void:
 
 func _online_error(code: String) -> void:
 	if is_instance_valid(log_label):
-		var messages := {"already_ate": "Вы уже ели в этом раунде.", "no_meals": "Готовые порции закончились.", "already_rested": "Вы уже отдыхали в этом раунде.", "radio_specialist_required": "Для маяка нужен связист или радиотехник.", "radio_not_beacon": "Сначала включите маяк 1180.", "radio_already_scanned": "Маяк уже прочитан в этом раунде.", "radio_exhausted": "Все передачи маяка прочитаны.", "match_finished": "Партия уже закончилась."}
+		var messages := {"already_ate": "Вы уже ели в этом раунде.", "no_meals": "Готовые порции закончились.", "already_rested": "Вы уже отдыхали в этом раунде.", "radio_specialist_required": "Для маяка нужен связист или радиотехник.", "radio_not_beacon": "Сначала включите маяк 1180.", "radio_already_scanned": "Маяк уже прочитан в этом раунде.", "radio_exhausted": "Все передачи маяка прочитаны.", "match_finished": "Партия уже закончилась.", "unknown_game_action": "Сервер устарел: обновите сервер из ветки main и начните новую партию.", "wrong_profession": "Для этой станции нужна подходящая профессия.", "medical_first_round": "Медблок открывается врачом после первого раунда.", "medical_closed": "Медблок закрыт.", "medical_already_open": "Медблок уже открыт.", "warehouse_closed": "Склад закрыт: нужно большинство голосов.", "warehouse_open": "Склад уже открыт.", "supply_taken": "Снабжение уже получено.", "systems_ready": "Системы уже восстановлены.", "station_used": "В этом раунде станция уже использована.", "no_medicines": "Медицинские наборы закончились.", "not_enough_supplies": "Недостаточно запасов."}
 		log_label.text = str(messages.get(code, "Сервер отклонил действие: " + code))
+		if is_instance_valid(radio_panel) and radio_panel.visible:
+			radio_panel.hint_label.text = log_label.text
 
 
 func _exit_tree() -> void:
@@ -1227,22 +1253,19 @@ func request_interaction(key: String, operator: int = 0) -> bool:
 		if operator != 0 or not active.has(0) or finished or online_session.closed:
 			log_label.text = "Действие сейчас недоступно."
 			return false
-		if key not in ["radio", "food"] and not key.begins_with("bed"):
-			log_label.text = "Это помещение пока не синхронизировано в сетевой игре."
-			return false
 	if not active.has(0) or rest_remaining > 0:
 		log_label.text = "Сейчас персонаж не может взаимодействовать."
 		return false
 	if operator not in active or jobs.has(operator) or npc_rests.has(operator):
 		log_label.text = "Исполнитель недоступен или занят."
 		return false
-	if key == "warehouse_gate":
+	if key == "warehouse_gate" and not online_active:
 		log_label.text = "Доступ к складу решает совет. Нужны голоса более половины оставшихся участников."
 		return false
 	if key == "supply" and not warehouse_open:
 		log_label.text = "Склад опечатан решением совета. Он может остаться закрытым до конца партии."
 		return false
-	if not Professions.allowed(players[operator], key):
+	if key != "warehouse_gate" and not Professions.allowed(players[operator], key):
 		log_label.text = "Профессия не подходит. " + Professions.requirement(key)
 		return false
 	if (key == "gate" and (round_number < 2 or medical_open)) or (key == "medical" and not medical_open):
@@ -1272,8 +1295,8 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 			return
 		if key == "radio":
 			radio_panel.open()
-		elif key == "food" or key.begins_with("bed"):
-			online_session.station_action("food" if key == "food" else "rest")
+		elif key in ["food", "gate", "medical", "terminal", "kitchen", "warehouse_gate", "supply", "gym", "workshop", "greenhouse"] or key.begins_with("bed"):
+			online_session.station_action("rest" if key.begins_with("bed") else key)
 			log_label.text = "Ожидание подтверждения сервера…"
 		return
 	if not active.has(0):
