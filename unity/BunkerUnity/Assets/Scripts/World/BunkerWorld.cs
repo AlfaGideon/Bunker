@@ -256,14 +256,20 @@ namespace Bunker.UnityPort.World
                             else
                             {
                                 var interact = hit.collider.GetComponentInParent<WorldInteractionTarget>();
-                                if (interact != null && Vector3.Distance(movement.transform.position, hit.point) <= 3f)
-                                    ActionRequested?.Invoke(interact.action);
+                                if (interact != null) TryInteract(interact, hit.point);
                             }
                         }
                     }
                     tapFinger = -1;
                 }
             }
+        }
+        public bool TryInteract(WorldInteractionTarget target, Vector3 hitPoint)
+        {
+            if (target == null || string.IsNullOrEmpty(target.action) || movement == null ||
+                Vector3.Distance(movement.transform.position, hitPoint) > 3f) return false;
+            ActionRequested?.Invoke(target.action);
+            return true;
         }
         private void OnDisable() { tapFinger = -1; }
         private void OnDestroy() { if (wallMaterial != null) Destroy(wallMaterial); }

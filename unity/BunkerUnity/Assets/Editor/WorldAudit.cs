@@ -24,6 +24,12 @@ namespace Bunker.UnityPort.Editor
             foreach (var action in new [] { "food", "rest", "radio", "gate", "medical", "exit" })
                 if (!targets.Any(t => t.action == action)) throw new Exception("Missing physical interaction: " + action);
             var table = targets.First(t => t.action == "food");
+            string receivedAction = null;
+            world.ActionRequested += action => receivedAction = action;
+            if (world.TryInteract(table, new Vector3(100, 0, 0)) || receivedAction != null)
+                throw new Exception("Interaction bypasses distance limit");
+            if (!world.TryInteract(table, new Vector3(0, .1f, -4.6f)) || receivedAction != "food")
+                throw new Exception("Food interaction was not routed");
             var tableBounds = table.GetComponentsInChildren<Renderer>().Select(r => r.bounds).ToArray();
             var bounds = tableBounds[0]; foreach (var b in tableBounds) bounds.Encapsulate(b);
             if (Mathf.Abs(bounds.size.y - .78f) > .05f) throw new Exception("Table not scaled to human size: " + bounds.size.y);
