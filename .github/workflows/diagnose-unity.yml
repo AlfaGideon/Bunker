@@ -1,0 +1,24 @@
+name: Diagnose Unity audit
+on:
+  push:
+    branches: [arena/574beb82-bunker]
+    paths: [.github/workflows/diagnose-unity.yml]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api --allow-escape-sequences "repos/$GH_REPO/actions/jobs/124853408420/logs" > /tmp/log.txt
+          python3 - <<'PY'
+          import re
+          lines=open('/tmp/log.txt',errors='replace').read().splitlines()
+          selected=[x for x in lines if re.search(r'error CS\d+|Exception:|error|failed|invalid dependencies|not found|Unable to|Could not|BUNKER_TOUCH_AUDIT',x,re.I)]
+          for line in selected[-20:]:
+              print('::notice::'+line.replace('%','%25').replace('\r','%0D').replace('\n','%0A')[-2500:])
+          PY
