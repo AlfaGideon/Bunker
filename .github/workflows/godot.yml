@@ -19,6 +19,8 @@ jobs:
       - name: Import and compile project
         run: |
           bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Render exit tunnel bend
+        run: GODOT_TIMEOUT=90 timeout 120 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_exit_entrance.gd -- bend
       - name: Render full bot lobby
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_welcome.gd -- --lobby
       - name: Render visual preview
@@ -72,8 +74,6 @@ jobs:
         run: GODOT_TIMEOUT=90 timeout 120 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_exit_entrance.gd -- front
       - name: Render hall-side entrance from the side
         run: GODOT_TIMEOUT=90 timeout 120 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_exit_entrance.gd -- angle
-      - name: Render exit tunnel bend
-        run: GODOT_TIMEOUT=90 timeout 120 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_exit_entrance.gd -- bend
       - name: Render first-person exit tunnel
         run: GODOT_TIMEOUT=60 timeout 90 xvfb-run -a bash tools/check_godot.sh --windowed --resolution 1280x720 --path . --script tools/capture_exit_view.gd
       - name: Render menu preview

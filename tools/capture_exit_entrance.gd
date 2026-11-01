@@ -11,7 +11,7 @@ func screenshot(room: Node3D, prefix: String, position: Vector3, yaw: float) -> 
  for i in 6: await process_frame
  await RenderingServer.frame_post_draw
  var image := root.get_texture().get_image()
- image.resize(960, roundi(image.get_height() * 960.0 / image.get_width()))
+ image.resize(800, roundi(image.get_height() * 800.0 / image.get_width()))
  var bytes := image.save_jpg_to_buffer(0.45)
  if bytes.size() > 28000: bytes = image.save_jpg_to_buffer(0.25)
  var encoded := Marshalls.raw_to_base64(bytes)
@@ -32,7 +32,7 @@ func capture() -> void:
   await screenshot(room, "ENTRANCE_ANGLE", Vector3(2.6, 0, 3.1), -2.55)
  elif view == "bend":
   room.entrance_hatch.position.y = -2.2
-  await screenshot(room, "TUNNEL_BEND", Vector3(3.75, 0, 5.35), -PI / 2.0)
+  await screenshot(room, "TUNNEL_BEND", Vector3(3.8, 0, 6.65), -PI / 2.0)
  else:
   await screenshot(room, "ENTRANCE_FRONT", Vector3(3.8, 0, 2.9), PI)
  quit()
