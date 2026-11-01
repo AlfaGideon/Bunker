@@ -127,8 +127,25 @@ func stop_all() -> void:
 
 
 func blip(kind: String = "click") -> void:
-	effect.stream = load("res://assets/audio/" + kind + ".wav")
-	effect.play()
+	play_effect(kind)
+
+
+# One-shot effect from assets/audio. Used by the bathroom gag and the door
+# clunks; the gain keeps a flush from drowning the radio.
+func play_effect(kind: String, gain: float = -3.0) -> void:
+	var path := "res://assets/audio/" + kind + ".wav"
+	if not ResourceLoader.exists(path):
+		return
+	var player := AudioStreamPlayer.new()
+	player.stream = load(path)
+	player.volume_db = gain
+	add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+
+
+func has_effect(kind: String) -> bool:
+	return ResourceLoader.exists("res://assets/audio/" + kind + ".wav")
 
 
 # Wrappers make native TTS initialization and queuing testable.

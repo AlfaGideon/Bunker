@@ -75,6 +75,7 @@ class Match:
         self.station_event = None
         self.used_food = {}
         self.used_rest = {}
+        self.used_chair = {}
         self.radio_data = json.loads(RADIO_PATH.read_text(encoding='utf-8'))
         self.radio = {'powered': True, 'station': 'aurora', 'track_index': 0,
                       'internet_index': 0, 'signal_index': 0, 'scan_round': 0,
@@ -296,6 +297,12 @@ class Match:
             self.used_rest[player_id] = self.round
             self.stamina[player_id] = min(100, self.stamina[player_id] + (10 if self.shortage else 20))
             self.station_event = {'id': self.revision + 1, 'player': player_id, 'action': 'rest'}
+        elif action == 'chair':
+            if self.used_chair.get(player_id) == self.round:
+                raise GameError('chair_used')
+            self.used_chair[player_id] = self.round
+            self.stamina[player_id] = min(100, self.stamina[player_id] + 6)
+            self.station_event = {'id': self.revision + 1, 'player': player_id, 'action': 'chair'}
         elif action == 'radio_power':
             if not isinstance(value, bool):
                 raise GameError('invalid_radio')
@@ -342,7 +349,7 @@ class Match:
         self.tick(now)
         if player_id not in self.active:
             raise GameError('not_active')
-        if action in ('food', 'rest', 'radio_power', 'radio_tune', 'radio_scan', 'gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse'):
+        if action in ('food', 'rest', 'chair', 'radio_power', 'radio_tune', 'radio_scan', 'gate', 'medical', 'terminal', 'kitchen', 'warehouse_gate', 'supply', 'gym', 'workshop', 'greenhouse'):
             self._station_action(player_id, action, value, now)
         elif action == 'reveal':
             if self.phase != 'reveal' or self.speaker != player_id or self.revealed_this_turn:

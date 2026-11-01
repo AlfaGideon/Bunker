@@ -5,6 +5,7 @@ const Ground = preload("res://game/scripts/exterior_ground.gd")
 const Finish = preload("res://game/scripts/bunker_finish.gd")
 const Art = preload("res://game/scripts/scene_art.gd")
 const Station = preload("res://game/scripts/station_motion.gd")
+const Annex = preload("res://game/scripts/annex_art.gd")
 
 
 static func build(room: Node3D) -> void:
@@ -12,6 +13,7 @@ static func build(room: Node3D) -> void:
 	var side: float = plan["med_side"]
 	room._box(Vector3(0, -1.15 if room.scenario["weather"] == "flood" else -0.52, 0), Vector3(160, 0.2, 160), Color("242c30"))
 	preload("res://game/scripts/modular_shell.gd").build(room)
+	Annex.build(room)
 	var table: Vector3 = plan["table"]
 	var desk := Art.spawn(room, "house_interior_pack_Table_RoundLarge", table, Vector3(3.1, 0.9, 1.7))
 	for mesh in desk.find_children("*", "MeshInstance3D", true, false):
@@ -27,7 +29,11 @@ static func build(room: Node3D) -> void:
 	Station.attach(galley, "steam")
 	for key in plan["beds"]:
 		var at: Vector3 = plan["items"][key]["at"]
-		Art.spawn(room, "house_interior_pack_Bed_Single", Vector3(at.x, 0, at.z), Vector3(1.9, 0.65, 0.9))
+		# Blender cot: the headboard is on the short end, so it reads as a bed and
+		# not as a sofa with a board on the long side.
+		var bunk := Art.spawn(room, "blender_bed", Vector3(at.x - 0.7, 0, at.z), Vector3(2.0, 0.66, 0.95), false, 0.008)
+		bunk.rotation.y = 0.0
+	Art.spawn(room, "blender_chair", Vector3(4.6, 0, 1.45), Vector3(0.86, 1.02, 0.84), false, 0.008)
 	var terminal: Vector3 = plan["items"]["terminal"]["at"]
 	var console := Art.spawn(room, "blender_terminal", Vector3(terminal.x, 0, terminal.z),
 		Vector3(0.84, 1.12, 0.5), false, 0.010)

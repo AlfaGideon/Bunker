@@ -9,7 +9,10 @@ const ROLES := {
  "supply": ["Логист", "Спасатель", "Водитель", "Слесарь", "Электрик", "Инженер-механик"],
  "gym": ["Тренер", "Спасатель", "Пожарный", "Инструктор первой помощи"],
  "workshop": ["Инженер-механик", "Сварщик", "Слесарь", "Плотник", "Электрик"],
- "greenhouse": ["Агроном", "Биолог", "Эколог", "Оператор теплицы", "Зоотехник"]
+ "greenhouse": ["Агроном", "Биолог", "Эколог", "Оператор теплицы", "Зоотехник"],
+ "operating": ["Врач", "Фельдшер"],
+ "pantry": ["Повар", "Пекарь", "Технолог пищевого производства"],
+ "bathroom": []
 }
 
 static func profession(player: Dictionary) -> String:
@@ -19,12 +22,12 @@ static func profession(player: Dictionary) -> String:
  return ""
 
 static func allowed(player: Dictionary, item: String) -> bool:
- if item.begins_with("bed") or item in ["radio", "food"]:
+ if item.begins_with("bed") or item in ["radio", "food", "chair", "bathroom"]:
   return true
  return profession(player) in ROLES.get(item, [])
 
 static func requirement(item: String) -> String:
- if item.begins_with("bed") or item == "food":
+ if item.begins_with("bed") or item in ["food", "chair", "bathroom"]:
   return "Доступно всем"
  if item == "radio":
   return "Слушать — всем, маяк — Связист, Радиотехник"

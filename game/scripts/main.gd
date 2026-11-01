@@ -42,6 +42,9 @@ var speech_label: Label
 var ability_buttons: Array[Button] = []
 var warehouse_open := false
 var radio_motion: Node
+var annex_doors: Dictionary = {}
+var annex_labels: Dictionary = {}
+var annex_open: Dictionary = {}
 var warehouse_door: Node3D
 var exit_hatch: Node3D
 var entrance_hatch: Node3D
@@ -170,6 +173,7 @@ func _ready() -> void:
 	audio = BunkerAudio.new()
 	add_child(audio)
 	audio.setup(self, layout["items"]["radio"]["at"])
+	_update_annex_access(true)
 	audio.speech_unavailable.connect(_on_speech_unavailable)
 	# The receiver on the table turns its knobs and slides its needle with the record.
 	if is_instance_valid(radio_motion):
@@ -784,6 +788,7 @@ func _advance() -> void:
 				speech.start(active)
 				_begin_speaker()
 				_update_medical_access()
+				_update_annex_access()
 				log_label.text = "Новый раунд. Откройте следующую характеристику. " + supplies.last_report
 		"end":
 			log_label.text = "Демонстрация завершена. Можно начать заново."
@@ -1273,6 +1278,9 @@ func request_interaction(key: String, operator: int = 0) -> bool:
 	if key == "supply" and not warehouse_open:
 		log_label.text = "Склад опечатан решением совета. Он может остаться закрытым до конца партии."
 		return false
+	if layout.get("annexes", {}).has(key) and not annex_open.get(key, false):
+		log_label.text = annex_status(key)
+		return false
 	if key != "warehouse_gate" and not Professions.allowed(players[operator], key):
 		log_label.text = "Профессия не подходит. " + Professions.requirement(key)
 		return false
@@ -1303,7 +1311,7 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 			return
 		if key == "radio":
 			radio_panel.open()
-		elif key in ["food", "gate", "medical", "terminal", "kitchen", "warehouse_gate", "supply", "gym", "workshop", "greenhouse"] or key.begins_with("bed"):
+		elif key in ["food", "gate", "medical", "terminal", "kitchen", "warehouse_gate", "supply", "gym", "workshop", "greenhouse", "chair"] or key.begins_with("bed"):
 			online_session.station_action("rest" if key.begins_with("bed") else key)
 			log_label.text = "Ожидание подтверждения сервера…"
 		return
@@ -1376,6 +1384,14 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 			visual.position = Vector3(0.7, 0.7, 0)
 			rest_remaining = 3.0
 			log_label.text = "Отдых на койке… (3 секунды)"
+		"chair":
+			if used_actions.get("chair", 0) == round_number:
+				log_label.text = "В этом раунде кресло уже выручало."
+			else:
+				used_actions["chair"] = round_number
+				stamina = mini(100, stamina + 6) if operator == 0 else stamina
+				actors[operator].get_child(0).gesture = 1.6
+				log_label.text = players[operator]["name"] + " уселся в кресло: плечи разжались, бодрость +6."
 		"food":
 			var eaten_key := "food_%d" % operator
 			if meals <= 0 or used_actions.get(eaten_key, 0) == round_number:
@@ -1407,6 +1423,30 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 				stamina = mini(100, stamina + 10)
 			used_actions[key] = round_number
 			log_label.text = players[operator]["name"] + ": " + layout["items"][key]["title"] + ". Готово."
+		"operating":
+			if used_actions.get("operating", 0) == round_number:
+				log_label.text = "Операционная уже подготовлена в этом раунде."
+				return
+			used_actions["operating"] = round_number
+			stamina = mini(100, stamina + 20)
+			supplies.stock["medicine"] += 1
+			log_label.text = players[operator]["name"] + ": стол протёрт, инструмент прокипячён. Бодрость +20, в аптеке +1 лекарство."
+		"pantry":
+			if used_actions.get("pantry", 0) == round_number:
+				log_label.text = "Кладовую уже вскрывали в этом раунде."
+				return
+			used_actions["pantry"] = round_number
+			supplies.stock["food"] += 8
+			supplies.stock["water"] += 5
+			log_label.text = "Кладовая: 8 рационов и 5 воды переехали на кухню."
+		"bathroom":
+			if used_actions.get("bathroom", 0) == round_number:
+				log_label.text = "Санузел занят: там уже кто-то наводит порядок."
+				return
+			used_actions["bathroom"] = round_number
+			audio.play_effect("toilet_flush")
+			audio.play_effect("toilet_giggle" if randi() % 2 == 0 else "toilet_fart", -8.0)
+			log_label.text = "Смыв, эхо в трубах и сдавленный смешок за перегородкой. Вода в баке ещё есть."
 		"medical":
 			if not medical_open:
 				log_label.text = medical_status()
@@ -1520,6 +1560,104 @@ func _open_medical(operator: int) -> void:
 	create_tween().tween_property(med_gate, "position:y", -1.2, 0.6)
 	log_label.text = "Врач открыл медблок."
 	audio.blip("door")
+
+
+
+# ---- attached rooms -------------------------------------------------------
+# The operating theatre, the pantry and the bathroom hang off the medical bay
+# and the kitchen. A room is part of the bunker only while its door is open: the
+# door opens by itself once the crew has the profession it needs, or once the
+# round listed in the layout has started.
+func _annex_available(annex: Dictionary) -> bool:
+	if round_number < int(annex.get("open_round", 1)):
+		return false
+	var requires: Array = annex.get("requires", [])
+	if requires.is_empty():
+		return true
+	for id in active:
+		if id < 0 or id >= players.size():
+			continue
+		if Professions.profession(players[id]) in requires:
+			return true
+	return false
+
+
+func _update_annex_access(initial: bool = false) -> void:
+	if not layout.has("annexes"):
+		return
+	for kind in layout["annexes"]:
+		var annex: Dictionary = layout["annexes"][kind]
+		var open_now := _annex_available(annex)
+		if not initial and open_now == bool(annex_open.get(kind, false)):
+			continue
+		if not open_now:
+			_evacuate_annex(kind, annex)
+		annex_open[kind] = open_now
+		if open_now:
+			navigation.open_annex(kind)
+		else:
+			navigation.close_annex(kind)
+		_swing_annex_door(kind, annex, open_now, initial)
+		if is_instance_valid(annex_labels.get(kind)):
+			annex_labels[kind].text = annex_sign(kind, annex)
+		if not initial:
+			if open_now:
+				log_label.text = "Открыто помещение: %s. %s" % [String(annex["label"]).capitalize(), annex_hint(kind)]
+			else:
+				log_label.text = "Помещение «%s» опечатано: %s." % [String(annex["label"]).capitalize(), Professions.requirement(kind)]
+
+
+# A door that shuts must not shut on somebody: move occupants back to the
+# corridor mouth in the parent room before the navigation cells go solid.
+func _evacuate_annex(kind: String, annex: Dictionary) -> void:
+	var bounds: Rect2 = annex["bounds"]
+	var corridor: Rect2 = annex["corridor"]
+	var approach: Vector3 = annex["approach"]
+	for i in actors.size():
+		var point := Vector2(actors[i].position.x, actors[i].position.z)
+		if bounds.has_point(point) or corridor.has_point(point):
+			actors[i].position = navigation.nearest_walkable(approach)
+			jobs.erase(i)
+			if pending_inspection == kind:
+				route.clear()
+				pending_inspection = ""
+				marker.visible = false
+
+
+func _swing_annex_door(kind: String, annex: Dictionary, open_now: bool, quiet: bool = false) -> void:
+	var door: Node3D = annex_doors.get(kind)
+	if not is_instance_valid(door):
+		return
+	var gate: Vector3 = annex["gate"]
+	create_tween().tween_property(door, "position:y", -1.9 if open_now else gate.y, 0.7)
+	# At load the doors are already where they belong: no clunk on boot.
+	if not quiet:
+		audio.play_effect("door", -6.0)
+
+
+func annex_status(kind: String) -> String:
+	var annex: Dictionary = layout["annexes"][kind]
+	if round_number < int(annex.get("open_round", 1)):
+		return "Помещение ещё опечатано. Откроется с раунда %d." % int(annex["open_round"])
+	return "Дверь заперта. " + Professions.requirement(kind)
+
+
+func annex_sign(kind: String, annex: Dictionary) -> String:
+	var label := String(annex["label"])
+	if annex_open.get(kind, false):
+		return label + "\nОТКРЫТО"
+	return label + "\n" + Professions.requirement(kind).to_upper()
+
+
+func annex_hint(kind: String) -> String:
+	match kind:
+		"operating":
+			return "Операционная: осмотр и обработка ранений."
+		"pantry":
+			return "Кладовая: сухой паёк и вода."
+		"bathroom":
+			return "Санузел: вода, мыло и немного тишины."
+	return ""
 
 
 func _update_medical_access() -> void:

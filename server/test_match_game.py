@@ -10,6 +10,15 @@ class MatchTest(unittest.TestCase):
         members = [SimpleNamespace(id=str(i), name=f'Player {i}', skin='male') for i in range(6)]
         self.game = Match(members, now=100, rng=random.Random(3))
 
+    def test_chair_rests_once_per_round(self):
+        g = self.game
+        start = g.stamina['0']
+        g.command('0', 'chair', now=101)
+        self.assertEqual(g.stamina['0'], start + 6)
+        with self.assertRaisesRegex(GameError, 'chair_used'):
+            g.command('0', 'chair', now=102)
+        self.assertEqual(g.station_event['action'], 'chair')
+
     def test_station_actions_are_authoritative(self):
         g = self.game
         before = g.snapshot('1', 100)['stations']

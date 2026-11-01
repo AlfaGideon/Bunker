@@ -18,10 +18,12 @@ import bpy  # noqa: E402
 
 import kit  # noqa: E402
 import props_camp  # noqa: E402
+import props_rooms  # noqa: E402
 import props_tech  # noqa: E402
 
 PROPS = dict(props_camp.PROPS)
 PROPS.update(props_tech.PROPS)
+PROPS.update(props_rooms.PROPS)
 
 
 def parse() -> argparse.Namespace:
@@ -59,7 +61,13 @@ def main() -> int:
                        'radio_station': ((0, 0, 0.32), 1.25, 0.95),
                        'food_station': ((0, 0, 0.78), 2.45, 1.95),
                        'medkit': ((-0.12, 0, 0.30), 1.75, 1.02),
-                       'terminal': ((0, 0, 0.58), 1.75, 1.30)}.get(
+                       'terminal': ((0, 0, 0.58), 1.75, 1.30),
+                       'bed': ((0, 0, 0.42), 3.90, 2.30),
+                       'toilet': ((0, 0, 0.50), 2.30, 1.50),
+                       'operating_table': ((0, 0, 0.85), 3.70, 2.35),
+                       'pantry_shelf': ((0, 0, 0.95), 3.70, 2.50),
+                       'boulder': ((0, 0, 0.34), 2.70, 1.60),
+                       'chair': ((0, 0, 0.50), 2.45, 1.55)}.get(
                            name, ((0, 0, 0.3), 2.1, 1.45))
             # A per-prop fourth value overrides the default camera azimuth so
             # props with an open door or an off-centre silhouette still frame.

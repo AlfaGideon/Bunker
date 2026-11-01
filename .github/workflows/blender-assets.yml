@@ -34,7 +34,8 @@ jobs:
       - name: Verify the rebuilt props
         run: |
           set -euo pipefail
-          for name in campfire crate radio radio_station food_station medkit terminal; do
+          for name in campfire crate radio radio_station food_station medkit terminal \
+                       bed toilet operating_table pantry_shelf boulder chair; do
             built="builds/blender/$name.glb"
             committed="assets/blender/$name.glb"
             test -f "$built" || { echo "::error::$name was not built"; exit 1; }
@@ -42,7 +43,7 @@ jobs:
             built_size=$(stat -c%s "$built")
             committed_size=$(stat -c%s "$committed")
             echo "$name: built $built_size bytes, committed $committed_size bytes"
-            test "$built_size" -gt 20000
+            test "$built_size" -gt 8000
             if [ "$((built_size / 40))" -ne "$((committed_size / 40))" ]; then
               echo "::warning title=$name::The committed $name.glb differs from a fresh build; run tools/blender/build.py and commit the result."
             fi

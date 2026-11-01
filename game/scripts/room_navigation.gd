@@ -9,6 +9,7 @@ var grid := AStarGrid2D.new()
 var layout: Dictionary
 var medical_open := false
 var warehouse_open := false
+var annex_open: Dictionary = {}
 
 
 func _init(plan: Dictionary = {}) -> void:
@@ -48,6 +49,13 @@ func _mark_cell(cell: Vector2i) -> void:
 		solid = true
 	if not warehouse_open and (layout["warehouse_bounds"].has_point(point) or layout["warehouse_gate"].has_point(point)):
 		solid = true
+	# An attached room is only part of the bunker while its door is open.
+	for kind in layout.get("annexes", {}):
+		if annex_open.get(kind, false):
+			continue
+		var annex: Dictionary = layout["annexes"][kind]
+		if annex["bounds"].has_point(point) or annex["corridor"].has_point(point):
+			solid = true
 	grid.set_point_solid(cell, solid)
 
 
@@ -96,6 +104,22 @@ func path_between(start: Vector3, destination: Vector3) -> PackedVector3Array:
 	for point in grid.get_point_path(cell_at(start), cell_at(destination)):
 		result.append(Vector3(point.x, 0, point.y))
 	return result
+
+
+func open_annex(kind: String) -> void:
+	if annex_open.get(kind, false):
+		return
+	annex_open[kind] = true
+	rebuild()
+
+
+func close_annex(kind: String) -> void:
+	annex_open.erase(kind)
+	rebuild()
+
+
+func annex_is_open(kind: String) -> bool:
+	return annex_open.get(kind, false)
 
 
 func unlock_warehouse() -> void:
