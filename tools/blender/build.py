@@ -23,8 +23,9 @@ PROPS = props_camp.PROPS
 
 
 def parse() -> argparse.Namespace:
-    argv = sys.argv
-    argv = argv[argv.index('--') + 1:] if '--' in argv else []
+    argv = sys.argv[1:]
+    if '--' in sys.argv:
+        argv = sys.argv[sys.argv.index('--') + 1:]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', default='assets/blender')
     parser.add_argument('--preview', default='')
