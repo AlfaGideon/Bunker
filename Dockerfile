@@ -7,6 +7,7 @@ COPY server/match_game.py ./match_game.py
 COPY server/web_build.py ./web_build.py
 COPY data/content.json ./content.json
 COPY data/scenarios.json ./scenarios.json
+COPY data/radio.json ./radio.json
 COPY server/invite.html ./invite.html
 COPY server/invite-bg.jpg ./invite-bg.jpg
 ENV PORT=8080 PYTHONUNBUFFERED=1

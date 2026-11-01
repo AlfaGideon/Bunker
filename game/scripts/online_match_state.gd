@@ -20,6 +20,7 @@ var second_ballot := false
 var my_vote := -1
 var result := {}
 var ids: Array[String] = []
+var stations := {}
 
 func setup(id: String) -> void:
  player_id = id
@@ -81,6 +82,7 @@ func apply_snapshot(state: Dictionary) -> bool:
  var next_speaker := next_ids.find(str(state.get("speaker", "")))
  if next_phase == "reveal" and (next_speaker < 0 or not next_active.has(next_speaker)):
   return false
+ stations = state.get("stations", {}).duplicate(true) if state.get("stations") is Dictionary else {}
  revision = new_revision
  ids = next_ids
  players = next_players

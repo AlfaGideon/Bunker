@@ -36,6 +36,9 @@ func vote(player_index: int) -> void:
  if player_index >= 0 and player_index < state.ids.size():
   _send("vote", state.ids[player_index])
 
+func station_action(action: String, value: Variant = null) -> void:
+ _send(action, value)
+
 func _send(action: String, value: Variant) -> void:
  if not closed and is_instance_valid(client):
   client.send({"type": "game_action", "action": action, "value": value})

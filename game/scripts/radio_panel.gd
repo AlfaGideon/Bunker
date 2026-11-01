@@ -199,6 +199,9 @@ func _tune(index: int) -> void:
 		return
 	var entry: Dictionary = room.radio.station_list[index]
 	var station_id: String = str(entry.get("id", ""))
+	if room.online_active:
+		room.online_session.station_action("radio_tune", station_id)
+		return
 	if not room.radio.tunes_all(station_id) and not room.can_scan_radio():
 		room.log_label.text = "Маяк 1180 слушает только специалист: связист или радиотехник."
 		refresh()
@@ -225,6 +228,9 @@ func _tune(index: int) -> void:
 func _toggle_power() -> void:
 	if room == null or room.radio == null:
 		return
+	if room.online_active:
+		room.online_session.station_action("radio_power", not room.radio.powered)
+		return
 	if room.radio.powered:
 		room.radio.power(false)
 		room.log_label.text = "Радио выключено."
@@ -237,6 +243,9 @@ func _toggle_power() -> void:
 
 func _scan() -> void:
 	if room == null:
+		return
+	if room.online_active:
+		room.online_session.station_action("radio_scan")
 		return
 	if not room.scan_radio():
 		refresh()

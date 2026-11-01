@@ -7,6 +7,9 @@
 
 !server/invite-bg.jpg
 !server/match_game.py
+!server/web_build.py
 !data/
 !data/content.json
 !data/scenarios.json
+
+!data/radio.json

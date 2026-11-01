@@ -103,6 +103,16 @@ func run() -> void:
  if not await wait_revision(gs, 3): quit(1); return
  check(second.speech.speaker() == 0, "Guest receives their turn")
  check(second.players[0].id == str(guest_joined.player_id) and first.players[0].id == host_id, "Local player mapping")
+ var revision_before: int = gs.state.revision
+ first._complete_interaction("food")
+ if not await wait_revision(gs, revision_before + 1): quit(1); return
+ check(second.meals == 2, "Food reduces shared portions in the second scene")
+ check(int(gs.state.stations.get("stamina", {}).get(host_id, 0)) == 70, "Food changes server stamina")
+ if not await wait_revision(hs, gs.state.revision): quit(1); return
+ revision_before = hs.state.revision
+ second.radio_panel._tune(1)
+ if not await wait_revision(hs, revision_before + 1): quit(1); return
+ check(first.radio.station == "bunkers" and second.radio.station == "bunkers", "Radio tuning reaches both scenes")
  first.queue_free()
  second.queue_free()
  await process_frame

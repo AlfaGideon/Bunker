@@ -58,15 +58,26 @@ func run() -> void:
  check(client.sent[-1].action == "reveal" and not room.speech.revealed, "Server must confirm reveal")
  room.pass_speech()
  check(client.sent[-1].action == "pass", "Passing is sent to server")
+ room._complete_interaction("food")
+ check(client.sent[-1].action == "food", "Food request goes to the server")
+ room._complete_interaction("bed")
+ check(client.sent[-1].action == "rest", "Rest request goes to the server")
+ room.radio_panel._tune(1)
+ check(client.sent[-1].action == "radio_tune" and client.sent[-1].value == "bunkers", "Radio tuning goes to the server")
+ var station_state := state.duplicate(true)
+ station_state.revision = 2
+ station_state.stations = {"meals": 2, "stock": {"food": 100, "water": 100, "medicine": 32, "filters": 24}, "stamina": {"p1": 70}, "radio": {"powered": true, "station": "bunkers", "track_index": 0, "internet_index": 0, "signal_index": 0, "scan_round": 0, "message_id": 0, "received": []}}
+ client.event_received.emit({"type": "game_state", "state": station_state})
+ check(room.meals == 2 and room.stamina == 70 and room.radio.station == "bunkers", "Shared stations applied from server")
  var next := state.duplicate(true)
- next.revision = 2
+ next.revision = 3
  next.speaker = "p2"
  client.event_received.emit({"type": "game_state", "state": next})
  check(room.speech.speaker() == session.state.index_for("p2"), "Remote speech applied")
  var old_count: int = client.sent.size()
  room.pass_speech()
  check(client.sent.size() == old_count, "Cannot skip another player")
- next.revision = 3
+ next.revision = 4
  next.phase = "vote"
  next.speaker = null
  next.remaining = 20
@@ -75,7 +86,7 @@ func run() -> void:
  check(room.cast_vote(1) and client.sent[-1].action == "vote", "Vote goes to server")
  room._process(30)
  check(room.phase == "vote", "Local clock cannot resolve a server ballot")
- next.revision = 4
+ next.revision = 5
  next.phase = "result"
  next.active = ids.slice(0, 5)
  next.result = {"player": "p5"}

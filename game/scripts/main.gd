@@ -117,6 +117,9 @@ var online_session: Node
 var online_active := false
 var online_speaker := -1
 var online_last_phase := ""
+var online_radio_initialized := false
+var online_radio_message_id := 0
+var online_station_event_id := 0
 
 
 func _ready() -> void:
@@ -189,6 +192,7 @@ func _ready() -> void:
 func _online_state_changed(state) -> void:
 	if not online_active or not is_inside_tree():
 		return
+	_apply_online_stations(state.stations)
 	var previous_active: Array = active.duplicate()
 	var previous_phase := phase
 	var previous_second := vote_second
@@ -242,6 +246,47 @@ func _online_state_changed(state) -> void:
 	_refresh()
 
 
+func _apply_online_stations(stations: Dictionary) -> void:
+	if stations.is_empty():
+		return
+	meals = int(stations.get("meals", meals))
+	var stock: Variant = stations.get("stock", {})
+	if stock is Dictionary and not stock.is_empty():
+		supplies.stock = stock.duplicate(true)
+	var energies: Variant = stations.get("stamina", {})
+	if energies is Dictionary:
+		stamina = int(energies.get(online_session.state.player_id, stamina))
+	var event: Variant = stations.get("event")
+	if event is Dictionary and int(event.get("id", 0)) > online_station_event_id:
+		online_station_event_id = int(event.get("id", 0))
+		var index: int = online_session.state.index_for(str(event.get("player", "")))
+		if index >= 0 and index < online_session.state.players.size():
+			var player_name := str(online_session.state.players[index].get("name", "Участник"))
+			log_label.text = player_name + (" поел. Осталось порций: %d." % meals if str(event.get("action", "")) == "food" else " отдохнул.")
+	var receiver: Variant = stations.get("radio", {})
+	if not receiver is Dictionary or receiver.is_empty():
+		return
+	var changed: bool = radio.powered != bool(receiver.get("powered", false)) or radio.station != str(receiver.get("station", "")) or radio.track_index != int(receiver.get("track_index", 0)) or radio.internet_index != int(receiver.get("internet_index", 0))
+	radio.powered = bool(receiver.get("powered", false))
+	radio.station = str(receiver.get("station", ""))
+	radio.track_index = int(receiver.get("track_index", 0))
+	radio.internet_index = int(receiver.get("internet_index", 0))
+	radio.scan_round = int(receiver.get("scan_round", 0))
+	radio.signal_index = int(receiver.get("signal_index", 0))
+	var entries: Variant = receiver.get("received", [])
+	if entries is Array:
+		radio.received = entries.duplicate(true)
+		for entry in entries:
+			if entry is Dictionary and online_radio_initialized and int(entry.get("id", 0)) > online_radio_message_id:
+				var headline := str(entry.get("from", "")) + ": " + str(entry.get("text", ""))
+				log_label.text = "ЭФИР · " + headline
+				audio.say_radio(headline)
+	online_radio_message_id = int(receiver.get("message_id", 0))
+	if changed or not online_radio_initialized:
+		apply_radio_audio()
+	online_radio_initialized = true
+
+
 func _process(delta: float) -> void:
 	if not online_active or not is_instance_valid(online_session):
 		return
@@ -278,7 +323,8 @@ func _online_player_away(player_id: String) -> void:
 
 func _online_error(code: String) -> void:
 	if is_instance_valid(log_label):
-		log_label.text = "Сервер отклонил действие: " + code
+		var messages := {"already_ate": "Вы уже ели в этом раунде.", "no_meals": "Готовые порции закончились.", "already_rested": "Вы уже отдыхали в этом раунде.", "radio_specialist_required": "Для маяка нужен связист или радиотехник.", "radio_not_beacon": "Сначала включите маяк 1180.", "radio_already_scanned": "Маяк уже прочитан в этом раунде.", "radio_exhausted": "Все передачи маяка прочитаны.", "match_finished": "Партия уже закончилась."}
+		log_label.text = str(messages.get(code, "Сервер отклонил действие: " + code))
 
 
 func _exit_tree() -> void:
@@ -1131,6 +1177,7 @@ func begin_game() -> void:
 	if online_active:
 		started = true
 		menu.visible = false
+		audio.begin()
 		return
 	if started:
 		menu.visible = false
@@ -1177,8 +1224,12 @@ func medical_status() -> String:
 
 func request_interaction(key: String, operator: int = 0) -> bool:
 	if online_active:
-		log_label.text = "Действия в помещениях пока не синхронизированы в онлайн-режиме."
-		return false
+		if operator != 0 or not active.has(0) or finished or online_session.closed:
+			log_label.text = "Действие сейчас недоступно."
+			return false
+		if key not in ["radio", "food"] and not key.begins_with("bed"):
+			log_label.text = "Это помещение пока не синхронизировано в сетевой игре."
+			return false
 	if not active.has(0) or rest_remaining > 0:
 		log_label.text = "Сейчас персонаж не может взаимодействовать."
 		return false
@@ -1216,6 +1267,15 @@ func request_interaction(key: String, operator: int = 0) -> bool:
 
 
 func _complete_interaction(key: String, operator: int = 0) -> void:
+	if online_active:
+		if operator != 0 or not active.has(0) or online_session.closed:
+			return
+		if key == "radio":
+			radio_panel.open()
+		elif key == "food" or key.begins_with("bed"):
+			online_session.station_action("food" if key == "food" else "rest")
+			log_label.text = "Ожидание подтверждения сервера…"
+		return
 	if not active.has(0):
 		return
 	if not active.has(operator) or not Professions.allowed(players[operator], key):
@@ -1329,7 +1389,7 @@ func _complete_interaction(key: String, operator: int = 0) -> void:
 
 
 func _tick_radio(delta: float) -> void:
-	if not started or finished or radio == null:
+	if not started or finished or radio == null or online_active:
 		return
 	var arrival: Dictionary = radio.tick(delta)
 	if arrival.is_empty():
