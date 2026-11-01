@@ -52,6 +52,11 @@ static func wall(room: Node3D, center: Vector2, size: Vector2) -> void:
 		var panel := Art.spawn(room, "modular_sci_fi_Wall_3", at, Vector3(length / count - 0.02, 1.28, 0.16))
 		panel.rotation.y = PI / 2 if vertical else 0
 		glow(room, at + Vector3(0, 1.29, 0), Vector3(0.07, 0.025, length / count - 0.04) if vertical else Vector3(length / count - 0.04, 0.025, 0.07), Color("61c7d0"))
+		# Recessed guide lamps on both faces of each pressure-wall seam.
+		for face in [-1.0, 1.0]:
+			var lamp_at := at + (Vector3(face * 0.095, 1.31, 0) if vertical else Vector3(0, 1.31, face * 0.095))
+			var lamp_size := Vector3(0.035, 0.065, 0.18) if vertical else Vector3(0.18, 0.065, 0.035)
+			glow(room, lamp_at, lamp_size, Color("c6f7ff"))
 
 
 static func decorate(room: Node3D) -> void:
