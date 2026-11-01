@@ -42,7 +42,7 @@ jobs:
       - name: Free runner space for Unity and Android modules
         run: |
           df -h /
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android/sdk/ndk /usr/local/lib/android/sdk/system-images /usr/local/lib/android/sdk/emulator /usr/local/lib/android/sdk/platforms /usr/local/lib/android/sdk/sources /usr/share/dotnet /opt/ghc /usr/local/share/boost
           df -h /
       - name: Support current Unity Hub Linux path
         run: sudo ln -s /usr/lib/unityhub /opt/unityhub
