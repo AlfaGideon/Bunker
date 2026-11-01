@@ -30,8 +30,248 @@ jobs:
                   b=io.BytesIO(); im.save(b,'JPEG',quality=85,optimize=True)
                   out.writestr(kind+'.jpg',b.getvalue())
           data=base64.b64encode(open('/tmp/selected.zip','rb').read()).decode()
-          n=math.ceil(len(data)/45000)
-          if n>45: raise Exception(f'too large for annotated transfer: {len(data)}, {n} parts')
+          n=math.ceil(len(data)/3800)
+          if n>300: raise Exception(f'too large for annotated transfer: {len(data)}, {n} parts')
+          open('/tmp/encoded.txt','w').write(data)
           print(f'::notice::PARTS={n}')
-          for i in range(n): print(f'::notice::PACKPART{i:03d}='+data[i*45000:(i+1)*45000])
+          PY
+      - name: Transfer candidate part 1
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(0,10):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 2
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(10,20):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 3
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(20,30):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 4
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(30,40):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 5
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(40,50):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 6
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(50,60):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 7
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(60,70):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 8
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(70,80):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 9
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(80,90):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 10
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(90,100):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 11
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(100,110):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 12
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(110,120):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 13
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(120,130):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 14
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(130,140):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 15
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(140,150):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 16
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(150,160):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 17
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(160,170):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 18
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(170,180):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 19
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(180,190):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 20
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(190,200):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 21
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(200,210):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 22
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(210,220):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 23
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(220,230):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 24
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(230,240):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 25
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(240,250):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 26
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(250,260):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 27
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(260,270):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 28
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(270,280):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 29
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(280,290):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
+          PY
+      - name: Transfer candidate part 30
+        run: |
+          python3 - <<'PY'
+          data=open('/tmp/encoded.txt').read()
+          for i in range(290,300):
+              part=data[i*3800:(i+1)*3800]
+              if part: print(f'::notice::PACKPART{i:03d}='+part)
           PY
