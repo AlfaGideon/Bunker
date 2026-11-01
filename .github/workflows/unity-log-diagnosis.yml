@@ -15,7 +15,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh api /repos/$GH_REPO/actions/jobs/124835570978/logs > /tmp/unity.log
+          if ! gh api /repos/$GH_REPO/actions/jobs/124835570978/logs > /tmp/unity.log 2>/tmp/gh-error; then
+            echo "::error::$(cat /tmp/gh-error)"
+            exit 1
+          fi
           python3 - <<'PY'
           import re
           text=open('/tmp/unity.log',errors='replace').read().splitlines()
