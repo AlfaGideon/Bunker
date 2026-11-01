@@ -16,6 +16,11 @@ func run() -> void:
  check(ProjectSettings.get_setting("application/run/main_scene") == "res://game/welcome.tscn", "App launches welcome, not bunker")
  check(welcome.page == "home", "Welcome home visible")
  check(is_instance_valid(welcome.radio_prop), "A radio stands in the camp")
+ check(is_instance_valid(welcome.campfire_prop) and str(welcome.campfire_prop.get_meta("source", "")).ends_with("assets/blender/campfire.glb"), "Camp fire pit is a modelled prop")
+ var radio_source := ""
+ for child in welcome.radio_prop.get_children():
+  radio_source = str(child.get_meta("source", radio_source))
+ check(radio_source.ends_with("assets/blender/radio.glb"), "Camp receiver is a modelled prop")
  check(is_instance_valid(welcome.radio_music) and welcome.radio_music.playing, "Camp radio is playing music")
  check(welcome.radio_music.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "Camp music loops")
  check(welcome.radio_music.stream.get_length() >= 20.0, "Camp music is a real piece, not a blip")

@@ -2,6 +2,8 @@
 
 Проект игры «Бункер». Добавлен исходный локальный 3D-прототип Godot: комната, персонажи, раскрытие карточек и тестовое исключение. Проверки Godot и первая Android-сборка успешно выполнены в GitHub Actions; тест на физическом телефоне ещё предстоит.
 
+**Ассеты в Blender:** пропсы лагеря моделятся скриптами `tools/blender` и выгружаются в `assets/blender/*.glb`; Blender запускается headless, а в CI работает модуль `bpy`. [Как собрать](tools/blender/README.md). [Подробности итерации](docs/ITERATION_46.md).
+
 **Запуск:** импортировать `project.godot` в Godot 4.5.1 и нажать F5. [Инструкция и ограничения](docs/RUNNING.md). [Подсчёт голосов, тесты и подготовка Android APK](docs/BUILD_STATUS.md).
 
 **Сервер лобби развёрнут:** [alfagideon.blitz.cloud](https://alfagideon.blitz.cloud). В игре адрес уже стоит по умолчанию (`wss://alfagideon.blitz.cloud/ws`); приглашения создаются тем же хостом. Как развернуть заново — [docs/BLITZ_DEPLOY.md](docs/BLITZ_DEPLOY.md).

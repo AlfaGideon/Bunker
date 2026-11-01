@@ -2,6 +2,7 @@ class_name BunkerArt
 extends RefCounted
 
 const FOLDER := "res://assets/quaternius/"
+const BLENDER := "res://assets/blender/"
 
 
 static func _bounds(node: Node, result: Array, reference: Transform3D) -> void:
@@ -19,7 +20,11 @@ static func spawn(parent: Node3D, filename: String, at: Vector3,
 		size: Vector3, uniform: bool = false) -> Node3D:
 	var wrapper := Node3D.new()
 	parent.add_child(wrapper)
-	var source := ("res://assets/kaykit/" + filename.trim_prefix("kaykit_") + ".glb") if filename.begins_with("kaykit_") else FOLDER + filename + ".glb"
+	var source := FOLDER + filename + ".glb"
+	if filename.begins_with("kaykit_"):
+		source = "res://assets/kaykit/" + filename.trim_prefix("kaykit_") + ".glb"
+	elif filename.begins_with("blender_"):
+		source = BLENDER + filename.trim_prefix("blender_") + ".glb"
 	var scene := load(source) as PackedScene
 	assert(scene != null, "Missing art: " + filename)
 	var model := scene.instantiate() as Node3D

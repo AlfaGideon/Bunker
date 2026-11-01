@@ -31,6 +31,7 @@ var name_input: LineEdit
 var appearance_picker: Choice
 var palette_picker: Choice
 var radio_prop: Node3D
+var campfire_prop: Node3D
 var radio_lamp: OmniLight3D
 var radio_dial_material: StandardMaterial3D
 var radio_music: AudioStreamPlayer
@@ -106,16 +107,10 @@ func build_camp() -> void:
  box(Vector3(0, -0.20, 0), Vector3(60, 0.3, 60), Color("253b37"))
  # A real little campsite outside the bunker, unrelated to the game world.
  box(Vector3(-1.9, 0.20, -0.20), Vector3(1.8, 0.35, 0.55), Color("534235"))
- for i in 10:
-  var angle := float(i) * TAU / 10
-  var rock := MeshInstance3D.new()
-  var mesh := SphereMesh.new()
-  mesh.radius = 0.20
-  mesh.height = 0.25
-  rock.mesh = mesh
-  rock.position = Vector3(cos(angle) * 0.6, 0.08, 1.0 + sin(angle) * 0.6)
-  rock.material_override = mat(Color("71807b"))
-  add_child(rock)
+ # Stone ring, charred logs, tripod and pot are modelled in Blender
+ # (tools/blender) and exported as one small glTF.
+ campfire_prop = Art.spawn(self, "blender_campfire", Vector3(0, 0, 1),
+  Vector3(1.45, 1.02, 1.45), true)
  camp_assets = preload("res://game/scripts/camp_assets.gd").new()
  add_child(camp_assets)
  fire_light = OmniLight3D.new()
@@ -163,57 +158,33 @@ func build_camp() -> void:
 func build_radio() -> void:
  # The receiver stands on its own crate at the edge of the camp, clear of the
  # survivor, so the prop itself is visible and not hidden by the seated model.
- box(Vector3(-2.98, 0.18, 0.92), Vector3(0.66, 0.36, 0.5), Color("4d4136"))
+ Art.spawn(self, "blender_crate", Vector3(-2.98, 0, 0.92), Vector3(0.68, 0.37, 0.52))
  radio_prop = Node3D.new()
- radio_prop.position = Vector3(-2.98, 0.56, 0.92)
+ radio_prop.position = Vector3(-2.98, 0.37, 0.92)
  add_child(radio_prop)
- var body := MeshInstance3D.new()
- var body_mesh := BoxMesh.new()
- body_mesh.size = Vector3(0.66, 0.40, 0.32)
- body.mesh = body_mesh
- body.material_override = mat(Color("4a4038"))
- radio_prop.add_child(body)
- var grille := MeshInstance3D.new()
- var grille_mesh := BoxMesh.new()
- grille_mesh.size = Vector3(0.36, 0.26, 0.04)
- grille.mesh = grille_mesh
- grille.position = Vector3(-0.1, 0.02, 0.17)
- grille.material_override = mat(Color("1d2529"))
- radio_prop.add_child(grille)
- var dial := MeshInstance3D.new()
- var dial_mesh := BoxMesh.new()
- dial_mesh.size = Vector3(0.16, 0.06, 0.03)
- dial.mesh = dial_mesh
- dial.position = Vector3(0.2, 0.11, 0.17)
- radio_dial_material = mat(Color("e0b16a"), true)
- dial.material_override = radio_dial_material
- radio_prop.add_child(dial)
- var knob := MeshInstance3D.new()
- var knob_mesh := CylinderMesh.new()
- knob_mesh.top_radius = 0.05
- knob_mesh.bottom_radius = 0.05
- knob_mesh.height = 0.05
- knob.mesh = knob_mesh
- knob.rotation_degrees = Vector3(90, 0, 0)
- knob.position = Vector3(0.2, -0.09, 0.18)
- knob.material_override = mat(Color("8e7a5f"))
- radio_prop.add_child(knob)
- var antenna := MeshInstance3D.new()
- var antenna_mesh := CylinderMesh.new()
- antenna_mesh.top_radius = 0.008
- antenna_mesh.bottom_radius = 0.012
- antenna_mesh.height = 0.9
- antenna.mesh = antenna_mesh
- antenna.position = Vector3(0.26, 0.62, -0.06)
- antenna.rotation_degrees = Vector3(8, 0, -12)
- antenna.material_override = mat(Color("9aa4a2"))
- radio_prop.add_child(antenna)
+ Art.spawn(radio_prop, "blender_radio", Vector3.ZERO, Vector3(0.5, 0.33, 0.26))
+ _hook_radio_dial()
  radio_lamp = OmniLight3D.new()
- radio_lamp.position = Vector3(0.2, 0.2, 0.34)
+ radio_lamp.position = Vector3(0.16, 0.16, 0.30)
  radio_lamp.light_color = Color("ffcf8a")
  radio_lamp.light_energy = 0.45
  radio_lamp.omni_range = 1.4
  radio_prop.add_child(radio_lamp)
+
+
+# The exported radio carries its dial as a glTF material; give it the same
+# pulsing glow the handmade prop used to have.
+func _hook_radio_dial() -> void:
+ for mesh in radio_prop.find_children("*", "MeshInstance3D", true, false):
+  for surface in (mesh as MeshInstance3D).mesh.get_surface_count():
+   var source := (mesh as MeshInstance3D).get_active_material(surface)
+   if source is StandardMaterial3D and str(source.resource_name).begins_with("radio-glass"):
+    var glow := (source as StandardMaterial3D).duplicate() as StandardMaterial3D
+    glow.emission_enabled = true
+    glow.emission = Color("ffbe74")
+    glow.emission_energy_multiplier = 1.2
+    (mesh as MeshInstance3D).set_surface_override_material(surface, glow)
+    radio_dial_material = glow
 
 
 func start_radio() -> void:
