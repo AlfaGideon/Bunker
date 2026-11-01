@@ -1,0 +1,37 @@
+name: Prepare CC0 Unity environment assets
+on:
+  push:
+    branches: [arena/574beb82-bunker]
+    paths: [.github/workflows/asset-transfer.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download and optimize candidate assets
+        run: |
+          curl --fail --location --retry 2 --max-time 300 -o /tmp/assets.zip 'https://opengameart.org/sites/default/files/Sci-fi%20env2.zip'
+          echo 'd756531f835afca5ee0d4767b92b1017ebcefb1dc2539a957744ad045d9d329f  /tmp/assets.zip' | sha256sum -c -
+          pip install --quiet pillow
+          python3 - <<'PY'
+          import zipfile, io, base64, math
+          from PIL import Image
+          with zipfile.ZipFile('/tmp/assets.zip') as src, zipfile.ZipFile('/tmp/selected.zip','w',zipfile.ZIP_DEFLATED,compresslevel=9) as out:
+              for name in ['Meshes.fbx','Ramps.fbx']:
+                  out.writestr(name,src.read('Sci-fi env2/'+name))
+              for kind in ['Albedo','NormalMap','Emission','Specular']:
+                  ext='tga' if kind in ('Albedo','Specular') else 'png'
+                  data=src.read(f'Sci-fi env2/WhiteColor_{kind}.{ext}')
+                  im=Image.open(io.BytesIO(data)).convert('RGB')
+                  print(f'{kind}: source size {im.size}')
+                  im.thumbnail((1024,1024),Image.Resampling.LANCZOS)
+                  b=io.BytesIO(); im.save(b,'JPEG',quality=85,optimize=True)
+                  out.writestr(kind+'.jpg',b.getvalue())
+          data=base64.b64encode(open('/tmp/selected.zip','rb').read()).decode()
+          n=math.ceil(len(data)/45000)
+          if n>45: raise Exception(f'too large for annotated transfer: {len(data)}, {n} parts')
+          print(f'::notice::PARTS={n}')
+          for i in range(n): print(f'::notice::PACKPART{i:03d}='+data[i*45000:(i+1)*45000])
+          PY
