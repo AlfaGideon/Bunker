@@ -35,7 +35,6 @@ static func build(room: Node3D) -> void:
 	room.add_child(room.med_cover)
 	room._world_label("УБЕЖИЩЕ %d • ПЛАН %d" % [room.capacity, plan["variant"] + 1], Vector3(0, 2.2, -5.1), 26)
 
-	room._world_label("НАРУЖНЫЙ ВЫХОД →", Vector3(3.8, 0.8, 5.5), 22)
 	var lamp := OmniLight3D.new()
 	lamp.position = Vector3(0, 3, 0)
 	lamp.omni_range = 7
