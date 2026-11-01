@@ -27,6 +27,7 @@ class Peer:
     name: str = ''
     skin: str = 'default'
     room: 'Room | None' = None
+    away: bool = False
 
 
 @dataclass(eq=False)
@@ -49,7 +50,8 @@ class Room:
     def public(self):
         return {'id': self.id, 'title': self.title, 'host_id': self.host.id,
                 'capacity': self.capacity, 'count': len(self.members),
-                'players': [{'id': p.id, 'name': p.name, 'skin': p.skin, 'bot': isinstance(p, Bot)} for p in self.members],
+                'players': [{'id': p.id, 'name': p.name, 'skin': p.skin, 'bot': isinstance(p, Bot),
+                             'away': isinstance(p, Peer) and p.away} for p in self.members],
                 'started': self.started}
 
 
@@ -78,9 +80,18 @@ class Lobby:
 
     async def game_update(self, room):
         game = room.game
-        if game is not None:
-            await asyncio.gather(*(self.send(p, {'type': 'game_state', 'state': game.snapshot(p.id)})
-                                   for p in list(room.members) if isinstance(p, Peer)))
+        if game is None:
+            return
+        away = {p.id for p in room.members if isinstance(p, Peer) and p.away}
+        present = [p for p in list(room.members) if isinstance(p, Peer) and not p.away]
+
+        def view(peer):
+            snapshot = game.snapshot(peer.id)
+            for player in snapshot.get('players', []):
+                player['away'] = player.get('id') in away
+            return self.send(peer, {'type': 'game_state', 'state': snapshot})
+
+        await asyncio.gather(*(view(p) for p in present))
 
     async def game_command(self, peer, message):
         async with self.game_lock:
@@ -119,17 +130,25 @@ class Lobby:
         if room is None:
             return
         peer.room = None
-        if peer in room.members:
-            room.members.remove(peer)
-        if room.host is peer or room.game is not None:
+        if room.host is peer:
             self.rooms.pop(room.id, None)
             remaining = [p for p in room.members if isinstance(p, Peer)]
             room.members.clear()
             for player in remaining:
                 player.room = None
-            await asyncio.gather(*(self.send(player, {'type': 'room_closed', 'reason': 'player_disconnected' if room.game is not None and room.host is not peer else 'host_left'}) for player in remaining))
-        else:
-            await self.update(room)
+            await asyncio.gather(*(self.send(player, {'type': 'room_closed', 'reason': 'host_left'}) for player in remaining))
+            return
+        if room.game is not None:
+            # A guest dropped mid-match: keep their seat and the match alive.
+            # Reconnection is not implemented yet, so nobody else is punished.
+            peer.away = True
+            await self.broadcast(room, {'type': 'player_away', 'player_id': peer.id,
+                                        'name': peer.name, 'room': room.public()})
+            await self.game_update(room)
+            return
+        if peer in room.members:
+            room.members.remove(peer)
+        await self.update(room)
 
     async def handle(self, peer, message):
         if not isinstance(message, dict):

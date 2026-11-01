@@ -713,7 +713,31 @@ func _lobby_event(data: Dictionary) -> void:
    lobby_status = "Ведущий вышел — лобби закрыто."
    _lobby_connect_page("list")
   "error":
-   _lobby_status("Ошибка сервера: " + str(data.get("code", "unknown")))
+   _lobby_status(_lobby_error_text(str(data.get("code", "unknown"))))
+
+func _lobby_error_text(code: String) -> String:
+ match code:
+  "room_unavailable":
+   return "Комната недоступна: она заполнена или партия уже началась."
+  "room_full":
+   return "В комнате нет свободных мест."
+  "invalid_name":
+   return "Имя не подходит: до 24 букв, цифр, пробелов и знаков . - _"
+  "invalid_room":
+   return "Комната не найдена — проверьте ссылку."
+  "already_in_room":
+   return "Вы уже в комнате. Сначала выйдите из неё."
+  "server_full":
+   return "Сервер занят, попробуйте позже."
+  "host_only":
+   return "Это может сделать только ведущий."
+  "not_enough_players":
+   return "В комнате не хватает игроков до выбранного размера."
+  "no_game":
+   return "Партия ещё не началась."
+  "already_started":
+   return "Партия уже началась."
+ return "Ошибка сервера: " + code
 
 func _enter_online_game() -> void:
  if not online_starting or not is_instance_valid(lobby_client):

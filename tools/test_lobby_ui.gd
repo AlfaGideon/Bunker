@@ -25,6 +25,8 @@ func run() -> void:
  check(web_info.get("server", "") == "wss://alfagideon.blitz.cloud/ws", "Browser invitation uses the page host")
  check(welcome.web_invitation("?other=1", "alfagideon.blitz.cloud").is_empty(), "Plain browser visit does not join")
  check(welcome.web_invitation("?room=0123456789abcdef", "").is_empty(), "Insecure page cannot invite")
+ check(welcome._lobby_error_text("room_unavailable").begins_with("Комната недоступна"), "Server error explains itself")
+ check(welcome._lobby_error_text("host_only") == "Это может сделать только ведущий.", "Host-only error is friendly")
  welcome.lobby_create()
  check(welcome.page == "lobby_connect", "Create lobby page opens")
  welcome._lobby_event({"type": "joined", "player_id": "one", "room": {"host_id": "one", "count": 2, "capacity": 6, "players": [{"id": "one", "name": "Me"}, {"id": "two", "name": "Friend", "skin": "male"}]}})
