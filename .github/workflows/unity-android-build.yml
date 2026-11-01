@@ -1,4 +1,5 @@
 name: Unity Android prototype APK
+# A push to this branch reruns activation and the isolated test build.
 on:
   workflow_dispatch:
   push:
