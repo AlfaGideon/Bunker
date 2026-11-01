@@ -73,6 +73,24 @@ namespace Bunker.UnityPort
             outgoing.Clear();
         }
 
+        // Blitz free instances return a JSON sleep gate on API requests. Those
+        // requests cannot wake the instance; a human browser visit is required.
+        public static string DescribeFailure(long code, string error, string body)
+        {
+            if (code == 503 && !string.IsNullOrEmpty(body))
+            {
+                try
+                {
+                    var gate = JsonUtility.FromJson<SleepGate>(body);
+                    if (gate != null && gate.status == "asleep")
+                        return "Ошибка: бесплатный сервер спит. Откройте его адрес в браузере, затем повторите подключение.";
+                }
+                catch (ArgumentException) { }
+            }
+            return "Ошибка соединения: " + code + " " + error;
+        }
+        [Serializable] private sealed class SleepGate { public string status; }
+
         private IEnumerator Request(string path, string body, Action<string> success, Action<string> failure)
         {
             using (var req = new UnityWebRequest(Root + "/transport/" + path, "POST"))
@@ -85,7 +103,7 @@ namespace Bunker.UnityPort
                 yield return req.SendWebRequest();
                 if (req.result != UnityWebRequest.Result.Success)
                 {
-                    failure?.Invoke("Ошибка соединения: " + req.responseCode + " " + req.error);
+                    failure?.Invoke(DescribeFailure(req.responseCode, req.error, req.downloadHandler?.text));
                     yield break;
                 }
                 success?.Invoke(req.downloadHandler.text);
