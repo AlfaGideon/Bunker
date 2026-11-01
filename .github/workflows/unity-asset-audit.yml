@@ -1,0 +1,26 @@
+name: Audit free bunker asset pack
+on:
+  push:
+    branches: [arena/574beb82-bunker]
+    paths: [.github/workflows/unity-asset-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Inspect original CC0 sci-fi asset archive
+        run: |
+          curl --fail --location --retry 2 --max-time 300 -o /tmp/assets.zip 'https://opengameart.org/sites/default/files/Sci-fi%20env2.zip'
+          python3 - <<'PY'
+          import zipfile, hashlib
+          path='/tmp/assets.zip'
+          with open(path,'rb') as f: h=hashlib.file_digest(f, 'sha256').hexdigest()
+          with zipfile.ZipFile(path) as z:
+              infos=z.infolist()
+              useful=[i for i in infos if i.filename.lower().endswith(('.fbx','.obj','.png','.jpg','.tga','.blend'))]
+              excerpt='\n'.join(f'{i.file_size:>10} {i.filename}' for i in useful[:100])
+              print('::notice::Archive SHA-256: '+h)
+              print('::notice::Files '+str(len(infos))+', candidate models/textures '+str(len(useful))+'%0A'+excerpt.replace('%','%25').replace('\n','%0A'))
+          PY
