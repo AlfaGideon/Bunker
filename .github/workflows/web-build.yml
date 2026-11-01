@@ -1,0 +1,79 @@
+name: Web build
+on:
+  push:
+    branches: [arena/a25f55da-bunker, arena/1e6def97-bunker, arena/0afa9ec8-bunker, arena/9f4b996e-bunker, arena/60f63d97-bunker, arena/0197b55f-bunker, arena/e42c8910-bunker]
+    paths:
+      - 'game/**'
+      - 'data/**'
+      - 'assets/**'
+      - 'project.godot'
+      - 'export_presets.cfg'
+      - 'tools/check_godot.sh'
+      - '.github/workflows/web-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6
+        with:
+          version: '4.5.1'
+          use-dotnet: false
+          include-templates: true
+      - name: Import project
+        run: bash tools/check_godot.sh --headless --editor --path . --quit
+      - name: Export the single-threaded browser build
+        run: |
+          set -euo pipefail
+          mkdir -p builds/web
+          GODOT_TIMEOUT=600 bash tools/check_godot.sh --headless --path . --export-release "Web" builds/web/index.html
+          ls -l builds/web
+          test -f builds/web/index.html
+          test -f builds/web/index.pck
+          ls builds/web/index.wasm >/dev/null
+      - name: Verify the page starts the engine
+        run: |
+          set -euo pipefail
+          grep -qi 'godot' builds/web/index.html
+          ! grep -q 'file://' builds/web/index.html
+          python3 - <<'PY'
+          import configparser, json, pathlib, zipfile
+          c = configparser.ConfigParser(interpolation=None)
+          c.read('export_presets.cfg')
+          code = c.getint('preset.0.options', 'version/code')
+          web = pathlib.Path('builds/web')
+          total = sum(p.stat().st_size for p in web.iterdir() if p.is_file())
+          print(f'version code {code}, web build {total} bytes')
+          assert total < 300 * 1024 * 1024, 'web build is unexpectedly large'
+          target = pathlib.Path(f'builds/web-{code}.zip')
+          with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as bundle:
+              for item in sorted(web.iterdir()):
+                  if item.is_file():
+                      bundle.write(item, item.name)
+          print(f'packed {target} {target.stat().st_size} bytes')
+          PY
+      - name: Publish the browser build as a release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          code=$(python3 -c 'import configparser; c=configparser.ConfigParser(interpolation=None); c.read("export_presets.cfg"); print(c.getint("preset.0.options", "version/code"))')
+          tag="web-$code"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "builds/web-$code.zip" --clobber
+          else
+            gh release create "$tag" "builds/web-$code.zip" --draft --target "$GITHUB_SHA" \
+              --title "Бункер — Последний шлюз • веб-версия $code" \
+              --notes "Браузерная сборка для тех же комнат, что и на Android. Открывается сервером лобби по адресу /play."
+            gh release edit "$tag" --draft=false
+          fi
+      - name: Keep the unpacked build as an artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: web-build
+          path: builds/web
+          if-no-files-found: error

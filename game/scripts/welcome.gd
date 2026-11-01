@@ -85,6 +85,7 @@ func _ready() -> void:
  start_radio()
  _update_radio_hotspot()
  home()
+ _apply_web_location()
 
 func build_camp() -> void:
  var world := WorldEnvironment.new()
@@ -571,6 +572,30 @@ func _parse_invitation(value: String) -> Dictionary:
  if host_pattern.search(server) == null:
   return {}
  return {"room_id": found.get_string(1), "server": server}
+
+# The browser build learns its server from the page it was opened on, so an
+# invitation link works on any deployment without rebuilding the game.
+static func web_invitation(search: String, host: String) -> String:
+ var room := RegEx.new()
+ room.compile("(?:^|[?&])room=([0-9a-f]{16})")
+ var found := room.search(search)
+ if found == null or host.is_empty():
+  return ""
+ var server := ("wss://" + host + "/ws").uri_encode()
+ return "bunkerinvite://join/" + found.get_string(1) + "?server=" + server
+
+func _apply_web_location() -> void:
+ if not OS.has_feature("web"):
+  return
+ var window: Variant = JavaScriptBridge.get_interface("window")
+ if window == null:
+  return
+ var host := str(window.location.host)
+ if str(window.location.protocol) == "https:" and not host.is_empty():
+  lobby_url = "wss://" + host + "/ws"
+ var invite := web_invitation(str(window.location.search), host)
+ if not invite.is_empty():
+  call_deferred("_accept_invitation", invite)
 
 func _accept_invitation(value: String) -> void:
  var info := _parse_invitation(value)

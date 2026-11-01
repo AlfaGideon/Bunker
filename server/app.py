@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from aiohttp import WSMsgType, web, ClientSession, ClientTimeout, ClientError
 from pathlib import Path
 from match_game import Match, GameError
+from web_build import WebBuild, WebBuildError
 
 MAX_ROOMS = 100
 MAX_SOCKETS = 500
@@ -322,11 +323,51 @@ async def http_message(request):
 
 
 LOBBY_KEY = web.AppKey('lobby', Lobby)
+WEB_KEY = web.AppKey('web', WebBuild)
+WEB_ROOT = Path(os.environ.get('WEB_ROOT', '/tmp/bunker-web'))
+
+
+async def warm_web(app):
+    """Start fetching the browser build as soon as the container is awake."""
+    task = asyncio.create_task(app[WEB_KEY].ensure())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+async def play_status(request):
+    build: WebBuild = request.app[WEB_KEY]
+    return web.json_response({'ready': build.ready, 'version': build.version,
+                              'error': build.error}, headers={'Cache-Control': 'no-store'})
+
+
+async def play_index(request):
+    build: WebBuild = request.app[WEB_KEY]
+    if not await build.ensure():
+        raise web.HTTPServiceUnavailable(text='Веб-версия ещё готовится. Обновите страницу через минуту.',
+                                         headers={'Cache-Control': 'no-store'})
+    return web.FileResponse(build.resolve('index.html'), headers={'Cache-Control': 'no-cache'})
+
+
+async def play_file(request):
+    build: WebBuild = request.app[WEB_KEY]
+    name = request.match_info.get('name', '')
+    if not build.ready:
+        raise web.HTTPServiceUnavailable(text='Веб-версия ещё готовится.')
+    path = build.resolve(name)
+    if path is None:
+        raise web.HTTPNotFound()
+    long_lived = path.suffix.lower() in ('.pck', '.wasm')
+    headers = {'Cache-Control': 'public, max-age=3600' if long_lived else 'public, max-age=300'}
+    return web.FileResponse(path, headers=headers)
 
 
 async def index(request):
     return web.Response(
-        text='<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Бункер — сервер</title><body><h1>Бункер — Последний шлюз</h1><p>Сервер лобби работает. Теперь можно подключиться из игры.</p><p><a href="/healthz">Проверить состояние сервера</a></p></body></html>',
+        text='<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Бункер — сервер</title><body><h1>Бункер — Последний шлюз</h1><p>Сервер лобби работает. Теперь можно подключиться из игры.</p><p><a href="/play">Играть в браузере</a></p><p><a href="/healthz">Проверить состояние сервера</a></p></body></html>',
         content_type='text/html',
         headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'},
     )
@@ -433,6 +474,12 @@ def create_app():
     app.router.add_get('/download', download_apk)
     app.router.add_get('/invite/{room_id}', invite_page)
     app.router.add_get('/ws', websocket)
+    app[WEB_KEY] = WebBuild(WEB_ROOT, source=os.environ.get('WEB_BUILD_ZIP', ''))
+    app.cleanup_ctx.append(warm_web)
+    app.router.add_get('/play-status', play_status)
+    app.router.add_get('/play', play_index)
+    app.router.add_get('/play/', play_index)
+    app.router.add_get('/play/{name:.+}', play_file)
     return app
 
 
