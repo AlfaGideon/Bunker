@@ -17,3 +17,14 @@ BUNKER_*.txt
 
 # Generated Godot Android Gradle template
 android/
+
+# Unity-generated editor state, caches and exports; source project is tracked.
+unity/BunkerUnity/[Ll]ibrary/
+unity/BunkerUnity/[Tt]emp/
+unity/BunkerUnity/[Oo]bj/
+unity/BunkerUnity/[Ll]ogs/
+unity/BunkerUnity/[Uu]serSettings/
+unity/BunkerUnity/[Bb]uilds/
+unity/BunkerUnity/MemoryCaptures/
+unity/BunkerUnity/*.csproj
+unity/BunkerUnity/*.sln
