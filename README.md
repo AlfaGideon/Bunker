@@ -4,6 +4,8 @@
 
 **Запуск:** импортировать `project.godot` в Godot 4.5.1 и нажать F5. [Инструкция и ограничения](docs/RUNNING.md). [Подсчёт голосов, тесты и подготовка Android APK](docs/BUILD_STATUS.md).
 
+**Сервер лобби развёрнут:** [alfagideon.blitz.cloud](https://alfagideon.blitz.cloud). В игре адрес уже стоит по умолчанию (`wss://alfagideon.blitz.cloud/ws`); приглашения создаются тем же хостом. Как развернуть заново — [docs/BLITZ_DEPLOY.md](docs/BLITZ_DEPLOY.md).
+
 - [Функциональные блоки приложения и правила MVP](FUNCTIONALITY.md)
 - [Конкретные ресурсы, движок и порядок их использования](docs/RESOURCES.md)
 - [Схема первой анимированной сцены и критерии готовности](docs/FIRST_SCENE.md)

@@ -23,11 +23,24 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r server/requirements.txt
-      - run: |
-          python tools/test_live_http_lobby.py > /tmp/snap-test.log 2>&1 || {
-            python -c 'from pathlib import Path; print("::error::" + Path("/tmp/snap-test.log").read_text()[-7000:].replace("%", "%25").replace("\n", "%0A"))'
+      - name: HTTPS polling transport
+        run: |
+          python tools/test_live_http_lobby.py > /tmp/poll-test.log 2>&1 || {
+            python -c 'from pathlib import Path; print("::error::" + Path("/tmp/poll-test.log").read_text()[-7000:].replace("%", "%25").replace("\n", "%0A"))'
             exit 1
           }
-          cat /tmp/snap-test.log
+          cat /tmp/poll-test.log
         env:
-          LOBBY_URL: ${{ inputs.lobby_url || 'https://bunker-154de.containers.snapdeploy.app' }}
+          LOBBY_URL: ${{ inputs.lobby_url || 'https://alfagideon.blitz.cloud' }}
+      - name: WebSocket transport (reported, the client falls back automatically)
+        continue-on-error: true
+        run: |
+          python tools/test_live_lobby.py > /tmp/ws-test.log 2>&1 || {
+            tail -n 20 /tmp/ws-test.log
+            echo '::warning title=WebSocket::The host refuses WebSocket; the client plays the same protocol over HTTPS polling.'
+            exit 1
+          }
+          cat /tmp/ws-test.log
+          echo 'WebSocket transport works on this host' >> "$GITHUB_STEP_SUMMARY"
+        env:
+          LOBBY_URL: ${{ inputs.lobby_url || 'https://alfagideon.blitz.cloud' }}
