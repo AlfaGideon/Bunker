@@ -2,7 +2,7 @@ name: Publish signed Android update
 on:
   workflow_dispatch:
   push:
-    branches: [arena/a25f55da-bunker, arena/1e6def97-bunker, arena/0afa9ec8-bunker, arena/9f4b996e-bunker, arena/60f63d97-bunker, arena/0197b55f-bunker, arena/e42c8910-bunker, arena/67338b4c-bunker]
+    branches: [arena/a25f55da-bunker, arena/1e6def97-bunker, arena/0afa9ec8-bunker, arena/9f4b996e-bunker, arena/60f63d97-bunker, arena/0197b55f-bunker, arena/e42c8910-bunker, arena/67338b4c-bunker, arena/6514d90e-bunker]
     paths:
       - 'game/**'
       - 'data/**'
