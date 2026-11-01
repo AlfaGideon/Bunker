@@ -53,16 +53,28 @@ func run_test() -> void:
 	var terminal: Node = motion_of("terminal", room)
 	check(terminal != null, "The hall console has a motion driver")
 	if terminal != null and terminal.cursor != null:
+		# Start from a known phase: the cursor only moves when it crosses a line.
+		terminal.clock = 0.0
+		terminal._process(0.0)
 		var cursor_before: float = terminal.cursor.position.y
-		step(terminal, 1.4)
+		step(terminal, 0.7)
 		check(absf(terminal.cursor.position.y - cursor_before) > 0.01, "The cursor walks down the screen")
 		check(terminal.cursor.visible, "The cursor stays visible while typing")
+		step(terminal, 1.2)
+		var blinked := false
+		for sample in 20:
+			if not terminal.cursor.visible:
+				blinked = true
+			step(terminal, 0.03)
+		check(blinked, "The cursor blinks in the pause before the screen wraps")
 	else:
 		check(false, "The console exports a cursor node")
 
 	var steam: Node = motion_of("steam", room)
 	check(steam != null, "The galley pot has a steam driver")
 	if steam != null and steam.steam != null:
+		steam.clock = 0.0
+		steam._process(0.0)
 		var height_before: float = steam.steam.position.y
 		var alpha_before: float = 1.0
 		if steam.puff != null:
