@@ -39,6 +39,7 @@ jobs:
       - name: Install Unity Editor and Android modules on the runner
         uses: buildalon/unity-setup@30fcbcb56c10ea5d64298e970d952b8d29bc268b # v2.6.0
         with:
+          version-file: None
           unity-version: 2022.3.62f1
           build-targets: Android
           modules: android-sdk-ndk-tools, android-open-jdk
