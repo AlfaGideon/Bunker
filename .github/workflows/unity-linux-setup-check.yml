@@ -1,0 +1,23 @@
+name: Unity Linux installer check
+on:
+  push:
+    branches: [arena/574beb82-bunker]
+    paths: [.github/workflows/unity-linux-setup-check.yml]
+permissions:
+  contents: read
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      # Hub 3.20+ moved its binaries; the current action expects the old path.
+      - name: Support current Unity Hub Linux path
+        run: sudo ln -s /usr/lib/unityhub /opt/unityhub
+      - uses: buildalon/unity-setup@30fcbcb56c10ea5d64298e970d952b8d29bc268b
+        with:
+          version-file: None
+          unity-version: 2022.3.62f1
+          build-targets: Android
+          modules: android-sdk-ndk-tools, android-open-jdk
+      - run: test -x "$UNITY_EDITOR_PATH"
