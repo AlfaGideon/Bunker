@@ -50,7 +50,8 @@ namespace Bunker.UnityPort.World
             var mat = new Material(Shader.Find("Standard")); mat.mainTexture = texture;
             mat.mainTextureScale = new Vector2(100, 100); mat.SetFloat("_Glossiness", .05f);
             ground.GetComponent<Renderer>().sharedMaterial = mat;
-            Destroy(ground.GetComponent<Collider>());
+            var groundCollider = ground.GetComponent<Collider>();
+            if (Application.isPlaying) Destroy(groundCollider); else DestroyImmediate(groundCollider);
             var list = new System.Collections.Generic.List<Transform>();
             for (int i = 0; i < 8; i++)
             {
@@ -107,7 +108,7 @@ namespace Bunker.UnityPort.World
         private void OnDestroy()
         {
             var ground = transform.Find("Forest ground");
-            if (ground != null) { var r = ground.GetComponent<Renderer>(); if (r != null) Destroy(r.sharedMaterial); }
+            if (ground != null) { var r = ground.GetComponent<Renderer>(); if (r != null) { if (Application.isPlaying) Destroy(r.sharedMaterial); else DestroyImmediate(r.sharedMaterial); } }
         }
     }
 }
