@@ -410,19 +410,47 @@ async def invite_background(request):
     return web.FileResponse(Path(__file__).with_name('invite-bg.jpg'))
 
 
+ANDROID_TAG = re.compile(r'^android-([0-9]+)$')
+
+
+async def latest_android_code():
+    """Newest published Android release, ignoring web-only releases."""
+    url = 'https://api.github.com/repos/AlfaGideon/Bunker/releases?per_page=20'
+    headers = {'User-Agent': 'Bunker-Invite/1.0', 'Accept': 'application/vnd.github+json'}
+    try:
+        async with ClientSession(timeout=ClientTimeout(total=30, connect=15), headers=headers) as client:
+            async with client.get(url) as response:
+                if response.status != 200:
+                    return None
+                releases = await response.json()
+    except (ClientError, asyncio.TimeoutError):
+        return None
+    if not isinstance(releases, list):
+        return None
+    best = None
+    for release in releases:
+        if not isinstance(release, dict) or release.get('draft'):
+            continue
+        match = ANDROID_TAG.match(str(release.get('tag_name', '')))
+        if not match:
+            continue
+        names = {str(asset.get('name', '')) for asset in release.get('assets', [])}
+        code = match.group(1)
+        if 'bunker-' + code + '.apk' in names and (best is None or int(code) > int(best)):
+            best = code
+    return best
+
+
 async def download_apk(request):
     # Stream the signed latest APK through this site, never buffer it in RAM.
     # Restrict both release tag and first download URL to our repository.
     base = 'https://github.com/AlfaGideon/Bunker/releases'
     timeout = ClientTimeout(total=600, connect=30, sock_read=60)
     try:
+        version = await latest_android_code()
+        if version is None:
+            raise web.HTTPServiceUnavailable(text='Обновление пока недоступно')
         async with ClientSession(timeout=timeout, headers={'User-Agent': 'Bunker-Invite/1.0'}) as client:
-            async with client.get(base + '/latest', allow_redirects=False) as latest:
-                location = latest.headers.get('Location', '')
-                match = re.fullmatch(r'https://github\.com/AlfaGideon/Bunker/releases/tag/android-([0-9]+)', location)
-                if latest.status not in (301, 302) or not match:
-                    raise web.HTTPServiceUnavailable(text='Обновление пока недоступно')
-                version = match.group(1)
             url = base + '/download/android-' + version + '/bunker-' + version + '.apk'
             async with client.get(url, allow_redirects=True) as upstream:
                 if upstream.status != 200:

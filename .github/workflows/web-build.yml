@@ -63,13 +63,14 @@ jobs:
           set -euo pipefail
           code=$(python3 -c 'import configparser; c=configparser.ConfigParser(interpolation=None); c.read("export_presets.cfg"); print(c.getint("preset.0.options", "version/code"))')
           tag="web-$code"
+          # Pre-releases on purpose: "/releases/latest" must keep pointing at the
+          # signed Android build that the in-app updater and /download rely on.
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "builds/web-$code.zip" --clobber
           else
-            gh release create "$tag" "builds/web-$code.zip" --draft --target "$GITHUB_SHA" \
+            gh release create "$tag" "builds/web-$code.zip" --prerelease --target "$GITHUB_SHA" \
               --title "Бункер — Последний шлюз • веб-версия $code" \
               --notes "Браузерная сборка для тех же комнат, что и на Android. Открывается сервером лобби по адресу /play."
-            gh release edit "$tag" --draft=false
           fi
       - name: Keep the unpacked build as an artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
