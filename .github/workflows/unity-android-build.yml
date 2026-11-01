@@ -29,7 +29,7 @@ jobs:
   android-prototype:
     needs: license-check
     if: needs.license-check.outputs.configured == 'true'
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 90
     concurrency: unity-personal-activation
     steps:
@@ -50,10 +50,12 @@ jobs:
           username: ${{ secrets.UNITY_USERNAME }}
           password: ${{ secrets.UNITY_PASSWORD }}
       - name: Build separately installed prototype, not a production update
+        shell: pwsh
         run: |
-          "$UNITY_EDITOR_PATH" -batchmode -nographics -quit -logFile - \
-            -projectPath "$GITHUB_WORKSPACE/unity/BunkerUnity" -buildTarget Android \
+          & "$env:UNITY_EDITOR_PATH" -batchmode -nographics -quit -logFile - `
+            -projectPath "$env:GITHUB_WORKSPACE/unity/BunkerUnity" -buildTarget Android `
             -executeMethod Bunker.UnityPort.Editor.PrototypeBuild.BuildAndroid
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Save test APK
         uses: actions/upload-artifact@v4
         with:
