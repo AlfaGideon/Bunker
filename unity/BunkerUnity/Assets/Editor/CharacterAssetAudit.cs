@@ -21,7 +21,15 @@ namespace Bunker.UnityPort.Editor
             AssetDatabase.ImportAsset(animPath, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
             Debug.Log("CHARACTER_IMPORTER " + (AssetImporter.GetAtPath(bodyPath)?.GetType().FullName ?? "none"));
             var body = AssetDatabase.LoadAssetAtPath<GameObject>(bodyPath);
-            if (body == null) throw new Exception("Character GLB was not imported as a GameObject");
+            if (body == null)
+            {
+                var importer = AssetImporter.GetAtPath(bodyPath);
+                var field = importer?.GetType().GetField("reportItems", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                var items = field?.GetValue(importer) as System.Collections.IEnumerable;
+                string details = "";
+                if (items != null) foreach (var item in items) details += " " + item;
+                throw new Exception("Character GLB import failed:" + details);
+            }
             var skin = body.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             if (skin.Length == 0) throw new Exception("Character has no skinned mesh");
             var clips = AssetDatabase.LoadAllAssetsAtPath(animPath).OfType<AnimationClip>().Select(c => c.name).ToArray();
