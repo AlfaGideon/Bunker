@@ -43,6 +43,43 @@ foreach (int size in new[] { 6, 8, 10 })
     var final = complete.Snapshot();
     Check(final.phase == "end" && final.active.Length == size / 2, $"local {size} player game finishes at capacity");
 }
+var radioData = JsonSerializer.Deserialize<RadioContent>(File.ReadAllText(Path.Combine(dataPath, "radio.json")), localJsonOptions);
+var fixedContent = new ContentData {
+    professions = new[] { "Врач", "Повар", "Логист", "Связист", "Тренер", "Электрик" },
+    ages = new[] { "30 лет" }, skills = new[] { "Ремонт" }, baggage = new[] { "Аптечка" },
+    health = new[] { new HealthOption { label = "Диабет", cost = new Stock { medicine = 2, food = 1 } } },
+    facts = new[] { "Факт" }, qualities = new[] { "Характер" }
+};
+var offline = new LocalMatch(fixedContent, new[] { new Scenario { title = "Жара", weather = "heat" } }, 6, "Игрок", 12, radioData);
+var offlinePlayers = offline.Snapshot().players;
+string WithRole(string role) => offlinePlayers.First(p => p.cards[0].value == role).id;
+string cook = WithRole("Повар"), doctor = WithRole("Врач"), logistics = WithRole("Логист"), signalOperator = WithRole("Связист");
+Check(!offline.StationCommand(doctor, "gate") && !offline.Snapshot().stations.medical_open, "offline medical locked in round one");
+Check(!offline.StationCommand(doctor, "kitchen"), "offline profession validation");
+Check(offline.StationCommand(cook, "kitchen") && offline.Snapshot().stations.meals == 8, "offline kitchen produces shared meals");
+Check(!offline.StationCommand(cook, "kitchen"), "offline station cooldown");
+Check(offline.StationCommand(LocalMatch.HumanId, "food") && offline.Snapshot().stations.local_stamina == 70, "offline food and stamina");
+Check(!offline.StationCommand(LocalMatch.HumanId, "food"), "offline meal cooldown");
+Check(offline.StationCommand(LocalMatch.HumanId, "rest") && offline.Snapshot().stations.local_stamina == 90, "offline rest and stamina");
+foreach (var player in offlinePlayers.Take(4)) Check(offline.StationCommand(player.id, "warehouse_gate"), "offline warehouse vote");
+Check(offline.Snapshot().stations.warehouse_open, "offline majority opens warehouse");
+Check(offline.StationCommand(logistics, "supply") && !offline.StationCommand(logistics, "supply"), "offline supply granted once");
+Check(offline.StationCommand(signalOperator, "radio_tune", "bunkers"), "offline radio tune");
+offline.Tick(9);
+Check(offline.Snapshot().stations.radio.received.Length == 1, "offline radio broadcast generated");
+Check(offline.StationCommand(signalOperator, "radio_tune", "beacon"), "offline beacon tuned");
+var beforeScan = offline.Snapshot().stations.stock;
+Check(offline.StationCommand(signalOperator, "radio_scan") && offline.Snapshot().stations.stock.filters == beforeScan.filters + 3, "offline beacon applies reward");
+Check(!offline.StationCommand(signalOperator, "radio_scan"), "offline beacon once per round");
+var costs = offlinePlayers.ToDictionary(p => p.id, p => new Stock { medicine = 2, food = 1 });
+var stationTest = new LocalStations(offlinePlayers.ToList(), costs, 3, radioData);
+var activeIds = offlinePlayers.Select(p => p.id).ToList();
+stationTest.ChargeRound(activeIds, "heat");
+var charged = stationTest.Snapshot(LocalMatch.HumanId);
+Check(charged.stock.water == 82 && charged.stock.food == 82 && charged.stock.medicine == 20 && charged.local_stamina == 48, "offline round consumption includes weather and hidden health");
+Check(stationTest.Command(doctor, "gate", null, 2, activeIds, out _) && stationTest.Snapshot(LocalMatch.HumanId).medical_open, "offline doctor opens medical from round two");
+activeIds.Remove(doctor); stationTest.OnElimination(activeIds);
+Check(!stationTest.Snapshot(LocalMatch.HumanId).medical_open, "offline medical closes after doctor eliminated");
 var root = Environment.GetEnvironmentVariable("BUNKER_TEST_URL") ?? "http://127.0.0.1:8080";
 Check(LobbyTransport.TryNormalize("wss://example.org/ws", false, out var normalized) && normalized == "https://example.org", "wss normalized to HTTPS");
 Check(!LobbyTransport.TryNormalize("http://example.org", false, out _), "device rejects HTTP");

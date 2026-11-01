@@ -193,12 +193,14 @@ namespace Bunker.UnityPort
         {
             var content = Resources.Load<TextAsset>("content");
             var scenarios = Resources.Load<TextAsset>("scenarios");
-            if (content == null || scenarios == null) { status = "Не найдены игровые данные"; Draw(); return; }
+            var radio = Resources.Load<TextAsset>("radio");
+            if (content == null || scenarios == null || radio == null) { status = "Не найдены игровые данные"; Draw(); return; }
             try
             {
                 var pool = JsonUtility.FromJson<ContentData>(content.text);
                 var list = JsonUtility.FromJson<ScenarioList>("{\"items\":" + scenarios.text + "}");
-                localMatch = new LocalMatch(pool, list.items, capacity, nickname, Environment.TickCount);
+                var radioData = JsonUtility.FromJson<RadioContent>(radio.text);
+                localMatch = new LocalMatch(pool, list.items, capacity, nickname, Environment.TickCount, radioData);
                 playerId = LocalMatch.HumanId; selectedId = playerId;
                 state = localMatch.Snapshot(); localRemaining = state.remaining;
                 screen = "game"; stationsPage = false; radioPage = false;
@@ -234,8 +236,9 @@ namespace Bunker.UnityPort
         {
             if (localMatch != null)
             {
-                if (!localMatch.Command(action, value)) status = "Действие сейчас недоступно";
-                else status = "Оффлайн-тест: действие выполнено";
+                bool isTurnAction = action == "reveal" || action == "pass" || action == "vote";
+                bool accepted = isTurnAction ? localMatch.Command(action, value) : localMatch.StationCommand(selectedId, action, value);
+                status = accepted ? "Действие выполнено" : (isTurnAction ? "Действие сейчас недоступно" : (localMatch.LastError ?? "Действие сейчас недоступно"));
                 state = localMatch.Snapshot(); localRemaining = state.remaining; Draw(); return;
             }
             if (!transport.Send(new Command { type = "game_action", action = action, value = value }))
@@ -298,7 +301,7 @@ namespace Bunker.UnityPort
             }
             var st = state.stations;
             string stock = st.stock == null ? "" : "Вода " + st.stock.water + " · Еда " + st.stock.food + " · Лекарства " + st.stock.medicine + " · Фильтры " + st.stock.filters;
-            Label(page, "Порции: " + st.meals + "   " + stock, .35f, .75f, .95f, .81f, 16, TextAnchor.MiddleLeft);
+            Label(page, "Порции: " + st.meals + "   " + stock + (localMatch != null ? " · Бодрость " + st.local_stamina : ""), .35f, .75f, .95f, .81f, 16, TextAnchor.MiddleLeft);
             if (radioPage) { DrawRadio(st.radio); return; }
             string[] labels = { "ПОЕСТЬ", "ОТДЫХ", "ТЕРМИНАЛ", "МЕДБЛОК · ДВЕРЬ", "МЕДОСМОТР", "КУХНЯ", "СКЛАД · ГОЛОС", "СНАБЖЕНИЕ", "СПОРТЗАЛ", "МАСТЕРСКАЯ", "ТЕПЛИЦА", "РАДИО" };
             string[] actions = { "food", "rest", "terminal", "gate", "medical", "kitchen", "warehouse_gate", "supply", "gym", "workshop", "greenhouse", "radio" };
@@ -309,7 +312,8 @@ namespace Bunker.UnityPort
                 Button(page, labels[i], left, top - .10f, left + .19f, top,
                     () => { if (actions[index] == "radio") { radioPage = true; Draw(); } else Action(actions[index]); }, 13);
             }
-            Label(page, "Сетевой тест: доступ к комнатам и движение пока не перенесены.", .35f, .13f, .95f, .19f, 13, TextAnchor.MiddleLeft);
+            var actor = (state.players ?? Array.Empty<Player>()).FirstOrDefault(p => p.id == selectedId);
+            Label(page, localMatch != null ? "Исполнитель: " + (actor?.name ?? "—") + ". Выберите его слева." : "Тест: движение и доступ к комнатам пока не перенесены.", .35f, .13f, .95f, .19f, 13, TextAnchor.MiddleLeft);
         }
         private void DrawRadio(RadioState radio)
         {
@@ -322,7 +326,7 @@ namespace Bunker.UnityPort
                 int index = i; float left = .35f + i * .15f;
                 Button(page, labels[i], left, .54f, left + .14f, .64f, () => Action("radio_tune", ids[index]), 13);
             }
-            Button(page, radio.powered ? "ВЫКЛЮЧИТЬ" : "ВКЛЮЧИТЬ", .35f, .43f, .54f, .51f, () => transport.SendRadioPower(!radio.powered), 13);
+            Button(page, radio.powered ? "ВЫКЛЮЧИТЬ" : "ВКЛЮЧИТЬ", .35f, .43f, .54f, .51f, () => { if (localMatch != null) Action("radio_power", radio.powered ? "off" : "on"); else transport.SendRadioPower(!radio.powered); }, 13);
             Button(page, "СКАНИРОВАТЬ", .55f, .43f, .74f, .51f, () => Action("radio_scan"), 13);
             Button(page, "НАЗАД", .75f, .43f, .94f, .51f, () => { radioPage = false; Draw(); }, 13);
             var received = radio.received ?? Array.Empty<RadioMessage>();

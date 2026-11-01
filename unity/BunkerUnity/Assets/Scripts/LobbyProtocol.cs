@@ -68,7 +68,7 @@ namespace Bunker.UnityPort
         public int seat;
         public Card[] cards;
     }
-    [Serializable] public sealed class Scenario { public string id; public string title; public string brief; }
+    [Serializable] public sealed class Scenario { public string id; public string title; public string brief; public string weather; }
     [Serializable] public sealed class MatchState
     {
         public int revision;
@@ -97,6 +97,10 @@ namespace Bunker.UnityPort
         public bool medical_open;
         public bool warehouse_open;
         public bool shortage;
+        public bool systems_ready;
+        public int warehouse_votes;
+        // Populated only by the offline simulation; the server sends a map instead.
+        public int local_stamina;
         public Stock stock;
         public RadioState radio;
     }
