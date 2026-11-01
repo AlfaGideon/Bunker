@@ -27,10 +27,11 @@ namespace Bunker.UnityPort.Editor
         public static void BuildAndroid()
         {
             Configure();
-            Directory.CreateDirectory("Builds");
+            var buildDir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Builds"));
+            Directory.CreateDirectory(buildDir);
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = new[] { "Assets/Scenes/Bootstrap.unity" },
-                locationPathName = "Builds/bunker-unity-prototype.apk",
+                locationPathName = Path.Combine(buildDir, "bunker-unity-prototype.apk"),
                 target = BuildTarget.Android,
                 options = BuildOptions.Development
             });

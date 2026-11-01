@@ -1,0 +1,58 @@
+name: Unity Android prototype APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [arena/574beb82-bunker]
+    paths:
+      - 'unity/BunkerUnity/**'
+      - '.github/workflows/unity-android-build.yml'
+permissions:
+  contents: read
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          LICENSE: ${{ secrets.UNITY_LICENSE }}
+          EMAIL: ${{ secrets.UNITY_EMAIL }}
+          PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if [ -n "$LICENSE" ] && [ -n "$EMAIL" ] && [ -n "$PASSWORD" ]; then
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::Unity Personal activation is missing. No Unity build was run; see docs/UNITY_BUILD.md.'
+          fi
+  android-prototype:
+    needs: license-check
+    if: needs.license-check.outputs.configured == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Build separately installed prototype, not a production update
+        uses: game-ci/unity-builder@4423ee75828dff56037d1d1cfdac6b68e3a6ba00 # v4.8.2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity/BunkerUnity
+          unityVersion: 2022.3.62f1
+          targetPlatform: Android
+          buildMethod: Bunker.UnityPort.Editor.PrototypeBuild.BuildAndroid
+          versioning: Custom
+          version: 0.1.0
+          androidExportType: androidPackage
+      - name: Save test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bunker-unity-prototype-android
+          path: unity/BunkerUnity/Builds/bunker-unity-prototype.apk
+          if-no-files-found: error
+          retention-days: 14
