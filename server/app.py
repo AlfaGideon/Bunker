@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from aiohttp import WSMsgType, web, ClientSession, ClientTimeout, ClientError
 from pathlib import Path
 from match_game import Match, GameError
+from web_build import WebBuild, WebBuildError
 
 MAX_ROOMS = 100
 MAX_SOCKETS = 500
@@ -26,6 +27,7 @@ class Peer:
     name: str = ''
     skin: str = 'default'
     room: 'Room | None' = None
+    away: bool = False
 
 
 @dataclass(eq=False)
@@ -48,7 +50,8 @@ class Room:
     def public(self):
         return {'id': self.id, 'title': self.title, 'host_id': self.host.id,
                 'capacity': self.capacity, 'count': len(self.members),
-                'players': [{'id': p.id, 'name': p.name, 'skin': p.skin, 'bot': isinstance(p, Bot)} for p in self.members],
+                'players': [{'id': p.id, 'name': p.name, 'skin': p.skin, 'bot': isinstance(p, Bot),
+                             'away': isinstance(p, Peer) and p.away} for p in self.members],
                 'started': self.started}
 
 
@@ -77,9 +80,18 @@ class Lobby:
 
     async def game_update(self, room):
         game = room.game
-        if game is not None:
-            await asyncio.gather(*(self.send(p, {'type': 'game_state', 'state': game.snapshot(p.id)})
-                                   for p in list(room.members) if isinstance(p, Peer)))
+        if game is None:
+            return
+        away = {p.id for p in room.members if isinstance(p, Peer) and p.away}
+        present = [p for p in list(room.members) if isinstance(p, Peer) and not p.away]
+
+        def view(peer):
+            snapshot = game.snapshot(peer.id)
+            for player in snapshot.get('players', []):
+                player['away'] = player.get('id') in away
+            return self.send(peer, {'type': 'game_state', 'state': snapshot})
+
+        await asyncio.gather(*(view(p) for p in present))
 
     async def game_command(self, peer, message):
         async with self.game_lock:
@@ -118,17 +130,25 @@ class Lobby:
         if room is None:
             return
         peer.room = None
-        if peer in room.members:
-            room.members.remove(peer)
-        if room.host is peer or room.game is not None:
+        if room.host is peer:
             self.rooms.pop(room.id, None)
             remaining = [p for p in room.members if isinstance(p, Peer)]
             room.members.clear()
             for player in remaining:
                 player.room = None
-            await asyncio.gather(*(self.send(player, {'type': 'room_closed', 'reason': 'player_disconnected' if room.game is not None and room.host is not peer else 'host_left'}) for player in remaining))
-        else:
-            await self.update(room)
+            await asyncio.gather(*(self.send(player, {'type': 'room_closed', 'reason': 'host_left'}) for player in remaining))
+            return
+        if room.game is not None:
+            # A guest dropped mid-match: keep their seat and the match alive.
+            # Reconnection is not implemented yet, so nobody else is punished.
+            peer.away = True
+            await self.broadcast(room, {'type': 'player_away', 'player_id': peer.id,
+                                        'name': peer.name, 'room': room.public()})
+            await self.game_update(room)
+            return
+        if peer in room.members:
+            room.members.remove(peer)
+        await self.update(room)
 
     async def handle(self, peer, message):
         if not isinstance(message, dict):
@@ -322,11 +342,51 @@ async def http_message(request):
 
 
 LOBBY_KEY = web.AppKey('lobby', Lobby)
+WEB_KEY = web.AppKey('web', WebBuild)
+WEB_ROOT = Path(os.environ.get('WEB_ROOT', '/tmp/bunker-web'))
+
+
+async def warm_web(app):
+    """Start fetching the browser build as soon as the container is awake."""
+    task = asyncio.create_task(app[WEB_KEY].ensure())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+async def play_status(request):
+    build: WebBuild = request.app[WEB_KEY]
+    return web.json_response({'ready': build.ready, 'version': build.version,
+                              'error': build.error}, headers={'Cache-Control': 'no-store'})
+
+
+async def play_index(request):
+    build: WebBuild = request.app[WEB_KEY]
+    if not await build.ensure():
+        raise web.HTTPServiceUnavailable(text='Веб-версия ещё готовится. Обновите страницу через минуту.',
+                                         headers={'Cache-Control': 'no-store'})
+    return web.FileResponse(build.resolve('index.html'), headers={'Cache-Control': 'no-cache'})
+
+
+async def play_file(request):
+    build: WebBuild = request.app[WEB_KEY]
+    name = request.match_info.get('name', '')
+    if not build.ready:
+        raise web.HTTPServiceUnavailable(text='Веб-версия ещё готовится.')
+    path = build.resolve(name)
+    if path is None:
+        raise web.HTTPNotFound()
+    long_lived = path.suffix.lower() in ('.pck', '.wasm')
+    headers = {'Cache-Control': 'public, max-age=3600' if long_lived else 'public, max-age=300'}
+    return web.FileResponse(path, headers=headers)
 
 
 async def index(request):
     return web.Response(
-        text='<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Бункер — сервер</title><body><h1>Бункер — Последний шлюз</h1><p>Сервер лобби работает. Теперь можно подключиться из игры.</p><p><a href="/healthz">Проверить состояние сервера</a></p></body></html>',
+        text='<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Бункер — сервер</title><body><h1>Бункер — Последний шлюз</h1><p>Сервер лобби работает. Теперь можно подключиться из игры.</p><p><a href="/play">Играть в браузере</a></p><p><a href="/healthz">Проверить состояние сервера</a></p></body></html>',
         content_type='text/html',
         headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'},
     )
@@ -350,19 +410,47 @@ async def invite_background(request):
     return web.FileResponse(Path(__file__).with_name('invite-bg.jpg'))
 
 
+ANDROID_TAG = re.compile(r'^android-([0-9]+)$')
+
+
+async def latest_android_code():
+    """Newest published Android release, ignoring web-only releases."""
+    url = 'https://api.github.com/repos/AlfaGideon/Bunker/releases?per_page=20'
+    headers = {'User-Agent': 'Bunker-Invite/1.0', 'Accept': 'application/vnd.github+json'}
+    try:
+        async with ClientSession(timeout=ClientTimeout(total=30, connect=15), headers=headers) as client:
+            async with client.get(url) as response:
+                if response.status != 200:
+                    return None
+                releases = await response.json()
+    except (ClientError, asyncio.TimeoutError):
+        return None
+    if not isinstance(releases, list):
+        return None
+    best = None
+    for release in releases:
+        if not isinstance(release, dict) or release.get('draft'):
+            continue
+        match = ANDROID_TAG.match(str(release.get('tag_name', '')))
+        if not match:
+            continue
+        names = {str(asset.get('name', '')) for asset in release.get('assets', [])}
+        code = match.group(1)
+        if 'bunker-' + code + '.apk' in names and (best is None or int(code) > int(best)):
+            best = code
+    return best
+
+
 async def download_apk(request):
     # Stream the signed latest APK through this site, never buffer it in RAM.
     # Restrict both release tag and first download URL to our repository.
     base = 'https://github.com/AlfaGideon/Bunker/releases'
     timeout = ClientTimeout(total=600, connect=30, sock_read=60)
     try:
+        version = await latest_android_code()
+        if version is None:
+            raise web.HTTPServiceUnavailable(text='Обновление пока недоступно')
         async with ClientSession(timeout=timeout, headers={'User-Agent': 'Bunker-Invite/1.0'}) as client:
-            async with client.get(base + '/latest', allow_redirects=False) as latest:
-                location = latest.headers.get('Location', '')
-                match = re.fullmatch(r'https://github\.com/AlfaGideon/Bunker/releases/tag/android-([0-9]+)', location)
-                if latest.status not in (301, 302) or not match:
-                    raise web.HTTPServiceUnavailable(text='Обновление пока недоступно')
-                version = match.group(1)
             url = base + '/download/android-' + version + '/bunker-' + version + '.apk'
             async with client.get(url, allow_redirects=True) as upstream:
                 if upstream.status != 200:
@@ -433,6 +521,12 @@ def create_app():
     app.router.add_get('/download', download_apk)
     app.router.add_get('/invite/{room_id}', invite_page)
     app.router.add_get('/ws', websocket)
+    app[WEB_KEY] = WebBuild(WEB_ROOT, source=os.environ.get('WEB_BUILD_ZIP', ''))
+    app.cleanup_ctx.append(warm_web)
+    app.router.add_get('/play-status', play_status)
+    app.router.add_get('/play', play_index)
+    app.router.add_get('/play/', play_index)
+    app.router.add_get('/play/{name:.+}', play_file)
     return app
 
 

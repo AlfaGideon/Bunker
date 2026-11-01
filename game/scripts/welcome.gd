@@ -38,10 +38,10 @@ var radio_track := 0
 var radio_hotspot: Button
 var radio_caption: Label
 var lobby_client: Node
-var lobby_url := "wss://bunker-154de.containers.snapdeploy.app/ws"
+var lobby_url := "wss://alfagideon.blitz.cloud/ws"
 var lobby_room: Dictionary = {}
 var lobby_player_id := ""
-var lobby_status := "Подключитесь к временному серверу"
+var lobby_status := "Подключитесь к серверу лобби"
 var lobby_actors: Array[Node3D] = []
 var pending_online_state: Dictionary = {}
 var online_starting := false
@@ -85,6 +85,7 @@ func _ready() -> void:
  start_radio()
  _update_radio_hotspot()
  home()
+ _apply_web_location()
 
 func build_camp() -> void:
  var world := WorldEnvironment.new()
@@ -572,6 +573,30 @@ func _parse_invitation(value: String) -> Dictionary:
   return {}
  return {"room_id": found.get_string(1), "server": server}
 
+# The browser build learns its server from the page it was opened on, so an
+# invitation link works on any deployment without rebuilding the game.
+static func web_invitation(search: String, host: String) -> String:
+ var room := RegEx.new()
+ room.compile("(?:^|[?&])room=([0-9a-f]{16})")
+ var found := room.search(search)
+ if found == null or host.is_empty():
+  return ""
+ var server := ("wss://" + host + "/ws").uri_encode()
+ return "bunkerinvite://join/" + found.get_string(1) + "?server=" + server
+
+func _apply_web_location() -> void:
+ if not OS.has_feature("web"):
+  return
+ var window: Variant = JavaScriptBridge.get_interface("window")
+ if window == null:
+  return
+ var host := str(window.location.host)
+ if str(window.location.protocol) == "https:" and not host.is_empty():
+  lobby_url = "wss://" + host + "/ws"
+ var invite := web_invitation(str(window.location.search), host)
+ if not invite.is_empty():
+  call_deferred("_accept_invitation", invite)
+
 func _accept_invitation(value: String) -> void:
  var info := _parse_invitation(value)
  if info.is_empty():
@@ -688,7 +713,31 @@ func _lobby_event(data: Dictionary) -> void:
    lobby_status = "Ведущий вышел — лобби закрыто."
    _lobby_connect_page("list")
   "error":
-   _lobby_status("Ошибка сервера: " + str(data.get("code", "unknown")))
+   _lobby_status(_lobby_error_text(str(data.get("code", "unknown"))))
+
+func _lobby_error_text(code: String) -> String:
+ match code:
+  "room_unavailable":
+   return "Комната недоступна: она заполнена или партия уже началась."
+  "room_full":
+   return "В комнате нет свободных мест."
+  "invalid_name":
+   return "Имя не подходит: до 24 букв, цифр, пробелов и знаков . - _"
+  "invalid_room":
+   return "Комната не найдена — проверьте ссылку."
+  "already_in_room":
+   return "Вы уже в комнате. Сначала выйдите из неё."
+  "server_full":
+   return "Сервер занят, попробуйте позже."
+  "host_only":
+   return "Это может сделать только ведущий."
+  "not_enough_players":
+   return "В комнате не хватает игроков до выбранного размера."
+  "no_game":
+   return "Партия ещё не началась."
+  "already_started":
+   return "Партия уже началась."
+ return "Ошибка сервера: " + code
 
 func _enter_online_game() -> void:
  if not online_starting or not is_instance_valid(lobby_client):

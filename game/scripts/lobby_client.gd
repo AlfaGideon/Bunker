@@ -1,8 +1,13 @@
 extends Node
-## WebSockets elsewhere; SnapDeploy's free tier needs HTTPS polling.
+## WebSocket first; hosts that refuse it get the same protocol over HTTPS polling.
 signal event_received(data: Dictionary)
 signal status_changed(text: String)
+const WS_GRACE := 8.0
 var socket := WebSocketPeer.new()
+var server_url := ""
+var ws_grace := 0.0
+var ws_seen_connecting := false
+var http_fallback := false
 var opened := false
 var pending: Dictionary = {}
 var keepalive := 0.0
@@ -27,20 +32,33 @@ func connect_to(url: String, first_message: Dictionary) -> bool:
   status_changed.emit("Нужен защищённый адрес wss://…/ws")
   return false
  pending = first_message.duplicate(true)
+ server_url = url
  connecting = true
  status_changed.emit("Подключение к серверу…")
- if url.begins_with("wss://bunker-154de.containers.snapdeploy.app/"):
-  http_mode = true
-  http_root = "https://" + url.trim_prefix("wss://").trim_suffix("/ws")
-  _http_call("open", {})
-  return true
  socket = WebSocketPeer.new()
  var err := socket.connect_to_url(url)
  if err != OK:
-  connecting = false
-  status_changed.emit("Не удалось начать подключение: %s" % error_string(err))
-  return false
+  _start_http("WebSocket недоступен, переключаюсь на HTTPS")
+  return true
+ ws_seen_connecting = false
+ ws_grace = WS_GRACE
  return true
+
+static func http_root_for(url: String) -> String:
+ return "https://" + url.trim_prefix("wss://").trim_suffix("/ws")
+
+func _start_http(note: String) -> void:
+ if socket.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
+  socket.close()
+ socket = WebSocketPeer.new()
+ ws_grace = 0.0
+ ws_seen_connecting = false
+ http_fallback = true
+ http_mode = true
+ http_root = http_root_for(server_url)
+ connecting = true
+ status_changed.emit(note)
+ _http_call("open", {})
 
 func send(data: Dictionary) -> void:
  if http_mode:
@@ -118,6 +136,10 @@ func disconnect_server() -> void:
  http_token = ""
  http_queue.clear()
  pending.clear()
+ server_url = ""
+ ws_grace = 0.0
+ ws_seen_connecting = false
+ http_fallback = false
 
 func _process(delta: float) -> void:
  if http_mode:
@@ -134,6 +156,8 @@ func _process(delta: float) -> void:
   return
  socket.poll()
  var state := socket.get_ready_state()
+ if state == WebSocketPeer.STATE_CONNECTING:
+  ws_seen_connecting = true
  if state == WebSocketPeer.STATE_OPEN:
   if not opened:
    opened = true
@@ -151,7 +175,17 @@ func _process(delta: float) -> void:
    var result: Variant = JSON.parse_string(socket.get_packet().get_string_from_utf8())
    if result is Dictionary:
     event_received.emit(result)
- elif state == WebSocketPeer.STATE_CLOSED:
+  return
+ if connecting and not opened and not http_fallback:
+  # A host without WebSocket support refuses the handshake or leaves it hanging.
+  ws_grace -= delta
+  var note := "WebSocket не отвечает, переключаюсь на HTTPS"
+  if state == WebSocketPeer.STATE_CLOSED and ws_seen_connecting:
+   note = "Сервер не принял WebSocket, переключаюсь на HTTPS"
+  if (state == WebSocketPeer.STATE_CLOSED and ws_seen_connecting) or ws_grace <= 0.0:
+   _start_http(note)
+   return
+ if state == WebSocketPeer.STATE_CLOSED:
   opened = false
   connecting = false
   status_changed.emit("Соединение потеряно. Проверьте адрес и срок его действия.")

@@ -178,6 +178,7 @@ func _ready() -> void:
 		online_session.state_changed.connect(_online_state_changed)
 		online_session.connection_lost.connect(_online_connection_lost)
 		online_session.server_error.connect(_online_error)
+		online_session.player_away.connect(_online_player_away)
 		_online_state_changed(online_session.state)
 	get_viewport().size_changed.connect(_frame_camera)
 	if get_tree().has_meta("start_game"):
@@ -264,6 +265,15 @@ func _online_connection_lost(message: String) -> void:
 	add_child(dialog)
 	dialog.confirmed.connect(func(): get_tree().change_scene_to_file("res://game/welcome.tscn"))
 	dialog.popup_centered()
+
+
+func _online_player_away(player_id: String) -> void:
+	var who := "Участник"
+	for player in players:
+		if str(player.get("id", "")) == player_id:
+			who = str(player.get("name", who))
+	if is_instance_valid(log_label):
+		log_label.text = who + " отключился. Партия продолжается без него."
 
 
 func _online_error(code: String) -> void:

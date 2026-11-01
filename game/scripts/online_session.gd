@@ -4,6 +4,7 @@ extends Node
 signal state_changed(state)
 signal connection_lost(message: String)
 signal server_error(code: String)
+signal player_away(player_id: String)
 
 const State = preload("res://game/scripts/online_match_state.gd")
 var state = State.new()
@@ -48,6 +49,8 @@ func _on_event(event: Dictionary) -> void:
   "room_closed":
    closed = true
    connection_lost.emit("Партия завершена: участник отключился.")
+  "player_away":
+   player_away.emit(str(event.get("player_id", "")))
   "error":
    server_error.emit(str(event.get("code", "unknown")))
 

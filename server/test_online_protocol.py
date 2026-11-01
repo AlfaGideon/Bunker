@@ -85,9 +85,25 @@ class ProtocolTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(view['phase'] == 'result' for view in views))
         self.assertTrue(all(view['result']['player'] == ids[5] for view in views))
         self.assertTrue(all(ids[5] not in view['active'] for view in views))
+        # A guest dropping mid-match no longer destroys the game for everyone.
         await self.client.post('/transport/close', headers=headers[1], json={})
         events = await self.poll(headers[0])
-        self.assertEqual(next(e for e in events if e['type'] == 'room_closed')['reason'], 'player_disconnected')
+        self.assertNotIn('room_closed', [e['type'] for e in events])
+        away = next(e for e in events if e['type'] == 'player_away')
+        self.assertEqual(away['player_id'], ids[1])
+        self.assertIn(room_id, self.app[LOBBY_KEY].rooms)
+        room = self.app[LOBBY_KEY].rooms[room_id]
+        seats = {p['id']: p['away'] for p in room.public()['players']}
+        self.assertTrue(seats[ids[1]])
+        self.assertFalse(seats[ids[0]])
+        # The abandoned seat carries on in the match view for the rest.
+        view = next(e['state'] for e in reversed(events) if e['type'] == 'game_state')
+        self.assertTrue(next(p for p in view['players'] if p['id'] == ids[1])['away'])
+        self.assertFalse(next(p for p in view['players'] if p['id'] == ids[0])['away'])
+        # The host leaving still ends the room for everybody.
+        await self.client.post('/transport/close', headers=headers[0], json={})
+        events = await self.poll(headers[2])
+        self.assertEqual(next(e for e in events if e['type'] == 'room_closed')['reason'], 'host_left')
         self.assertNotIn(room_id, self.app[LOBBY_KEY].rooms)
 
     async def test_concurrent_commands_have_one_winner(self):
