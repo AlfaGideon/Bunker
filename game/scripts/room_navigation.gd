@@ -3,8 +3,10 @@ extends RefCounted
 
 const Layout = preload("res://game/scripts/bunker_layout.gd")
 const STEP := 0.2
-const ORIGIN := Vector2(-20, -16)
-const SIZE := Vector2i(201, 161)
+# The grid has to cover the attached rooms too: they hang off the modules and
+# reach about 27 m out, so a 40 x 32 m window would leave them off the map.
+const ORIGIN := Vector2(-30, -30)
+const SIZE := Vector2i(301, 301)
 var grid := AStarGrid2D.new()
 var layout: Dictionary
 var medical_open := false
