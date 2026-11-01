@@ -23,13 +23,23 @@ namespace UnityEngine
     public struct Vector2 { public Vector2(float x, float y) { } public static Vector2 zero => new Vector2(); }
     public struct Color { public Color(float r, float g, float b, float a = 1) { } }
     public class Font : Object { }
+    public class AudioClip : Object { }
+    public class AudioSource : Component { public bool playOnAwake, loop; public float volume; public AudioClip clip; public void Play() { } public void Stop() { } }
     public class TextAsset : Object { public string text; }
     public static class Resources { public static T GetBuiltinResource<T>(string name) where T : new() => new T(); public static T Load<T>(string name) where T : class => null; }
     public enum ScreenOrientation { LandscapeLeft }
     public static class Screen { public static ScreenOrientation orientation; public static int sleepTimeout; }
     public static class SleepTimeout { public static int NeverSleep = -1; }
     public static class PlayerPrefs { public static string GetString(string key, string fallback) => fallback; public static void SetString(string key, string value) { } public static void Save() { } }
-    public static class Time { public static float unscaledDeltaTime; }
+    public static class Time { public static float unscaledDeltaTime, unscaledTime; }
+    public class AndroidJavaObject : IDisposable { public void Dispose() { } }
+    public class AndroidJavaClass : AndroidJavaObject
+    {
+        public AndroidJavaClass(string name) { }
+        public T GetStatic<T>(string name) => default;
+        public void CallStatic(string name, params object[] args) { }
+        public T CallStatic<T>(string name, params object[] args) => default;
+    }
     public static class Mathf { public static float Max(float a, float b) => Math.Max(a, b); public static int CeilToInt(float f) => (int)Math.Ceiling(f); }
     public enum TextAnchor { MiddleLeft, MiddleCenter, MiddleRight, UpperLeft }
     public enum HorizontalWrapMode { Wrap }

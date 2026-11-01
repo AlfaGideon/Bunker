@@ -80,6 +80,29 @@ Check(charged.stock.water == 82 && charged.stock.food == 82 && charged.stock.med
 Check(stationTest.Command(doctor, "gate", null, 2, activeIds, out _) && stationTest.Snapshot(LocalMatch.HumanId).medical_open, "offline doctor opens medical from round two");
 activeIds.Remove(doctor); stationTest.OnElimination(activeIds);
 Check(!stationTest.Snapshot(LocalMatch.HumanId).medical_open, "offline medical closes after doctor eliminated");
+var output = new FakeRadioOutput();
+var playback = new RadioPlayback(output);
+var radioSnapshot = new RadioState { powered = true, station = "aurora", track_index = 0, message_id = 1,
+    received = new[] { new RadioMessage { id = 1, from = "Старый", text = "История" } } };
+playback.Sync(radioSnapshot);
+Check(output.music.SequenceEqual(new[] { 0 }) && output.spoken.Count == 0, "radio starts music but does not replay history");
+playback.Sync(radioSnapshot);
+Check(output.music.Count == 1, "repeated snapshots do not restart music");
+radioSnapshot.track_index = 2; playback.Sync(radioSnapshot);
+Check(output.music.Last() == 2, "radio track change");
+radioSnapshot.station = "bunkers"; radioSnapshot.message_id = 3;
+radioSnapshot.received = new[] { new RadioMessage { id = 3, from = "Третий", text = "Три" }, new RadioMessage { id = 2, from = "Второй", text = "Два" } };
+playback.Sync(radioSnapshot); playback.Sync(radioSnapshot);
+Check(output.music.Last() == -1 && output.spoken.SequenceEqual(new[] { "Второй. Два", "Третий. Три" }), "new broadcasts ordered and spoken once");
+playback.Pause(); radioSnapshot.message_id = 4; radioSnapshot.received = new[] { new RadioMessage { id = 4, text = "Пауза" } }; playback.Sync(radioSnapshot);
+playback.Resume(); playback.Sync(radioSnapshot);
+Check(output.spoken.Count == 2, "background messages are not replayed");
+radioSnapshot.station = "beacon"; radioSnapshot.message_id = 5; radioSnapshot.received = new[] { new RadioMessage { id = 5, text = "Маяк" } }; playback.Sync(radioSnapshot);
+Check(output.spoken.Last() == "Маяк", "beacon message narrated");
+radioSnapshot.powered = false; radioSnapshot.message_id = 6; radioSnapshot.received = new[] { new RadioMessage { id = 6, text = "Выключено" } }; playback.Sync(radioSnapshot);
+Check(output.spoken.Count == 3 && output.music.Last() == -1, "radio off silences playback");
+playback.Reset(); radioSnapshot.powered = true; radioSnapshot.station = "aurora"; radioSnapshot.track_index = 1; playback.Sync(radioSnapshot);
+Check(output.music.Last() == 1 && output.spoken.Count == 3, "new match resets history and starts music");
 var root = Environment.GetEnvironmentVariable("BUNKER_TEST_URL") ?? "http://127.0.0.1:8080";
 Check(LobbyTransport.TryNormalize("wss://example.org/ws", false, out var normalized) && normalized == "https://example.org", "wss normalized to HTTPS");
 Check(!LobbyTransport.TryNormalize("http://example.org", false, out _), "device rejects HTTP");
@@ -149,4 +172,14 @@ finally
 {
     foreach (var token in tokens)
         try { await Post("close", new { }, token); } catch { }
+}
+
+sealed class FakeRadioOutput : IRadioOutput
+{
+    public readonly List<int> music = new();
+    public readonly List<string> spoken = new();
+    public int cancels;
+    public void Music(int index) => music.Add(index);
+    public void Speak(string text) => spoken.Add(text);
+    public void CancelSpeech() => cancels++;
 }

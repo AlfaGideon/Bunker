@@ -32,3 +32,11 @@ jobs:
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           dotnet run --project unity/ProtocolTests/ProtocolTests.csproj
+      - name: Compile Android-specific C# against test stubs
+        run: dotnet build unity/ProtocolTests/ProtocolTests.csproj -p:DefineConstants=UNITY_ANDROID
+      - name: Check Android Java source against installed Android SDK
+        run: |
+          android_jar=$(find "$ANDROID_HOME/platforms" -name android.jar | sort -V | tail -1)
+          test -n "$android_jar"
+          mkdir -p /tmp/bunker-java
+          javac -source 8 -target 8 -cp "$android_jar" -d /tmp/bunker-java unity/BunkerUnity/Assets/Plugins/Android/src/org/bunker/unityprototype/RadioSpeech.java

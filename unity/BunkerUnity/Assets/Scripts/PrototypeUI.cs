@@ -11,6 +11,7 @@ namespace Bunker.UnityPort
     public sealed class PrototypeUI : MonoBehaviour
     {
         private LobbyTransport transport;
+        private RadioAudio radioAudio;
         private Canvas canvas;
         private Font font;
         private RectTransform page;
@@ -46,6 +47,7 @@ namespace Bunker.UnityPort
             font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             address = PlayerPrefs.GetString("bunker.server", address);
             nickname = PlayerPrefs.GetString("bunker.nickname", nickname);
+            radioAudio = gameObject.AddComponent<RadioAudio>();
             transport = gameObject.AddComponent<LobbyTransport>();
             transport.Status += OnStatus;
             transport.Event += OnEvent;
@@ -69,6 +71,7 @@ namespace Bunker.UnityPort
         private void Update()
         {
             if (state == null || screen != "game") return;
+            radioAudio.Restore(state.stations?.radio);
             if (localMatch != null && localMatch.Tick(Time.unscaledDeltaTime))
             {
                 state = localMatch.Snapshot();
@@ -90,7 +93,7 @@ namespace Bunker.UnityPort
             }
             else if (!transport.Connected && (message.StartsWith("Ошибка") || message == "Соединение закрыто"))
             {
-                screen = "home"; room = null; state = null; playerId = ""; selectedId = ""; rooms = Array.Empty<Room>(); Draw();
+                radioAudio.ResetRadio(); screen = "home"; room = null; state = null; playerId = ""; selectedId = ""; rooms = Array.Empty<Room>(); Draw();
             }
         }
 
@@ -101,7 +104,7 @@ namespace Bunker.UnityPort
                 case "error": status = "Сервер: " + ErrorName(item.code); Draw(); break;
                 case "rooms": rooms = item.rooms ?? Array.Empty<Room>(); if (screen == "home") Draw(); break;
                 case "joined":
-                    localMatch = null; playerId = item.player_id; room = item.room; state = null; screen = "room";
+                    radioAudio.ResetRadio(); localMatch = null; playerId = item.player_id; room = item.room; state = null; screen = "room";
                     status = "Комната создана или подключена"; Draw(); break;
                 case "room": room = item.room; if (screen == "room") Draw(); break;
                 case "online_game_start": status = "Партия запускается…"; break;
@@ -112,9 +115,9 @@ namespace Bunker.UnityPort
                     if (string.IsNullOrEmpty(selectedId)) selectedId = playerId;
                     Draw(); break;
                 case "room_closed":
-                    room = null; state = null; playerId = ""; screen = "home";
+                    radioAudio.ResetRadio(); room = null; state = null; playerId = ""; screen = "home";
                     status = "Комната закрыта: " + item.reason; Draw(); break;
-                case "left": room = null; state = null; playerId = ""; screen = "home"; Draw(); break;
+                case "left": radioAudio.ResetRadio(); room = null; state = null; playerId = ""; screen = "home"; Draw(); break;
             }
         }
 
@@ -141,6 +144,7 @@ namespace Bunker.UnityPort
         private void Draw()
         {
             if (canvas == null) return;
+            if (screen == "game" && state != null) radioAudio.Restore(state.stations?.radio);
             if (page != null) { page.gameObject.SetActive(false); Destroy(page.gameObject); }
             page = Rect("Page", canvas.transform, 0, 0, 1, 1);
             Panel(page, 0, 0, 1, 1, new Color(0.025f, 0.055f, 0.065f));
@@ -200,11 +204,12 @@ namespace Bunker.UnityPort
                 var pool = JsonUtility.FromJson<ContentData>(content.text);
                 var list = JsonUtility.FromJson<ScenarioList>("{\"items\":" + scenarios.text + "}");
                 var radioData = JsonUtility.FromJson<RadioContent>(radio.text);
+                radioAudio.ResetRadio();
                 localMatch = new LocalMatch(pool, list.items, capacity, nickname, Environment.TickCount, radioData);
                 playerId = LocalMatch.HumanId; selectedId = playerId;
                 state = localMatch.Snapshot(); localRemaining = state.remaining;
                 screen = "game"; stationsPage = false; radioPage = false;
-                status = "Оффлайн-тест: только речи и голосование, не полная игра"; Draw();
+                status = "Оффлайн-тест правил, не полная игра"; Draw();
             }
             catch (Exception ex) { status = "Не удалось загрузить данные: " + ex.Message; Draw(); }
         }
@@ -248,7 +253,7 @@ namespace Bunker.UnityPort
         {
             if (state == null) return;
             Button(page, "В МЕНЮ", .82f, .93f, .97f, .985f, () => {
-                if (localMatch != null) { localMatch = null; state = null; playerId = ""; selectedId = ""; screen = "home"; status = "Локальный тест завершён"; Draw(); }
+                if (localMatch != null) { radioAudio.ResetRadio(); localMatch = null; state = null; playerId = ""; selectedId = ""; screen = "home"; status = "Локальный тест завершён"; Draw(); }
                 else transport.Send(new Command { type = "leave" });
             }, 13);
             Panel(page, .02f, .09f, .30f, .90f, new Color(.055f, .12f, .14f));
@@ -331,7 +336,7 @@ namespace Bunker.UnityPort
             Button(page, "НАЗАД", .75f, .43f, .94f, .51f, () => { radioPage = false; Draw(); }, 13);
             var received = radio.received ?? Array.Empty<RadioMessage>();
             string text = received.Length == 0 ? "Передач пока нет" : received[received.Length - 1].from + ": " + received[received.Length - 1].text;
-            Label(page, text + "\nАудио и озвучка ещё не перенесены.", .35f, .17f, .94f, .39f, 14, TextAnchor.UpperLeft);
+            Label(page, text + "\n" + radioAudio.VoiceStatus + (radio.station == "internet" ? " · Интернет-аудио ещё не перенесено" : ""), .35f, .17f, .94f, .39f, 14, TextAnchor.UpperLeft);
         }
         private static string PhaseName(string phase)
         {
