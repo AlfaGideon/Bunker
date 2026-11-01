@@ -32,7 +32,9 @@ jobs:
     if: needs.license-check.outputs.configured == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    concurrency: unity-personal-activation
+    concurrency:
+      group: unity-personal-activation
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
