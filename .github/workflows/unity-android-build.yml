@@ -71,6 +71,8 @@ jobs:
             echo '::error::Unity build failed or did not produce the prototype APK.'
             exit 1
           fi
+      - name: Validate APK integrity, package, signature and radio bridge
+        run: bash unity/tools/verify_apk.sh unity/BunkerUnity/Builds/bunker-unity-prototype.apk
       - name: Save test APK
         uses: actions/upload-artifact@v4
         with:
