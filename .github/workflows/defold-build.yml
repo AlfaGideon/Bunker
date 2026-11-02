@@ -19,8 +19,9 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
+          # bob.jar 1.14 is compiled for Java 25 (class file version 69).
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
       - name: Check the exported content
         run: python3 tools/export_defold_data.py --check
       - name: Fetch bob
