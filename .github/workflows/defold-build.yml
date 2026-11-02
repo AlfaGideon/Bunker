@@ -34,10 +34,9 @@ jobs:
             exit 1
           fi
           ls -l "$RUNNER_TEMP/bob.jar"
-          java -jar "$RUNNER_TEMP/bob.jar" --version || {
-            echo "::error title=bob.jar::bob did not start"
-            exit 1
-          }
+          java -version 2>&1 | while IFS= read -r line; do echo "::notice title=java::$line"; done
+          out=$(java -jar "$RUNNER_TEMP/bob.jar" --version 2>&1)
+          echo "$out" | head -20 | while IFS= read -r line; do echo "::notice title=bob::$line"; done
       - name: Restore the signing key
         env:
           KEY: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
