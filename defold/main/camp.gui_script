@@ -1,0 +1,69 @@
+-- The camp screen of the Defold build. Block 1 of the port: the big plasma panel
+-- behind the fire, three channels (logo splash, anime reel, empty ad block) and a
+-- profession card drawn from the same data/content.json the Godot build uses.
+
+local content = require("main.data.content")
+
+local CAPTIONS = {
+	"ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА\nнажми — включить кино",
+	"ТЕЛЕВИЗОР · АНИМЕ «ОГНИ МЁРТВОГО ГОРОДА»\nнажми — рекламный блок",
+	"ТЕЛЕВИЗОР · РЕКЛАМА · место под будущие ролики\nнажми — вернуть заставку",
+}
+local ANIME_STEP = 3.8
+
+local function draw_profession()
+	return content.professions[math.random(#content.professions)]
+end
+
+local function set_panel(self)
+	local node = gui.get_node("panel")
+	if self.channel == 0 then
+		gui.play_flipbook(node, hash("logo"))
+	elseif self.channel == 1 then
+		gui.play_flipbook(node, hash(self.reel == 0 and "anime_1" or "anime_2"))
+	else
+		gui.play_flipbook(node, hash("ad"))
+	end
+	gui.set_text(gui.get_node("caption"), CAPTIONS[self.channel + 1])
+end
+
+function init(self)
+	math.randomseed(os.time())
+	self.channel = 0
+	self.reel = 0
+	self.reel_clock = 0
+	self.clock = 0
+	self.profession = draw_profession()
+	set_panel(self)
+	gui.set_text(gui.get_node("card_name"), self.profession)
+end
+
+function update(self, dt)
+	self.clock = self.clock + dt
+	if self.channel == 1 then
+		self.reel_clock = self.reel_clock + dt
+		if self.reel_clock >= ANIME_STEP then
+			self.reel_clock = self.reel_clock - ANIME_STEP
+			self.reel = 1 - self.reel
+			gui.play_flipbook(gui.get_node("panel"), hash(self.reel == 0 and "anime_1" or "anime_2"))
+		end
+	end
+	-- The glass breathes, so the panel never reads as a static picture.
+	gui.set_color(gui.get_node("panel"), vmath.vector4(1, 1, 1, 0.94 + 0.06 * math.sin(self.clock * 3.4)))
+end
+
+function on_input(self, action_id, action)
+	if action_id ~= hash("touch") or not action.pressed then
+		return false
+	end
+	if gui.pick_node(gui.get_node("card"), action.x, action.y) then
+		self.profession = draw_profession()
+		gui.set_text(gui.get_node("card_name"), self.profession)
+		return true
+	end
+	self.channel = (self.channel + 1) % #CAPTIONS
+	self.reel = 0
+	self.reel_clock = 0
+	set_panel(self)
+	return true
+end

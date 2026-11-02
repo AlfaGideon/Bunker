@@ -1,0 +1,46 @@
+material: "/builtins/materials/gui.material"
+images {
+  image: "/main/images/panel_logo.png"
+}
+images {
+  image: "/main/images/panel_anime_1.png"
+}
+images {
+  image: "/main/images/panel_anime_2.png"
+}
+images {
+  image: "/main/images/panel_ad.png"
+}
+images {
+  image: "/main/images/card_back.png"
+}
+animations {
+  id: "logo"
+  images {
+    image: "/main/images/panel_logo.png"
+  }
+}
+animations {
+  id: "anime_1"
+  images {
+    image: "/main/images/panel_anime_1.png"
+  }
+}
+animations {
+  id: "anime_2"
+  images {
+    image: "/main/images/panel_anime_2.png"
+  }
+}
+animations {
+  id: "ad"
+  images {
+    image: "/main/images/panel_ad.png"
+  }
+}
+animations {
+  id: "card_back"
+  images {
+    image: "/main/images/card_back.png"
+  }
+}

@@ -1,0 +1,94 @@
+name: Defold build
+on:
+  workflow_dispatch:
+  push:
+    branches: [arena/8738ff37-bunker]
+    paths:
+      - 'defold/**'
+      - 'tools/export_defold_data.py'
+      - '.github/workflows/defold-build.yml'
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE: defold-1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Check the exported content
+        run: python3 tools/export_defold_data.py --check
+      - name: Fetch bob
+        run: |
+          set -euo pipefail
+          sha=$(curl -fsSL https://d.defold.com/stable/info.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha1"])')
+          echo "Defold engine: $sha"
+          curl -fsSL -o "$RUNNER_TEMP/bob.jar" "https://d.defold.com/archive/$sha/bob/bob.jar"
+          java -jar "$RUNNER_TEMP/bob.jar" --version
+      - name: Restore the signing key
+        env:
+          KEY: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEY" ]; then
+            printf '%s' "$KEY" | base64 -d > "$RUNNER_TEMP/bunker.keystore"
+            echo "keystore ready"
+          else
+            echo "no keystore: the build will be debug-signed"
+          fi
+      - name: Bundle the APK
+        env:
+          KEYSTORE_PASS: ${{ secrets.BUNKER_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.BUNKER_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          cd defold
+          bundle() {
+            java -jar "$RUNNER_TEMP/bob.jar" \
+              --platform armv7-android \
+              --architectures arm64-android,armv7-android \
+              --variant "$1" \
+              --bundle-output build/bob \
+              --keystore "$RUNNER_TEMP/bunker.keystore" \
+              --keystore-pass "$KEYSTORE_PASS" \
+              --keystore-alias "$KEY_ALIAS" \
+              resolve build bundle
+          }
+          if ! bundle release 2>&1 | tee /tmp/bundle-release.log; then
+            echo "::warning::Release bundling failed, falling back to a debug build."
+            grep -E "ERROR|error|Exception" /tmp/bundle-release.log | tail -20 || true
+            java -jar "$RUNNER_TEMP/bob.jar" \
+              --platform armv7-android \
+              --architectures arm64-android,armv7-android \
+              --variant debug \
+              --bundle-output build/bob \
+              resolve build bundle
+          fi
+          find build -name '*.apk' -printf '%p %s bytes\n'
+      - name: Publish the APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          apk=$(find defold/build -name '*.apk' | head -1)
+          [ -n "$apk" ] || { echo "::error::bob produced no APK"; exit 1; }
+          mkdir -p dist
+          cp "$apk" "dist/Bunker-Defold-1.apk"
+          cp "$apk" "dist/bunker-defold-1.apk"
+          sha256sum dist/*.apk > dist/SHA256SUMS
+          if ! gh release view "$RELEASE" >/dev/null 2>&1; then
+            gh release create "$RELEASE" \
+              --title "Бункер — Defold-сборка 1 (экспериментальная)" \
+              --notes "Отдельная сборка на движке Defold, пакет org.bunker.defold. Ставится рядом с основной игрой. Блок 1 порта: лагерь, плазменная панель с заставкой логотипа, аниме-канал и рекламный блок, карточка профессии из общего data/content.json." \
+              --prerelease
+          fi
+          gh release upload "$RELEASE" dist/Bunker-Defold-1.apk dist/bunker-defold-1.apk dist/SHA256SUMS --clobber
+      - name: Keep the APK as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: defold-apk
+          path: dist/*.apk
