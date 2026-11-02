@@ -1,4 +1,3 @@
-material: "/builtins/materials/gui.material"
 images {
   image: "/main/images/panel_logo.png"
 }

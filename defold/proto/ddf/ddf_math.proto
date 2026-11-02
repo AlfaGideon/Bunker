@@ -1,0 +1,125 @@
+// Copyright 2020-2026 The Defold Foundation
+// Copyright 2014-2020 King
+// Copyright 2009-2014 Ragnar Svensson, Christian Murray
+// Licensed under the Defold License version 1.0 (the "License"); you may not use
+// this file except in compliance with the License.
+//
+// You may obtain a copy of the License, together with FAQs at
+// https://www.defold.com/license
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+syntax = "proto2";
+
+package dmMath;
+
+import "ddf/ddf_extensions.proto";
+
+option java_package = "com.dynamo.proto";
+option java_outer_classname = "DdfMath";
+
+option (ddf_includes) = "dmsdk/dlib/vmath.h dmsdk/dlib/transform.h";
+
+message Point3
+{
+    option (alias) = "dmVMath::Point3";
+
+    optional float x = 1 [default = 0.0];
+    optional float y = 2 [default = 0.0];
+    optional float z = 3 [default = 0.0];
+    optional float d = 4 [default = 0.0];
+}
+
+message Vector3
+{
+    option (alias) = "dmVMath::Vector3";
+
+    optional float x = 1 [default = 0.0];
+    optional float y = 2 [default = 0.0];
+    optional float z = 3 [default = 0.0];
+    optional float d = 4 [default = 0.0];
+}
+
+message Vector3One
+{
+    option (alias) = "dmVMath::Vector3";
+
+    optional float x = 1 [default = 1.0];
+    optional float y = 2 [default = 1.0];
+    optional float z = 3 [default = 1.0];
+    optional float d = 4 [default = 1.0];
+}
+
+message Vector4
+{
+    option (alias) = "dmVMath::Vector4";
+
+    optional float x = 1 [default = 0.0];
+    optional float y = 2 [default = 0.0];
+    optional float z = 3 [default = 0.0];
+    optional float w = 4 [default = 0.0];
+}
+
+message Vector4One
+{
+    option (alias) = "dmVMath::Vector4";
+
+    optional float x = 1 [default = 1.0];
+    optional float y = 2 [default = 1.0];
+    optional float z = 3 [default = 1.0];
+    optional float w = 4 [default = 1.0];
+}
+
+message Vector4WOne
+{
+    option (alias) = "dmVMath::Vector4";
+
+    optional float x = 1 [default = 0.0];
+    optional float y = 2 [default = 0.0];
+    optional float z = 3 [default = 0.0];
+    optional float w = 4 [default = 1.0];
+}
+
+message Quat
+{
+    option (alias) = "dmVMath::Quat";
+
+    optional float x = 1 [default = 0.0];
+    optional float y = 2 [default = 0.0];
+    optional float z = 3 [default = 0.0];
+    optional float w = 4 [default = 1.0];
+}
+
+message Transform
+{
+    option (alias) = "dmTransform::Transform";
+
+    optional Quat    rotation       = 1;
+    optional Vector3 translation    = 2;
+    optional Vector3 scale          = 3;
+}
+
+message Matrix4
+{
+    option (alias) = "dmVMath::Matrix4";
+
+    optional float m00 = 1 [default = 1.0];
+    optional float m01 = 2 [default = 0.0];
+    optional float m02 = 3 [default = 0.0];
+    optional float m03 = 4 [default = 0.0];
+    optional float m10 = 5 [default = 0.0];
+    optional float m11 = 6 [default = 1.0];
+    optional float m12 = 7 [default = 0.0];
+    optional float m13 = 8 [default = 0.0];
+    optional float m20 = 9 [default = 0.0];
+    optional float m21 = 10 [default = 0.0];
+    optional float m22 = 11 [default = 1.0];
+    optional float m23 = 12 [default = 0.0];
+    optional float m30 = 13 [default = 0.0];
+    optional float m31 = 14 [default = 0.0];
+    optional float m32 = 15 [default = 0.0];
+    optional float m33 = 16 [default = 1.0];
+}

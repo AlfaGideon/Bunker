@@ -41,6 +41,19 @@
 - `defold/main/fonts/` — DejaVu Sans (кириллица в `extra_characters`).
 - `defold/main/data/content.lua` — сгенерированный экспорт общего контента.
 
+## Проверка ресурсов без движка
+
+`tools/check_defold_files.py` разбирает `.gui`, `.atlas`, `.go`, `.collection`,
+`.font` и `.input_binding` теми же protobuf-схемами, которыми их проверяет
+`bob.jar` (копия схем — в `defold/proto`). Первые итерации показали, зачем это
+нужно: `bob` ругался на `Atlas.material` и на несуществующий `TYPE_TEXTURE`
+только после полной сборки APK, а проверка находит такое за секунду.
+
+```bash
+python3 -m pip install grpcio-tools
+python3 tools/check_defold_files.py
+```
+
 ## Как собрать
 
 ```bash

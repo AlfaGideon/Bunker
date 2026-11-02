@@ -1,5 +1,6 @@
 script: "/main/camp.gui_script"
 material: "/builtins/materials/gui.material"
+adjust_reference: ADJUST_REFERENCE_PARENT
 textures {
   name: "atlas"
   texture: "/main/camp.atlas"
@@ -8,14 +9,12 @@ nodes {
   type: TYPE_BOX
   id: "sky"
   position {
-    x: 0.0
-    y: 0.0
-    z: 0.0
+    x: 0
+    y: 0
   }
   size {
-    x: 1280.0
-    y: 720.0
-    z: 0.0
+    x: 1280
+    y: 720
   }
   color {
     x: 0.045
@@ -23,20 +22,19 @@ nodes {
     z: 0.115
     w: 1.0
   }
+  pivot: PIVOT_NW
   blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_BOX
   id: "ground"
   position {
-    x: 0.0
-    y: 512.0
-    z: 0.0
+    x: 0
+    y: 512
   }
   size {
-    x: 1280.0
-    y: 208.0
-    z: 0.0
+    x: 1280
+    y: 208
   }
   color {
     x: 0.075
@@ -44,20 +42,19 @@ nodes {
     z: 0.115
     w: 1.0
   }
+  pivot: PIVOT_NW
   blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_BOX
   id: "fire"
   position {
-    x: 604.0
-    y: 548.0
-    z: 0.0
+    x: 604
+    y: 548
   }
   size {
-    x: 72.0
-    y: 26.0
-    z: 0.0
+    x: 72
+    y: 26
   }
   color {
     x: 1.0
@@ -65,20 +62,19 @@ nodes {
     z: 0.32
     w: 0.75
   }
+  pivot: PIVOT_NW
   blend_mode: BLEND_MODE_ADD
 }
 nodes {
   type: TYPE_BOX
   id: "fire_core"
   position {
-    x: 620.0
-    y: 542.0
-    z: 0.0
+    x: 620
+    y: 542
   }
   size {
-    x: 40.0
-    y: 14.0
-    z: 0.0
+    x: 40
+    y: 14
   }
   color {
     x: 1.0
@@ -86,20 +82,19 @@ nodes {
     z: 0.55
     w: 0.9
   }
+  pivot: PIVOT_NW
   blend_mode: BLEND_MODE_ADD
 }
 nodes {
   type: TYPE_BOX
   id: "panel_frame"
   position {
-    x: 244.0
-    y: 116.0
-    z: 0.0
+    x: 244
+    y: 116
   }
   size {
-    x: 792.0
-    y: 456.0
-    z: 0.0
+    x: 792
+    y: 456
   }
   color {
     x: 0.11
@@ -107,28 +102,23 @@ nodes {
     z: 0.14
     w: 1.0
   }
+  pivot: PIVOT_NW
   blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
-  type: TYPE_TEXTURE
+  type: TYPE_BOX
   id: "panel"
   texture: "atlas"
-  default_animation: "logo"
   position {
-    x: 260.0
-    y: 130.0
-    z: 0.0
+    x: 260
+    y: 130
   }
   size {
-    x: 760.0
-    y: 428.0
-    z: 0.0
+    x: 760
+    y: 428
   }
-  adjust_mode: ADJUST_FIT
-  pivot {
-    x: 0.0
-    y: 0.0
-  }
+  pivot: PIVOT_NW
+  adjust_mode: ADJUST_MODE_FIT
   blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
@@ -137,14 +127,12 @@ nodes {
   text: "БУНКЕР • ПОСЛЕДНИЙ ШЛЮЗ"
   font: "/main/fonts/dejavu_bold.font"
   position {
-    x: 24.0
-    y: 22.0
-    z: 0.0
+    x: 24
+    y: 22
   }
   size {
-    x: 900.0
-    y: 50.0
-    z: 0.0
+    x: 900
+    y: 50
   }
   color {
     x: 0.87
@@ -152,13 +140,10 @@ nodes {
     z: 0.92
     w: 1.0
   }
-  xanchor: XANCHOR_LEFT
-  yanchor: YANCHOR_TOP
-  pivot {
-    x: 0.0
-    y: 1.0
-  }
-  blend_mode: BLEND_MODE_ALPHA
+    xanchor: XANCHOR_LEFT
+    yanchor: YANCHOR_TOP
+    pivot: PIVOT_NW
+    blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_TEXT
@@ -166,14 +151,12 @@ nodes {
   text: "DEFOLD-СБОРКА · БЛОК 1: ЛАГЕРЬ И ПЛАЗМЕННАЯ ПАНЕЛЬ"
   font: "/main/fonts/dejavu.font"
   position {
-    x: 24.0
-    y: 74.0
-    z: 0.0
+    x: 24
+    y: 74
   }
   size {
-    x: 1000.0
-    y: 34.0
-    z: 0.0
+    x: 1000
+    y: 34
   }
   color {
     x: 0.55
@@ -181,13 +164,10 @@ nodes {
     z: 0.75
     w: 1.0
   }
-  xanchor: XANCHOR_LEFT
-  yanchor: YANCHOR_TOP
-  pivot {
-    x: 0.0
-    y: 1.0
-  }
-  blend_mode: BLEND_MODE_ALPHA
+    xanchor: XANCHOR_LEFT
+    yanchor: YANCHOR_TOP
+    pivot: PIVOT_NW
+    blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_TEXT
@@ -195,14 +175,12 @@ nodes {
   text: "ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА"
   font: "/main/fonts/dejavu.font"
   position {
-    x: 640.0
-    y: 590.0
-    z: 0.0
+    x: 640
+    y: 590
   }
   size {
-    x: 780.0
-    y: 60.0
-    z: 0.0
+    x: 780
+    y: 60
   }
   color {
     x: 0.75
@@ -210,35 +188,26 @@ nodes {
     z: 0.87
     w: 1.0
   }
-  xanchor: XANCHOR_CENTER
-  yanchor: YANCHOR_TOP
-  pivot {
-    x: 0.5
-    y: 1.0
-  }
-  line_break: true
-  blend_mode: BLEND_MODE_ALPHA
+    xanchor: XANCHOR_NONE
+    yanchor: YANCHOR_TOP
+    pivot: PIVOT_N
+    line_break: true
+    blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
-  type: TYPE_TEXTURE
+  type: TYPE_BOX
   id: "card"
   texture: "atlas"
-  default_animation: "card_back"
   position {
-    x: 1076.0
-    y: 116.0
-    z: 0.0
+    x: 1076
+    y: 116
   }
   size {
-    x: 170.0
-    y: 250.0
-    z: 0.0
+    x: 170
+    y: 250
   }
-  adjust_mode: ADJUST_FIT
-  pivot {
-    x: 0.0
-    y: 0.0
-  }
+  pivot: PIVOT_NW
+  adjust_mode: ADJUST_MODE_FIT
   blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
@@ -247,14 +216,12 @@ nodes {
   text: "ПРОФЕССИЯ"
   font: "/main/fonts/dejavu.font"
   position {
-    x: 1161.0
-    y: 382.0
-    z: 0.0
+    x: 1161
+    y: 382
   }
   size {
-    x: 200.0
-    y: 80.0
-    z: 0.0
+    x: 200
+    y: 80
   }
   color {
     x: 0.95
@@ -262,14 +229,11 @@ nodes {
     z: 0.45
     w: 1.0
   }
-  xanchor: XANCHOR_CENTER
-  yanchor: YANCHOR_TOP
-  pivot {
-    x: 0.5
-    y: 1.0
-  }
-  line_break: true
-  blend_mode: BLEND_MODE_ALPHA
+    xanchor: XANCHOR_NONE
+    yanchor: YANCHOR_TOP
+    pivot: PIVOT_N
+    line_break: true
+    blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_TEXT
@@ -277,14 +241,12 @@ nodes {
   text: "Тап по экрану — сменить канал · тап по карте — новая профессия"
   font: "/main/fonts/dejavu.font"
   position {
-    x: 24.0
-    y: 668.0
-    z: 0.0
+    x: 24
+    y: 668
   }
   size {
-    x: 1000.0
-    y: 34.0
-    z: 0.0
+    x: 1000
+    y: 34
   }
   color {
     x: 0.42
@@ -292,11 +254,8 @@ nodes {
     z: 0.55
     w: 1.0
   }
-  xanchor: XANCHOR_LEFT
-  yanchor: YANCHOR_TOP
-  pivot {
-    x: 0.0
-    y: 1.0
-  }
-  blend_mode: BLEND_MODE_ALPHA
+    xanchor: XANCHOR_LEFT
+    yanchor: YANCHOR_TOP
+    pivot: PIVOT_NW
+    blend_mode: BLEND_MODE_ALPHA
 }

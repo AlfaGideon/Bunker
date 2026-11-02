@@ -24,6 +24,10 @@ jobs:
           java-version: '25'
       - name: Check the exported content
         run: python3 tools/export_defold_data.py --check
+      - name: Check the Defold resources
+        run: |
+          python3 -m pip install --quiet grpcio-tools
+          python3 tools/check_defold_files.py
       - name: Fetch bob
         env:
           BOB_VERSION: '1.14.0'
