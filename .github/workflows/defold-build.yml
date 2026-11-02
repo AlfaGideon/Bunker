@@ -40,8 +40,21 @@ jobs:
           python3 tools/check_defold_files.py
       - name: Smoke-test the camp script
         run: |
-          python3 -m pip install --quiet lupa
-          python3 tools/test_defold_gui.py
+          set -uo pipefail
+          python3 -m pip install --quiet lupa || echo "::warning title=lupa::pip install lupa failed"
+          if python3 -c 'import lupa' 2>/dev/null; then
+            if ! out=$(python3 tools/test_defold_gui.py 2>&1); then
+              printf '%s\n' "$out"
+              # step logs are not retrievable from the sandbox, annotations are
+              printf '%s\n' "$out" | tail -8 | while IFS= read -r line; do
+                echo "::error title=lupa-test::$line"
+              done
+              exit 1
+            fi
+            printf '%s\n' "$out"
+          else
+            echo "::warning title=lupa::lupa is not installable on this runner, the headless script test is skipped"
+          fi
       - name: Fetch bob
         run: |
           set -uo pipefail
