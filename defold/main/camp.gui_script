@@ -1,21 +1,45 @@
--- The camp screen of the Defold build. Block 1 of the port: the big plasma panel
--- behind the fire, three channels (logo splash, anime reel, empty ad block) and a
+-- The camp screen of the Defold build. Block 1 of the port: the big plasma
+-- panel, three channels (logo splash, anime reel, empty ad block) and a
 -- profession card drawn from the same data/content.json the Godot build uses.
+--
+-- Two things made the first device build (defold-1) a static, crooked picture,
+-- and they are why this file looks the way it does:
+--   1. Layout.  The gui node space has its origin in the *bottom* left corner:
+--      the default render script projects the gui with
+--      matrix4_orthographic(0, w, 0, h), so node y counts upward from the bottom
+--      edge.  camp.gui is generated from ordinary top-down coordinates with
+--      y = 720 - y_top (see the header of that file).
+--   2. Input.  A tap only reaches a script through the named action of
+--      input/game.input_binding, and the game object must hold input focus.
+--      main/camp.script acquires the focus and forwards presses as "tap"
+--      messages; tap() below accepts *any* press, so a misnamed binding still
+--      answers instead of leaving a dead screen.
 
 local content = require("main.data.content")
 
 local CAPTIONS = {
-	"ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА\nнажми — включить кино",
-	"ТЕЛЕВИЗОР · АНИМЕ «ОГНИ МЁРТВОГО ГОРОДА»\nнажми — рекламный блок",
-	"ТЕЛЕВИЗОР · РЕКЛАМА · место под будущие ролики\nнажми — вернуть заставку",
+	{
+		title = "ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА",
+		hint = "тап — включить кино",
+	},
+	{
+		title = "ТЕЛЕВИЗОР · АНИМЕ «ОГНИ МЁРТВОГО ГОРОДА»",
+		hint = "тап — рекламный блок",
+	},
+	{
+		title = "ТЕЛЕВИЗОР · РЕКЛАМА · место под будущие ролики",
+		hint = "тап — вернуть заставку",
+	},
 }
 local ANIME_STEP = 3.8
+local SPLASH_HOLD = 0.9
+local SPLASH_FADE = 0.6
 
-local function draw_profession()
-	return content.professions[math.random(#content.professions)]
+local function profession_index()
+	return math.random(#content.professions)
 end
 
-local function set_panel(self)
+local function apply_channel(self)
 	local node = gui.get_node("panel")
 	if self.channel == 0 then
 		gui.play_flipbook(node, hash("logo"))
@@ -24,46 +48,189 @@ local function set_panel(self)
 	else
 		gui.play_flipbook(node, hash("ad"))
 	end
-	gui.set_text(gui.get_node("caption"), CAPTIONS[self.channel + 1])
+	local cap = CAPTIONS[self.channel + 1]
+	gui.set_text(gui.get_node("caption"), cap.title .. "\n" .. cap.hint)
+end
+
+local function apply_profession(self)
+	gui.set_text(gui.get_node("card_name"), self.profession)
+end
+
+local function set_hint(self)
+	gui.set_text(gui.get_node("hint"), string.format(
+		"тапов: %d · канал %d/3 · последний тап %d,%d · тап по карте — профессия",
+		self.taps, self.channel + 1, math.floor(self.last_x), math.floor(self.last_y)))
+end
+
+-- Is the press on the profession card?
+--
+-- gui.pick_node is the precise answer but it expects coordinates in the gui
+-- scene space, while action.x/action.y arrive in window space: the scene is a
+-- 1280x720 design scaled 1.5x and centred inside a 2460x1080 phone screen, and
+-- the gui projection (matrix4_orthographic(0, w, 0, h)) has its origin in the
+-- *bottom* left corner.  So a miss is backed up by the card rectangle expressed
+-- in both spaces; the hint line prints the raw coordinates, which is how the
+-- next build pins the exact space down.
+local CARD_X0, CARD_Y0, CARD_X1, CARD_Y1 = 1030, 100, 1226, 380  -- design, y from top
+
+local function in_card(dx, dy)
+	return dx >= CARD_X0 and dx <= CARD_X1 and dy >= CARD_Y0 and dy <= CARD_Y1
+end
+
+local function is_card_tap(x, y)
+	if not x or not y then
+		return false
+	end
+	local ok, picked = pcall(gui.pick_node, gui.get_node("card"), x, y)
+	if ok and picked then
+		return true
+	end
+	-- (a) coordinates already in design units, y measured from the bottom edge
+	if in_card(x, 720 - y) then
+		return true
+	end
+	-- (b) coordinates in window pixels
+	local ok_size, w, h = pcall(gui.get_screen_size)
+	if ok_size and w and h and w > 0 and h > 0 then
+		local scale = math.min(w / 1280, h / 720)
+		if scale > 0 then
+			local dx = (x - (w - 1280 * scale) * 0.5) / scale
+			local dy = (h - y - (h - 720 * scale) * 0.5) / scale
+			if in_card(dx, dy) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- One entry point for everything that looks like a tap.  Right-hand column =
+-- new profession, anywhere else = next channel, so the screen never ignores a
+-- touch.
+local function tap(self, x, y, source)
+	-- The same press arrives twice: once in this gui's on_input and once as a
+	-- forwarded message from main/camp.script.  Only a press that comes from the
+	-- *other* path at the same pixel within two frames is a duplicate, so two
+	-- rapid taps of one kind are always counted.
+	if self.last_tap_source and self.last_tap_source ~= source
+		and self.frame - self.last_tap_frame <= 2
+		and x == self.last_x and y == self.last_y then
+		return
+	end
+	self.last_tap_frame = self.frame
+	self.last_tap_source = source
+	self.taps = self.taps + 1
+	self.flash = 1.0
+	if x then
+		self.last_x = x
+	end
+	if y then
+		self.last_y = y
+	end
+
+	if is_card_tap(x, y) then
+		self.profession = content.professions[profession_index()]
+		apply_profession(self)
+	else
+		self.channel = (self.channel + 1) % #CAPTIONS
+		self.reel = 0
+		self.reel_clock = 0
+		apply_channel(self)
+	end
+	set_hint(self)
 end
 
 function init(self)
-	math.randomseed(os.time())
+	math.randomseed(os.time() + math.floor(os.clock() * 1000))
 	self.channel = 0
 	self.reel = 0
 	self.reel_clock = 0
 	self.clock = 0
-	self.profession = draw_profession()
-	set_panel(self)
-	gui.set_text(gui.get_node("card_name"), self.profession)
+	self.taps = 0
+	self.flash = 0
+	self.last_x = 0
+	self.last_y = 0
+	self.splash_t = 0
+	self.frame = 0
+	self.last_tap_frame = 0
+	self.last_tap_source = nil
+	self.profession = content.professions[profession_index()]
+	apply_channel(self)
+	apply_profession(self)
+	set_hint(self)
+	-- The splash is what the player sees while the collection is being set up,
+	-- then it fades out over the camp.  Its fade doubles as proof of animation.
+	gui.set_color(gui.get_node("splash"), vmath.vector4(0.043, 0.09, 0.114, 1))
+	gui.set_color(gui.get_node("splash_title"), vmath.vector4(0.87, 0.95, 0.92, 1))
+	gui.set_color(gui.get_node("splash_sub"), vmath.vector4(0.55, 0.78, 0.75, 1))
+	-- "." is the game object that owns this gui: ask it to hold input focus.
+	msg.post(".", "acquire_input_focus")
 end
 
 function update(self, dt)
+	self.frame = self.frame + 1
 	self.clock = self.clock + dt
+
+	if self.splash_t >= 0 then
+		self.splash_t = self.splash_t + dt
+		local alpha = 1
+		if self.splash_t > SPLASH_HOLD then
+			alpha = 1 - (self.splash_t - SPLASH_HOLD) / SPLASH_FADE
+			if alpha <= 0 then
+				alpha = 0
+			end
+		end
+		gui.set_color(gui.get_node("splash"), vmath.vector4(0.043, 0.09, 0.114, alpha))
+		gui.set_color(gui.get_node("splash_title"), vmath.vector4(0.87, 0.95, 0.92, alpha))
+		gui.set_color(gui.get_node("splash_sub"), vmath.vector4(0.55, 0.78, 0.75, alpha))
+		if alpha <= 0 then
+			self.splash_t = -1
+			gui.set_enabled(gui.get_node("splash"), false)
+			gui.set_enabled(gui.get_node("splash_title"), false)
+			gui.set_enabled(gui.get_node("splash_sub"), false)
+		end
+	end
+
 	if self.channel == 1 then
 		self.reel_clock = self.reel_clock + dt
 		if self.reel_clock >= ANIME_STEP then
 			self.reel_clock = self.reel_clock - ANIME_STEP
 			self.reel = 1 - self.reel
-			gui.play_flipbook(gui.get_node("panel"), hash(self.reel == 0 and "anime_1" or "anime_2"))
+			gui.play_flipbook(gui.get_node("panel"),
+				hash(self.reel == 0 and "anime_1" or "anime_2"))
 		end
 	end
-	-- The glass breathes, so the panel never reads as a static picture.
-	gui.set_color(gui.get_node("panel"), vmath.vector4(1, 1, 1, 0.94 + 0.06 * math.sin(self.clock * 3.4)))
+
+	-- The glass breathes and a highlight sweeps across it, so the panel never
+	-- reads as a static picture even when nobody touches the screen.
+	gui.set_color(gui.get_node("panel"), vmath.vector4(1, 1, 1,
+		0.90 + 0.10 * math.sin(self.clock * 3.4)))
+	local sweep = (math.sin(self.clock * 0.55) + 1) * 0.5
+	gui.set_position(gui.get_node("scanline"),
+		vmath.vector3(96, 720 - (106 + 8 + sweep * 479), 0))
+	gui.set_color(gui.get_node("scanline"),
+		vmath.vector4(0.65, 0.95, 0.9, 0.10 + 0.22 * sweep))
+
+	if self.flash > 0 then
+		self.flash = math.max(0, self.flash - dt * 2.2)
+		local g = 0.55 + 0.35 * self.flash
+		gui.set_color(gui.get_node("hint"), vmath.vector4(0.95, g, 0.45 + 0.4 * self.flash, 1))
+	end
 end
 
 function on_input(self, action_id, action)
-	if action_id ~= hash("touch") or not action.pressed then
-		return false
-	end
-	if gui.pick_node(gui.get_node("card"), action.x, action.y) then
-		self.profession = draw_profession()
-		gui.set_text(gui.get_node("card_name"), self.profession)
+	-- Any press counts.  If the touch trigger is misfiled in the input binding
+	-- the build still answers, and the hint line prints the raw coordinates so
+	-- the next screenshot tells us which coordinate space the engine reports.
+	if action.pressed then
+		tap(self, action.x, action.y, "input")
 		return true
 	end
-	self.channel = (self.channel + 1) % #CAPTIONS
-	self.reel = 0
-	self.reel_clock = 0
-	set_panel(self)
-	return true
+	return false
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("tap") then
+		tap(self, message and message.x, message and message.y, "message")
+	end
 end

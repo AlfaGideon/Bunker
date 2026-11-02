@@ -7,6 +7,10 @@ on:
       - 'defold/**'
       - 'tools/export_defold_data.py'
       - 'tools/check_defold_files.py'
+      - 'tools/test_defold_gui.py'
+      - 'tools/gen_camp_gui.py'
+      - 'tools/preview_defold_layout.py'
+      - 'tools/make_defold_card_back.py'
       - '.github/workflows/defold-build.yml'
 permissions:
   contents: write
@@ -14,7 +18,9 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      RELEASE: defold-1
+      RELEASE: defold-2
+      APK_NAME: Bunker-Defold-2.apk
+      RELEASE_TITLE: Бункер — Defold-сборка 2 (экспериментальная)
       BOB_VERSION: '1.14.0'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -26,10 +32,16 @@ jobs:
           java-version: '25'
       - name: Check the exported content
         run: python3 tools/export_defold_data.py --check
+      - name: Check the generated layout
+        run: python3 tools/gen_camp_gui.py --check
       - name: Check the Defold resources
         run: |
           python3 -m pip install --quiet grpcio-tools
           python3 tools/check_defold_files.py
+      - name: Smoke-test the camp script
+        run: |
+          python3 -m pip install --quiet lupa
+          python3 tools/test_defold_gui.py
       - name: Fetch bob
         run: |
           set -uo pipefail
@@ -111,8 +123,7 @@ jobs:
           else
             echo "apksigner not found in $sdk" >> dist/verify.txt
           fi
-          cp "$apk" dist/Bunker-Defold-1.apk
-          cp "$apk" dist/bunker-defold-1.apk
+          cp "$apk" "dist/$APK_NAME"
           cat dist/verify.txt
       - name: Publish the APK
         env:
@@ -120,26 +131,26 @@ jobs:
         run: |
           exec > >(tee /tmp/publish.log) 2>&1
           set -euo pipefail
-          apk=dist/Bunker-Defold-1.apk
+          apk="dist/$APK_NAME"
           [ -f "$apk" ] || { echo "::error::no APK to publish"; exit 1; }
           sha256sum dist/*.apk > dist/SHA256SUMS
-          notes="Отдельная сборка на движке Defold, пакет org.bunker.defold: ставится рядом с основной игрой. Блок 1 порта — лагерь, плазменная панель с заставкой логотипа, аниме-канал, рекламный блок и карточка профессии из общего data/content.json."
+          notes="Отдельная сборка на движке Defold, пакет org.bunker.defold: ставится рядом с основной игрой. Блок 1 порта — лагерь, плазменная панель с заставкой логотипа, аниме-канал, рекламный блок и карточка профессии из общего data/content.json. Сборка 2 исправляет то, из-за чего первая сборка выглядела статичной картинкой: экран загрузки с логотипом, ответ на касания (счётчик тапов в нижней строке), правильная раскладка узлов (панель, подпись и карточка на своих местах, без обрезки за краем экрана)."
           if [ -f dist/verify.txt ]; then
             notes=$(printf '%s\n\n```\n%s\n```\n' "$notes" "$(cat dist/verify.txt)")
           fi
           if ! gh release view "$RELEASE" >/dev/null 2>&1; then
             gh release create "$RELEASE" \
-              --title "Бункер — Defold-сборка 1 (экспериментальная)" \
+              --title "$RELEASE_TITLE" \
               --notes "$notes" --prerelease
           fi
           gh release edit "$RELEASE" --notes "$notes"
-          for asset in dist/Bunker-Defold-1.apk dist/SHA256SUMS; do
+          for asset in "dist/$APK_NAME" dist/SHA256SUMS; do
             gh release upload "$RELEASE" "$asset" --clobber \
               || echo "::warning title=upload::$asset did not upload"
           done
           gh release view "$RELEASE" --json assets -q '.assets[] | "\(.name) \(.size)"'
           names=$(gh release view "$RELEASE" --json assets -q '.assets[].name')
-          if ! echo "$names" | grep -q "Bunker-Defold-1.apk"; then
+          if ! echo "$names" | grep -qF "$APK_NAME"; then
             echo "::error::the release carries no APK"
             exit 1
           fi

@@ -1,0 +1,22 @@
+-- Game object script for the camp scene.
+--
+-- Its only jobs: hold input focus for the game object (so the gui component is
+-- fed touch events on Android) and forward every press into the gui as a
+-- "tap" message.  defold-1 shipped without this and on device the screen was
+-- completely unresponsive -- a gui script alone is not guaranteed to be fed
+-- input before the game object has focus.
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+end
+
+function on_input(self, action_id, action)
+	-- Any action that produces a press counts as a tap.  The action name from
+	-- input/game.input_binding is intentionally not checked here: a misnamed
+	-- binding must not turn the screen into a picture again.
+	if action.pressed then
+		msg.post("#camp", "tap", { x = action.x, y = action.y })
+		return true
+	end
+	return false
+end

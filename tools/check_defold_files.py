@@ -6,6 +6,7 @@ in a second; see defold/proto/README.md for the source and licence.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -40,6 +41,29 @@ PACKAGES = {
 def _quoted(line: str) -> str:
     parts = line.split('"')
     return parts[1] if len(parts) > 2 else ''
+
+
+def _flipbook_names(script: str) -> set[str]:
+    """Strings handed to hash() inside a play_flipbook(...) call.
+
+    The call is often wrapped over two lines and its argument may be a
+    conditional ("anime_1" or "anime_2"), so hash(...) spans are collected and
+    every quoted string inside them counts as an animation name.
+    """
+    names: set[str] = set()
+    for match in re.finditer(r"play_flipbook\(", script):
+        depth = 1
+        i = match.end()
+        while i < len(script) and depth:
+            if script[i] == "(":
+                depth += 1
+            elif script[i] == ")":
+                depth -= 1
+            i += 1
+        span = script[match.end():i]
+        for call in re.finditer(r"hash\(([^)]*)\)", span):
+            names.update(re.findall(r'"([^"]+)"', call.group(1)))
+    return names
 
 
 def check_references() -> int:
@@ -77,6 +101,22 @@ def check_references() -> int:
             if value not in known:
                 failures += 1
                 print(f'FAIL defold/main/camp.gui: {field} "{value}" is not registered')
+
+    # Every node and flipbook the script touches must exist: a nil node aborts
+    # init()/update() and the screen freezes on its first frame -- which is
+    # exactly what the first device run of this build looked like.
+    script = (ROOT / "defold" / "main" / "camp.gui_script").read_text(encoding="utf-8")
+    node_ids = set(re.findall(r'^\s*id: "([^"]+)"', gui, re.M))
+    for used in sorted(set(re.findall(r'get_node\("([^"]+)"\)', script))):
+        if used not in node_ids:
+            failures += 1
+            print(f'FAIL defold/main/camp.gui_script: get_node("{used}") has no such node')
+    atlas = (ROOT / "defold" / "main" / "camp.atlas").read_text(encoding="utf-8")
+    animations = set(re.findall(r'^\s*id: "([^"]+)"', atlas, re.M))
+    for used in sorted(_flipbook_names(script)):
+        if used not in animations:
+            failures += 1
+            print(f'FAIL defold/main/camp.gui_script: flipbook hash("{used}") is not an atlas animation')
 
     checks = [
         ("defold/main/camp.atlas", "image:"),

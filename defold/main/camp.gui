@@ -18,16 +18,36 @@ nodes {
   id: "sky"
   position {
     x: 0
-    y: 0
+    y: 720
   }
   size {
     x: 1280
     y: 720
   }
   color {
-    x: 0.045
+    x: 0.043
     y: 0.09
-    z: 0.115
+    z: 0.114
+    w: 1.0
+  }
+  pivot: PIVOT_NW
+  blend_mode: BLEND_MODE_ALPHA
+}
+nodes {
+  type: TYPE_BOX
+  id: "ground_far"
+  position {
+    x: 0
+    y: 234
+  }
+  size {
+    x: 1280
+    y: 34
+  }
+  color {
+    x: 0.086
+    y: 0.149
+    z: 0.133
     w: 1.0
   }
   pivot: PIVOT_NW
@@ -38,16 +58,16 @@ nodes {
   id: "ground"
   position {
     x: 0
-    y: 512
+    y: 200
   }
   size {
     x: 1280
-    y: 208
+    y: 200
   }
   color {
     x: 0.075
-    y: 0.13
-    z: 0.115
+    y: 0.129
+    z: 0.114
     w: 1.0
   }
   pivot: PIVOT_NW
@@ -55,59 +75,19 @@ nodes {
 }
 nodes {
   type: TYPE_BOX
-  id: "fire"
-  position {
-    x: 604
-    y: 548
-  }
-  size {
-    x: 72
-    y: 26
-  }
-  color {
-    x: 1.0
-    y: 0.62
-    z: 0.32
-    w: 0.75
-  }
-  pivot: PIVOT_NW
-  blend_mode: BLEND_MODE_ADD
-}
-nodes {
-  type: TYPE_BOX
-  id: "fire_core"
-  position {
-    x: 620
-    y: 542
-  }
-  size {
-    x: 40
-    y: 14
-  }
-  color {
-    x: 1.0
-    y: 0.86
-    z: 0.55
-    w: 0.9
-  }
-  pivot: PIVOT_NW
-  blend_mode: BLEND_MODE_ADD
-}
-nodes {
-  type: TYPE_BOX
   id: "panel_frame"
   position {
-    x: 244
-    y: 116
+    x: 90
+    y: 620
   }
   size {
-    x: 792
-    y: 456
+    x: 892
+    y: 508
   }
   color {
     x: 0.11
-    y: 0.13
-    z: 0.14
+    y: 0.129
+    z: 0.141
     w: 1.0
   }
   pivot: PIVOT_NW
@@ -118,16 +98,36 @@ nodes {
   id: "panel"
   texture: "atlas"
   position {
-    x: 260
-    y: 130
+    x: 96
+    y: 614
   }
   size {
-    x: 760
-    y: 428
+    x: 880
+    y: 495
   }
   pivot: PIVOT_NW
   adjust_mode: ADJUST_MODE_FIT
   blend_mode: BLEND_MODE_ALPHA
+}
+nodes {
+  type: TYPE_BOX
+  id: "scanline"
+  position {
+    x: 96
+    y: 420
+  }
+  size {
+    x: 880
+    y: 4
+  }
+  color {
+    x: 0.65
+    y: 0.95
+    z: 0.9
+    w: 0.28
+  }
+  pivot: PIVOT_NW
+  blend_mode: BLEND_MODE_ADD
 }
 nodes {
   type: TYPE_TEXT
@@ -135,11 +135,11 @@ nodes {
   text: "БУНКЕР • ПОСЛЕДНИЙ ШЛЮЗ"
   font: "title"
   position {
-    x: 24
-    y: 22
+    x: 28
+    y: 712
   }
   size {
-    x: 900
+    x: 1000
     y: 50
   }
   color {
@@ -148,19 +148,20 @@ nodes {
     z: 0.92
     w: 1.0
   }
-    xanchor: XANCHOR_LEFT
-    yanchor: YANCHOR_TOP
-    pivot: PIVOT_NW
-    blend_mode: BLEND_MODE_ALPHA
+  pivot: PIVOT_NW
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_TOP
+  line_break: true
+  blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_TEXT
   id: "subtitle"
-  text: "DEFOLD-СБОРКА · БЛОК 1: ЛАГЕРЬ И ПЛАЗМЕННАЯ ПАНЕЛЬ"
+  text: "DEFOLD-СБОРКА · БЛОК 1: ЛАГЕРЬ И ПЛАЗМА-ПАНЕЛЬ"
   font: "body"
   position {
-    x: 24
-    y: 74
+    x: 28
+    y: 662
   }
   size {
     x: 1000
@@ -172,23 +173,24 @@ nodes {
     z: 0.75
     w: 1.0
   }
-    xanchor: XANCHOR_LEFT
-    yanchor: YANCHOR_TOP
-    pivot: PIVOT_NW
-    blend_mode: BLEND_MODE_ALPHA
+  pivot: PIVOT_NW
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_TOP
+  line_break: true
+  blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_TEXT
   id: "caption"
-  text: "ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА"
+  text: "ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА\nнажми — включить кино"
   font: "body"
   position {
-    x: 640
-    y: 590
+    x: 96
+    y: 112
   }
   size {
-    x: 780
-    y: 60
+    x: 880
+    y: 58
   }
   color {
     x: 0.75
@@ -196,23 +198,23 @@ nodes {
     z: 0.87
     w: 1.0
   }
-    xanchor: XANCHOR_NONE
-    yanchor: YANCHOR_TOP
-    pivot: PIVOT_N
-    line_break: true
-    blend_mode: BLEND_MODE_ALPHA
+  pivot: PIVOT_NW
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_TOP
+  line_break: true
+  blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_BOX
   id: "card"
   texture: "atlas"
   position {
-    x: 1076
-    y: 116
+    x: 1030
+    y: 620
   }
   size {
-    x: 170
-    y: 250
+    x: 196
+    y: 280
   }
   pivot: PIVOT_NW
   adjust_mode: ADJUST_MODE_FIT
@@ -224,11 +226,11 @@ nodes {
   text: "ПРОФЕССИЯ"
   font: "body"
   position {
-    x: 1161
-    y: 382
+    x: 1128
+    y: 432
   }
   size {
-    x: 200
+    x: 196
     y: 80
   }
   color {
@@ -237,24 +239,24 @@ nodes {
     z: 0.45
     w: 1.0
   }
-    xanchor: XANCHOR_NONE
-    yanchor: YANCHOR_TOP
-    pivot: PIVOT_N
-    line_break: true
-    blend_mode: BLEND_MODE_ALPHA
+  pivot: PIVOT_N
+  xanchor: XANCHOR_NONE
+  yanchor: YANCHOR_TOP
+  line_break: true
+  blend_mode: BLEND_MODE_ALPHA
 }
 nodes {
   type: TYPE_TEXT
   id: "hint"
-  text: "Тап по экрану — сменить канал · тап по карте — новая профессия"
+  text: "тап — сменить канал · тап по карте — новая профессия"
   font: "body"
   position {
-    x: 24
-    y: 668
+    x: 28
+    y: 42
   }
   size {
-    x: 1000
-    y: 34
+    x: 1224
+    y: 32
   }
   color {
     x: 0.42
@@ -262,8 +264,79 @@ nodes {
     z: 0.55
     w: 1.0
   }
-    xanchor: XANCHOR_LEFT
-    yanchor: YANCHOR_TOP
-    pivot: PIVOT_NW
-    blend_mode: BLEND_MODE_ALPHA
+  pivot: PIVOT_NW
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_TOP
+  line_break: true
+  blend_mode: BLEND_MODE_ALPHA
+}
+nodes {
+  type: TYPE_BOX
+  id: "splash"
+  position {
+    x: 0
+    y: 720
+  }
+  size {
+    x: 1280
+    y: 720
+  }
+  color {
+    x: 0.043
+    y: 0.09
+    z: 0.114
+    w: 1.0
+  }
+  pivot: PIVOT_NW
+  blend_mode: BLEND_MODE_ALPHA
+}
+nodes {
+  type: TYPE_TEXT
+  id: "splash_title"
+  text: "BUNKER"
+  font: "title"
+  position {
+    x: 640
+    y: 452
+  }
+  size {
+    x: 640
+    y: 90
+  }
+  color {
+    x: 0.87
+    y: 0.95
+    z: 0.92
+    w: 1.0
+  }
+  pivot: PIVOT_N
+  xanchor: XANCHOR_NONE
+  yanchor: YANCHOR_TOP
+  line_break: true
+  blend_mode: BLEND_MODE_ALPHA
+}
+nodes {
+  type: TYPE_TEXT
+  id: "splash_sub"
+  text: "ПОСЛЕДНИЙ ШЛЮЗ · ЗАГРУЗКА ЛАГЕРЯ"
+  font: "body"
+  position {
+    x: 640
+    y: 352
+  }
+  size {
+    x: 720
+    y: 40
+  }
+  color {
+    x: 0.55
+    y: 0.78
+    z: 0.75
+    w: 1.0
+  }
+  pivot: PIVOT_N
+  xanchor: XANCHOR_NONE
+  yanchor: YANCHOR_TOP
+  line_break: true
+  blend_mode: BLEND_MODE_ALPHA
 }

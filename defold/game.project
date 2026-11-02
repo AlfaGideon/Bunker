@@ -1,6 +1,6 @@
 [project]
 title = Bunker — Последний шлюз (Defold)
-version = 0.51.1
+version = 0.51.2
 write_log = 0
 
 [bootstrap]
@@ -23,7 +23,7 @@ use_accelerometer = 0
 
 [android]
 package = org.bunker.defold
-version_code = 1
+version_code = 2
 minimum_sdk_version = 21
 target_sdk_version = 34
 
