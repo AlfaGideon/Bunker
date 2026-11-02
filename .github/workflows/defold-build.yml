@@ -85,6 +85,12 @@ jobs:
             bundle --variant debug > /tmp/bundle-release.log 2>&1 || true
           fi
           tail -n 5 /tmp/bundle-release.log
+          {
+            echo "### Defold bundle"
+            echo '```'
+            tail -n 25 /tmp/bundle-release.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
           find "$RUNNER_TEMP/bundle" -name '*.apk' -printf '%p %s bytes\n'
       - name: Verify the APK
         run: |
@@ -144,15 +150,3 @@ jobs:
           path: |
             dist/*.apk
             dist/verify.txt
-      - name: Keep the build log for inspection
-        if: always()
-        run: |
-          set -uo pipefail
-          cp /tmp/bundle-release.log defold-build.log 2>/dev/null || echo "no bundle log" > defold-build.log
-          cp /tmp/publish.log defold-publish.log 2>/dev/null || echo "no publish log" > defold-publish.log
-          git config user.email "ci@bunker.local"
-          git config user.name "Defold CI"
-          git checkout -q -B ci-defold-log
-          git add -f defold-build.log defold-publish.log
-          git commit -q -m "defold build log for ${GITHUB_SHA}" || true
-          git push -q -f origin ci-defold-log || true

@@ -17,3 +17,9 @@ BUNKER_*.txt
 
 # Generated Godot Android Gradle template
 android/
+
+# Defold build output
+defold/build/
+defold/.internal/
+defold-build.log
+defold-publish.log
