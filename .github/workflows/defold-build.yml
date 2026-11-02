@@ -127,9 +127,16 @@ jobs:
               --notes "$notes" --prerelease
           fi
           gh release edit "$RELEASE" --notes "$notes"
-          for asset in dist/Bunker-Defold-1.apk dist/bunker-defold-1.apk dist/SHA256SUMS; do
-            gh release upload "$RELEASE" "$asset" --clobber
+          for asset in dist/Bunker-Defold-1.apk dist/SHA256SUMS; do
+            gh release upload "$RELEASE" "$asset" --clobber \
+              || echo "::warning title=upload::$asset did not upload"
           done
+          gh release view "$RELEASE" --json assets -q '.assets[] | "\(.name) \(.size)"'
+          names=$(gh release view "$RELEASE" --json assets -q '.assets[].name')
+          if ! echo "$names" | grep -q "Bunker-Defold-1.apk"; then
+            echo "::error::the release carries no APK"
+            exit 1
+          fi
       - name: Keep the APK as an artifact
         uses: actions/upload-artifact@v4
         with:
