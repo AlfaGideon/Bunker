@@ -86,30 +86,57 @@ jobs:
           fi
           tail -n 5 /tmp/bundle-release.log
           find "$RUNNER_TEMP/bundle" -name '*.apk' -printf '%p %s bytes\n'
+      - name: Verify the APK
+        run: |
+          set -uo pipefail
+          apk=$(find "$RUNNER_TEMP/bundle" -name '*.apk' | head -1)
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          aapt=$(ls "$sdk"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
+          signer=$(ls "$sdk"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          mkdir -p dist
+          : > dist/verify.txt
+          if [ -n "$aapt" ]; then
+            "$aapt" dump badging "$apk" 2>&1 | head -3 >> dist/verify.txt
+          else
+            echo "aapt2 not found in $sdk" >> dist/verify.txt
+          fi
+          if [ -n "$signer" ]; then
+            "$signer" verify --print-certs "$apk" 2>&1 | grep -E "Signer|SHA-256|DN" >> dist/verify.txt || true
+          else
+            echo "apksigner not found in $sdk" >> dist/verify.txt
+          fi
+          cp "$apk" dist/Bunker-Defold-1.apk
+          cp "$apk" dist/bunker-defold-1.apk
+          cat dist/verify.txt
       - name: Publish the APK
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           exec > >(tee /tmp/publish.log) 2>&1
           set -euo pipefail
-          apk=$(find "$RUNNER_TEMP/bundle" -name '*.apk' | head -1)
-          [ -n "$apk" ] || { echo "::error::bob produced no APK"; exit 1; }
-          mkdir -p dist
-          cp "$apk" "dist/Bunker-Defold-1.apk"
-          cp "$apk" "dist/bunker-defold-1.apk"
+          apk=dist/Bunker-Defold-1.apk
+          [ -f "$apk" ] || { echo "::error::no APK to publish"; exit 1; }
           sha256sum dist/*.apk > dist/SHA256SUMS
+          notes="Отдельная сборка на движке Defold, пакет org.bunker.defold: ставится рядом с основной игрой. Блок 1 порта — лагерь, плазменная панель с заставкой логотипа, аниме-канал, рекламный блок и карточка профессии из общего data/content.json."
+          if [ -f dist/verify.txt ]; then
+            notes=$(printf '%s\n\n```\n%s\n```\n' "$notes" "$(cat dist/verify.txt)")
+          fi
           if ! gh release view "$RELEASE" >/dev/null 2>&1; then
             gh release create "$RELEASE" \
               --title "Бункер — Defold-сборка 1 (экспериментальная)" \
-              --notes "Отдельная сборка на движке Defold, пакет org.bunker.defold: ставится рядом с основной игрой. Блок 1 порта — лагерь, плазменная панель с заставкой логотипа, аниме-канал, рекламный блок и карточка профессии из общего data/content.json." \
-              --prerelease
+              --notes "$notes" --prerelease
           fi
-          gh release upload "$RELEASE" dist/Bunker-Defold-1.apk dist/bunker-defold-1.apk dist/SHA256SUMS --clobber
+          gh release edit "$RELEASE" --notes "$notes"
+          for asset in dist/Bunker-Defold-1.apk dist/bunker-defold-1.apk dist/SHA256SUMS; do
+            gh release upload "$RELEASE" "$asset" --clobber
+          done
       - name: Keep the APK as an artifact
         uses: actions/upload-artifact@v4
         with:
           name: defold-apk
-          path: dist/*.apk
+          path: |
+            dist/*.apk
+            dist/verify.txt
       - name: Keep the build log for inspection
         if: always()
         run: |
