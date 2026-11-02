@@ -62,7 +62,7 @@ jobs:
               --platform armv7-android \
               --architectures arm64-android,armv7-android \
               --variant "$1" \
-              --bundle-output build/bob \
+              --bundle-output "$RUNNER_TEMP/bundle" \
               --keystore "$RUNNER_TEMP/bunker.keystore" \
               --keystore-pass "$KEYSTORE_PASS" \
               --keystore-alias "$KEY_ALIAS" \
@@ -77,16 +77,16 @@ jobs:
               --platform armv7-android \
               --architectures arm64-android,armv7-android \
               --variant debug \
-              --bundle-output build/bob \
+              --bundle-output "$RUNNER_TEMP/bundle" \
               resolve build bundle
           fi
-          find build -name '*.apk' -printf '%p %s bytes\n'
+          find "$RUNNER_TEMP/bundle" -name '*.apk' -printf '%p %s bytes\n'
       - name: Publish the APK
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          apk=$(find defold/build -name '*.apk' | head -1)
+          apk=$(find "$RUNNER_TEMP/bundle" -name '*.apk' | head -1)
           [ -n "$apk" ] || { echo "::error::bob produced no APK"; exit 1; }
           mkdir -p dist
           cp "$apk" "dist/Bunker-Defold-1.apk"
