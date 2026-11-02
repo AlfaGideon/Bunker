@@ -24,12 +24,20 @@ jobs:
       - name: Check the exported content
         run: python3 tools/export_defold_data.py --check
       - name: Fetch bob
+        env:
+          BOB_VERSION: '1.14.0'
         run: |
-          set -euo pipefail
-          sha=$(curl -fsSL https://d.defold.com/stable/info.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha1"])')
-          echo "Defold engine: $sha"
-          curl -fsSL -o "$RUNNER_TEMP/bob.jar" "https://d.defold.com/archive/$sha/bob/bob.jar"
-          java -jar "$RUNNER_TEMP/bob.jar" --version
+          set -uo pipefail
+          url="https://github.com/defold/defold/releases/download/${BOB_VERSION}/bob.jar"
+          if ! curl -fL --retry 3 -o "$RUNNER_TEMP/bob.jar" "$url"; then
+            echo "::error title=bob.jar::GitHub asset $url could not be downloaded"
+            exit 1
+          fi
+          ls -l "$RUNNER_TEMP/bob.jar"
+          java -jar "$RUNNER_TEMP/bob.jar" --version || {
+            echo "::error title=bob.jar::bob did not start"
+            exit 1
+          }
       - name: Restore the signing key
         env:
           KEY: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
@@ -60,7 +68,9 @@ jobs:
           }
           if ! bundle release 2>&1 | tee /tmp/bundle-release.log; then
             echo "::warning::Release bundling failed, falling back to a debug build."
-            grep -E "ERROR|error|Exception" /tmp/bundle-release.log | tail -20 || true
+            tail -c 2500 /tmp/bundle-release.log | while IFS= read -r line; do
+              echo "::error title=release bundle::$line"
+            done
             java -jar "$RUNNER_TEMP/bob.jar" \
               --platform armv7-android \
               --architectures arm64-android,armv7-android \
