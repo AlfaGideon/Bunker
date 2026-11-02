@@ -74,9 +74,10 @@ jobs:
           }
           if ! bundle release 2>&1 | tee /tmp/bundle-release.log; then
             echo "::warning::Release bundling failed, falling back to a debug build."
-            tail -c 2500 /tmp/bundle-release.log | while IFS= read -r line; do
+            grep -aE "ERROR|Exception|error:|Failed|failed" /tmp/bundle-release.log | tail -30 > /tmp/errors.txt || true
+            while IFS= read -r line; do
               echo "::error title=release bundle::$line"
-            done
+            done < /tmp/errors.txt
             java -jar "$RUNNER_TEMP/bob.jar" \
               --platform armv7-android \
               --architectures arm64-android,armv7-android \
@@ -108,3 +109,15 @@ jobs:
         with:
           name: defold-apk
           path: dist/*.apk
+
+      - name: Keep the build log for inspection
+        if: always()
+        run: |
+          set -uo pipefail
+          cp /tmp/bundle-release.log defold-build.log 2>/dev/null || echo "no bundle log" > defold-build.log
+          git config user.email "ci@bunker.local"
+          git config user.name "Defold CI"
+          git checkout -q -B ci-defold-log
+          git add -f defold-build.log
+          git commit -q -m "defold build log for ${GITHUB_SHA}" || true
+          git push -q -f origin ci-defold-log || true
