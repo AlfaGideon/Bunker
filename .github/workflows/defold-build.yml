@@ -34,9 +34,11 @@ jobs:
             exit 1
           fi
           ls -l "$RUNNER_TEMP/bob.jar"
-          java -version 2>&1 | while IFS= read -r line; do echo "::notice title=java::$line"; done
-          out=$(java -jar "$RUNNER_TEMP/bob.jar" --version 2>&1)
-          echo "$out" | head -20 | while IFS= read -r line; do echo "::notice title=bob::$line"; done
+          java -version > /tmp/java-version.txt 2>&1 || true
+          while IFS= read -r line; do echo "::notice title=java::$line"; done < /tmp/java-version.txt
+          java -jar "$RUNNER_TEMP/bob.jar" --version > /tmp/bob-version.txt 2>&1 || true
+          head -20 /tmp/bob-version.txt > /tmp/bob-version-head.txt || true
+          while IFS= read -r line; do echo "::notice title=bob::$line"; done < /tmp/bob-version-head.txt
       - name: Restore the signing key
         env:
           KEY: ${{ secrets.BUNKER_KEYSTORE_BASE64 }}
