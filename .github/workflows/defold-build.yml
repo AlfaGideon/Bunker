@@ -66,6 +66,7 @@ jobs:
               --platform armv7-android \
               --architectures arm64-android,armv7-android \
               --variant "$1" \
+              --archive \
               --bundle-output "$RUNNER_TEMP/bundle" \
               --keystore "$RUNNER_TEMP/bunker.keystore" \
               --keystore-pass "$KEYSTORE_PASS" \
@@ -82,6 +83,7 @@ jobs:
               --platform armv7-android \
               --architectures arm64-android,armv7-android \
               --variant debug \
+              --archive \
               --bundle-output "$RUNNER_TEMP/bundle" \
               resolve build bundle
           fi
