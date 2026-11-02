@@ -5,6 +5,14 @@ textures {
   name: "atlas"
   texture: "/main/camp.atlas"
 }
+fonts {
+  name: "body"
+  font: "/main/fonts/dejavu.font"
+}
+fonts {
+  name: "title"
+  font: "/main/fonts/dejavu_bold.font"
+}
 nodes {
   type: TYPE_BOX
   id: "sky"
@@ -125,7 +133,7 @@ nodes {
   type: TYPE_TEXT
   id: "title"
   text: "БУНКЕР • ПОСЛЕДНИЙ ШЛЮЗ"
-  font: "/main/fonts/dejavu_bold.font"
+  font: "title"
   position {
     x: 24
     y: 22
@@ -149,7 +157,7 @@ nodes {
   type: TYPE_TEXT
   id: "subtitle"
   text: "DEFOLD-СБОРКА · БЛОК 1: ЛАГЕРЬ И ПЛАЗМЕННАЯ ПАНЕЛЬ"
-  font: "/main/fonts/dejavu.font"
+  font: "body"
   position {
     x: 24
     y: 74
@@ -173,7 +181,7 @@ nodes {
   type: TYPE_TEXT
   id: "caption"
   text: "ТЕЛЕВИЗОР · ЗАСТАВКА ЛОГОТИПА"
-  font: "/main/fonts/dejavu.font"
+  font: "body"
   position {
     x: 640
     y: 590
@@ -214,7 +222,7 @@ nodes {
   type: TYPE_TEXT
   id: "card_name"
   text: "ПРОФЕССИЯ"
-  font: "/main/fonts/dejavu.font"
+  font: "body"
   position {
     x: 1161
     y: 382
@@ -239,7 +247,7 @@ nodes {
   type: TYPE_TEXT
   id: "hint"
   text: "Тап по экрану — сменить канал · тап по карте — новая профессия"
-  font: "/main/fonts/dejavu.font"
+  font: "body"
   position {
     x: 24
     y: 668

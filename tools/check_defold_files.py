@@ -37,6 +37,72 @@ PACKAGES = {
 }
 
 
+def _quoted(line: str) -> str:
+    parts = line.split('"')
+    return parts[1] if len(parts) > 2 else ''
+
+
+def check_references() -> int:
+    """bob refuses a node that points at a font or atlas that is not registered.
+
+    Registration blocks carry absolute resource paths; nodes carry the short name
+    of a registered texture or font.
+    """
+    failures = 0
+    gui = (ROOT / "defold" / "main" / "camp.gui").read_text(encoding="utf-8")
+    textures: dict[str, str] = {}
+    fonts: dict[str, str] = {}
+    name = ""
+    for line in gui.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("name:"):
+            name = _quoted(stripped)
+        elif stripped.startswith("texture:") and _quoted(stripped).startswith("/"):
+            textures[name] = _quoted(stripped)
+        elif stripped.startswith("font:") and _quoted(stripped).startswith("/"):
+            fonts[name] = _quoted(stripped)
+    for registered in (textures, fonts):
+        for key, path in registered.items():
+            if not (ROOT / "defold" / path.lstrip("/")).exists():
+                failures += 1
+                print(f"FAIL defold/main/camp.gui: '{key}' points at missing {path}")
+    for line in gui.splitlines():
+        stripped = line.strip()
+        for field, known in (("texture:", textures), ("font:", fonts)):
+            if not stripped.startswith(field):
+                continue
+            value = _quoted(stripped)
+            if value.startswith("/"):
+                continue
+            if value not in known:
+                failures += 1
+                print(f'FAIL defold/main/camp.gui: {field} "{value}" is not registered')
+
+    checks = [
+        ("defold/main/camp.atlas", "image:"),
+        ("defold/main/camp.go", "component:"),
+        ("defold/main/main.collection", "prototype:"),
+    ]
+    for path, field in checks:
+        text = (ROOT / path).read_text(encoding="utf-8")
+        for line in text.splitlines():
+            if field in line:
+                target = _quoted(line)
+                if target and not (ROOT / "defold" / target.lstrip("/")).exists():
+                    failures += 1
+                    print(f"FAIL {path}: missing {target}")
+
+    for path in ("defold/main/fonts/dejavu.font", "defold/main/fonts/dejavu_bold.font"):
+        text = (ROOT / path).read_text(encoding="utf-8")
+        for line in text.splitlines():
+            if line.strip().startswith("font:"):
+                target = _quoted(line)
+                if target and not (ROOT / "defold" / target.lstrip("/")).exists():
+                    failures += 1
+                    print(f"FAIL {path}: missing {target}")
+    return failures
+
+
 def main() -> int:
     if not PROTO.is_dir():
         print(f"missing {PROTO}; the schemas live in defold/proto")
@@ -69,6 +135,8 @@ def main() -> int:
         except Exception as error:  # noqa: BLE001 - report every schema mismatch
             failures += 1
             print(f"FAIL {path}: {error}")
+
+    failures += check_references()
 
     project = (ROOT / "defold" / "game.project").read_text(encoding="utf-8")
     for needle in ["main_collection = /main/main.collectionc",
