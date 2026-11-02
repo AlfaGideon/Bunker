@@ -7,12 +7,14 @@ class of bug that shipped in defold-1: a nil node, a bad string.format, an
 empty profession table -- anything that would abort init() or update() on
 device and leave a frozen picture.
 """
-import sys
+import os
 
 from lupa import LuaRuntime
 
-SCRIPT = "/home/user/Bunker/defold/main/camp.gui_script"
-CONTENT = "/home/user/Bunker/defold/main/data/content.lua"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPT = os.path.join(ROOT, "defold", "main", "camp.gui_script")
+GO_SCRIPT = os.path.join(ROOT, "defold", "main", "camp.script")
+CONTENT = os.path.join(ROOT, "defold", "main", "data", "content.lua")
 
 lua = LuaRuntime(unpack_returned_tuples=True)
 G = lua.globals()
@@ -150,7 +152,7 @@ assert professions >= 70, professions
 
 # --- the game object script that forwards taps --------------------------
 lua.execute("posted = {}")
-with open("/home/user/Bunker/defold/main/camp.script", encoding="utf-8") as fh:
+with open(GO_SCRIPT, encoding="utf-8") as fh:
     go_src = fh.read()
 assert lua.eval("function(s) return load(s) end")(go_src) is not None, "camp.script does not compile"
 lua.execute(go_src)
